@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PHYSICA — 物理シミュレーション黒板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #23322B;
+    --bg-deep: #182420;
+    --chalk: #F2EFE6;
+    --chalk-dim: #AFC0B6;
+    --chalk-faint: #7C8C83;
+    --blue: #86B6D8;
+    --yellow: #E8C468;
+    --line: rgba(242,239,230,0.09);
+    --line-strong: rgba(242,239,230,0.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(242,239,230,0.05), transparent 40%),
+      radial-gradient(ellipse at 100% 110%, rgba(134,182,216,0.06), transparent 45%),
+      var(--bg);
+    color:var(--chalk);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  .wrap{max-width:920px; margin:0 auto; padding:48px 20px 60px;}
+
+  header{text-align:center; margin-bottom:28px;}
+  .eyebrow{font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.08em; color:var(--chalk-faint);}
+  h1{font-family:'Caveat',cursive; font-weight:700; font-size:64px; margin:6px 0 4px; color:var(--chalk); text-shadow:0 0 18px rgba(242,239,230,0.08);}
+  .tagline{color:var(--chalk-dim); font-size:15px;}
+
+  .tabs{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:32px 0 20px;}
+  .tab{
+    font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.03em;
+    background:transparent; color:var(--chalk-dim);
+    border:1px solid var(--line-strong); border-radius:6px;
+    padding:9px 16px; cursor:pointer; transition:border-color .15s, color .15s, background .15s;
+  }
+  .tab:hover{ color:var(--chalk); border-color:var(--chalk-dim); }
+  .tab.active{ color:var(--bg-deep); background:var(--yellow); border-color:var(--yellow); font-weight:700; }
+
+  .stage{
+    background:var(--bg-deep);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:20px;
+  }
+  .stage-head{display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:12px;}
+  .stage-title{font-family:'Caveat',cursive; font-size:28px; color:var(--yellow);}
+  .stage-eq{font-family:'Space Mono',monospace; font-size:13px; color:var(--blue);}
+
+  canvas.sim{
+    width:100%; height:min(56vw,420px); display:block;
+    background:
+      repeating-linear-gradient(0deg, var(--line) 0 1px, transparent 1px 40px),
+      repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 40px);
+    border-radius:6px; touch-action:none; cursor:grab;
+  }
+  canvas.sim:active{ cursor:grabbing; }
+
+  .controls{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:16px 24px; margin-top:18px;
+  }
+  .ctrl label{
+    display:flex; justify-content:space-between;
+    font-family:'Space Mono',monospace; font-size:11px; color:var(--chalk-dim);
+    margin-bottom:6px;
+  }
+  .ctrl label b{ color:var(--chalk); font-weight:700; }
+  input[type=range]{
+    -webkit-appearance:none; width:100%; height:2px; background:var(--line-strong); border-radius:2px; outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+    background:var(--yellow); cursor:pointer; border:2px solid var(--bg-deep);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:14px; height:14px; border-radius:50%; background:var(--yellow); border:2px solid var(--bg-deep); cursor:pointer;
+  }
+
+  .row-bottom{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:18px; flex-wrap:wrap;}
+  button.reset{
+    font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.05em;
+    color:var(--chalk); background:transparent;
+    border:1px solid var(--line-strong); border-radius:4px;
+    padding:8px 14px; cursor:pointer; text-transform:uppercase;
+    transition: border-color .15s, color .15s;
+  }
+  button.reset:hover{ border-color:var(--yellow); color:var(--yellow); }
+  .hint{
+    font-family:'Space Mono',monospace; font-size:10.5px; color:var(--chalk-faint);
+  }
+
+  footer{
+    text-align:center; margin-top:40px;
+    font-family:'Space Mono',monospace; font-size:11px; color:var(--chalk-faint);
+  }
+
+  @media (prefers-reduced-motion: reduce){ * { animation:none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">a chalkboard of classical mechanics</div>
+    <h1>Physica</h1>
+    <div class="tagline">見て、触って、確かめる物理シミュレーション</div>
+  </header>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-sim="gravity">重力とバウンド</button>
+    <button class="tab" data-sim="pendulum">振り子</button>
+    <button class="tab" data-sim="collision">衝突</button>
+    <button class="tab" data-sim="spring">バネ振動</button>
+  </div>
+
+  <div class="stage">
+    <div class="stage-head">
+      <div class="stage-title" id="stageTitle">重力とバウンド</div>
+      <div class="stage-eq" id="stageEq">y(t) = y₀ + v₀t − ½gt²</div>
+    </div>
+    <canvas class="sim" id="simCanvas"></canvas>
+    <div class="controls" id="controls"></div>
+    <div class="row-bottom">
+      <div class="hint" id="hint">ドラッグでボールを弾けます</div>
+      <button class="reset" id="resetBtn">RESET</button>
+    </div>
+  </div>
+
+  <footer>PHYSICA — Vanilla JS canvas simulations, no physics engine, just Newton</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const canvas = document.getElementById('simCanvas');
+  const ctx = canvas.getContext('2d');
+  const controlsEl = document.getElementById('controls');
+  const stageTitle = document.getElementById('stageTitle');
+  const stageEq = document.getElementById('stageEq');
+  const hintEl = document.getElementById('hint');
+  const resetBtn = document.getElementById('resetBtn');
+
+  let W = 0, H = 0, DPR = 1;
+  function fitCanvas(){
+    const rect = canvas.getBoundingClientRect();
+    DPR = window.devicePixelRatio || 1;
+    W = rect.width; H = rect.height;
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', ()=>{ fitCanvas(); if(current) current.onResize && current.onResize(); });
+
+  // -------- chalk drawing helpers --------
+  const COL = {
+    chalk:'#F2EFE6', dim:'rgba(242,239,230,0.55)', faint:'rgba(242,239,230,0.28)',
+    yellow:'#E8C468', blue:'#86B6D8', bg:'#182420'
+  };
+  function chalkCircle(x,y,r,fill){
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle = fill || COL.chalk; ctx.fill();
+    ctx.lineWidth=1; ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.stroke();
+  }
+  function dashedLine(x1,y1,x2,y2,color,dash){
+    ctx.save();
+    ctx.strokeStyle = color || COL.faint;
+    ctx.setLineDash(dash || [5,5]);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.restore();
+  }
+  function label(text,x,y,color,size,align){
+    ctx.font = (size||12)+'px "Space Mono", monospace';
+    ctx.fillStyle = color || COL.dim;
+    ctx.textAlign = align || 'left';
+    ctx.fillText(text,x,y);
+  }
+  function clear(){ ctx.clearRect(0,0,W,H); }
+
+  // -------- slider control builder --------
+  function buildControls(defs, state, onChange){
+    controlsEl.innerHTML = '';
+    defs.forEach(d=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'ctrl';
+      const lab = document.createElement('label');
+      const spanName = document.createElement('span'); spanName.textContent = d.label;
+      const spanVal = document.createElement('b'); spanVal.textContent = d.fmt ? d.fmt(state[d.key]) : state[d.key];
+      lab.appendChild(spanName); lab.appendChild(spanVal);
+      const input = document.createElement('input');
+      input.type = 'range'; input.min = d.min; input.max = d.max; input.step = d.step;
+      input.value = state[d.key];
+      input.addEventListener('input', ()=>{
+        state[d.key] = parseFloat(input.value);
+        spanVal.textContent = d.fmt ? d.fmt(state[d.key]) : state[d.key];
+        onChange && onChange();
+      });
+      wrap.appendChild(lab); wrap.appendChild(input);
+      controlsEl.appendChild(wrap);
+    });
+  }
+
+  // -------- pointer handling (generic) --------
+  function toLocal(evt){
+    const rect = canvas.getBoundingClientRect();
+    const cx = (evt.touches ? evt.touches[0].clientX : evt.clientX) - rect.left;
+    const cy = (evt.touches ? evt.touches[0].clientY : evt.clientY) - rect.top;
+    return {x:cx, y:cy};
+  }
+  function bindPointer(handlers){
+    function down(e){ e.preventDefault(); handlers.down && handlers.down(toLocal(e)); }
+    function move(e){ e.preventDefault(); handlers.move && handlers.move(toLocal(e)); }
+    function up(e){ handlers.up && handlers.up(toLocal(e)); }
+    canvas.addEventListener('mousedown', down);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    canvas.addEventListener('touchstart', down, {passive:false});
+    canvas.addEventListener('touchmove', move, {passive:false});
+    canvas.addEventListener('touchend', up);
+    return function unbind(){
+      canvas.removeEventListener('mousedown', down);
+      canvas.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      canvas.removeEventListener('touchstart', down);
+      canvas.removeEventListener('touchmove', move);
+      canvas.removeEventListener('touchend', up);
+    };
+  }
+
+  // ==================================================================
+  // SIM 1: Gravity & Bounce
+  // ==================================================================
+  function makeGravitySim(){
+    const state = { g: 9.8, e: 0.8 };
+    const PX_PER_M = 45;
+    let ball, dragging=false, dragStart=null, unbind;
+
+    function resetBall(){
+      ball = { x:W*0.3, y:H*0.25, vx:0, vy:0, r:16 };
+    }
+
+    function floorY(){ return H - 14; }
+
+    function step(dt){
+      if(dragging) return;
+      const g = state.g * PX_PER_M;
+      ball.vy += g*dt;
+      ball.x += ball.vx*dt;
+      ball.y += ball.vy*dt;
+      const fy = floorY();
+      if(ball.y + ball.r > fy){
+        ball.y = fy - ball.r;
+        ball.vy = -ball.vy * state.e;
+        ball.vx *= 0.995;
+        if(Math.abs(ball.vy) < 15) ball.vy = 0;
+      }
+      if(ball.x - ball.r < 0){ ball.x = ball.r; ball.vx = -ball.vx*state.e; }
+      if(ball.x + ball.r > W){ ball.x = W - ball.r; ball.vx = -ball.vx*state.e; }
+    }
+
+    function draw(){
+      clear();
+      const fy = floorY();
+      dashedLine(0,fy,W,fy,COL.faint,[6,6]);
+      label('floor', 8, fy-6, COL.faint, 10);
+      const v = Math.hypot(ball.vx, ball.vy)/PX_PER_M;
+      label('v = '+v.toFixed(2)+' m/s', W-10, 20, COL.blue, 12, 'right');
+      if(dragging && dragStart){
+        dashedLine(dragStart.x, dragStart.y, ball.x, ball.y, COL.yellow, [3,4]);
+      }
+      chalkCircle(ball.x, ball.y, ball.r, COL.chalk);
+    }
+
+    function onResize(){ resetBall(); }
+
+    return {
+      title:'重力とバウンド', eq:'y(t) = y₀ + v₀t − ½gt²',
+      hint:'ドラッグしてボールを弾けます',
+      controlDefs:[
+        {key:'g', label:'重力加速度 g', min:1, max:20, step:0.1, fmt:v=>v.toFixed(1)+' m/s²'},
+        {key:'e', label:'反発係数 e', min:0, max:1, step:0.01, fmt:v=>v.toFixed(2)}
+      ],
+      state,
+      init(){
+        resetBall();
+        unbind = bindPointer({
+          down(p){
+            if(Math.hypot(p.x-ball.x,p.y-ball.y) < ball.r+10){ dragging=true; dragStart={x:p.x,y:p.y}; ball.x=p.x; ball.y=p.y; ball.vx=0; ball.vy=0; }
+          },
+          move(p){ if(dragging){ ball.x=p.x; ball.y=p.y; } },
+          up(p){
+            if(dragging){ ball.vx=(p.x-dragStart.x)*6; ball.vy=(p.y-dragStart.y)*6; dragging=false; dragStart=null; }
+          }
+        });
+      },
+      tick(dt){ step(dt); draw(); },
+      onResize,
+      reset(){ resetBall(); },
+      destroy(){ unbind && unbind(); }
+    };
+  }
+
+  // ==================================================================
+  // SIM 2: Pendulum
+  // ==================================================================
+  function makePendulumSim(){
+    const state = { L: 1.5, g: 9.8, damping: 0.05 };
+    const PX_PER_M = 140;
+    let theta, omega, dragging=false, unbind;
+    const pivot = ()=>({x:W/2, y:36});
+
+    function resetPend(){ theta = 0.6; omega = 0; }
+
+    function step(dt){
+      if(dragging) return;
+      const L = state.L;
+      const alpha = -(state.g/L)*Math.sin(theta) - state.damping*omega;
+      omega += alpha*dt;
+      theta += omega*dt;
+    }
+
+    function bobPos(){
+      const p = pivot();
+      const L = state.L * PX_PER_M;
+      return { x: p.x + L*Math.sin(theta), y: p.y + L*Math.cos(theta) };
+    }
+
+    function draw(){
+      clear();
+      const p = pivot();
+      const b = bobPos();
+      dashedLine(p.x, p.y, p.x, p.y + state.L*PX_PER_M, COL.faint, [3,5]);
+      chalkCircle(p.x, p.y, 4, COL.dim);
+      ctx.strokeStyle = COL.chalk; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      chalkCircle(b.x, b.y, 18, COL.yellow);
+      const angleDeg = (theta*180/Math.PI);
+      label('θ = '+angleDeg.toFixed(1)+'°', W-10, 20, COL.blue, 12, 'right');
+      label('ω = '+omega.toFixed(2)+' rad/s', W-10, 38, COL.blue, 12, 'right');
+    }
+
+    return {
+      title:'振り子', eq:'θ\'\'(t) = −(g/L)sinθ − bθ\'',
+      hint:'おもりをドラッグして初期角度を変えられます',
+      controlDefs:[
+        {key:'L', label:'紐の長さ L', min:0.5, max:2.5, step:0.05, fmt:v=>v.toFixed(2)+' m'},
+        {key:'g', label:'重力加速度 g', min:1, max:20, step:0.1, fmt:v=>v.toFixed(1)+' m/s²'},
+        {key:'damping', label:'減衰 b', min:0, max:0.3, step:0.01, fmt:v=>v.toFixed(2)}
+      ],
+      state,
+      init(){
+        resetPend();
+        unbind = bindPointer({
+          down(p){
+            const b = bobPos();
+            if(Math.hypot(p.x-b.x,p.y-b.y) < 28) dragging=true;
+          },
+          move(p){
+            if(dragging){
+              const piv = pivot();
+              theta = Math.atan2(p.x-piv.x, p.y-piv.y);
+              omega = 0;
+            }
+          },
+          up(){ dragging=false; }
+        });
+      },
+      tick(dt){ step(dt); draw(); },
+      reset(){ resetPend(); },
+      destroy(){ unbind && unbind(); }
+    };
+  }
+
+  // ==================================================================
+  // SIM 3: Elastic Collisions (billiard-style)
+  // ==================================================================
+  function makeCollisionSim(){
+    const state = { count: 6, speed: 2.5 };
+    let balls = [], unbind, dragIdx=-1;
+    const PX_PER_M = 60;
+
+    function makeBalls(){
+      balls = [];
+      const n = Math.round(state.count);
+      for(let i=0;i<n;i++){
+        const r = 14;
+        let x,y,tries=0, ok;
+        do{
+          x = r + Math.random()*(W-2*r);
+          y = r + Math.random()*(H-2*r);
+          ok = true;
+          for(const b of balls){ if(Math.hypot(x-b.x,y-b.y) < r+b.r+4){ ok=false; break; } }
+          tries++;
+        } while(!ok && tries<200);
+        const ang = Math.random()*Math.PI*2;
+        const spd = state.speed * PX_PER_M * (0.6+Math.random()*0.8);
+        balls.push({x,y,r, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd, m:r*r});
+      }
+    }
+
+    function step(dt){
+      for(const b of balls){
+        if(b.dragging) continue;
+        b.x += b.vx*dt; b.y += b.vy*dt;
+        if(b.x-b.r<0){ b.x=b.r; b.vx=-b.vx; }
+        if(b.x+b.r>W){ b.x=W-b.r; b.vx=-b.vx; }
+        if(b.y-b.r<0){ b.y=b.r; b.vy=-b.vy; }
+        if(b.y+b.r>H){ b.y=H-b.r; b.vy=-b.vy; }
+      }
+      for(let i=0;i<balls.length;i++){
+        for(let j=i+1;j<balls.length;j++){
+          const a=balls[i], c=balls[j];
+          const dx=c.x-a.x, dy=c.y-a.y;
+          const dist=Math.hypot(dx,dy);
+          const minDist=a.r+c.r;
+          if(dist>0 && dist<minDist){
+            const nx=dx/dist, ny=dy/dist;
+            const overlap=(minDist-dist)/2;
+            if(!a.dragging){ a.x-=nx*overlap; a.y-=ny*overlap; }
+            if(!c.dragging){ c.x+=nx*overlap; c.y+=ny*overlap; }
+            const rvx=c.vx-a.vx, rvy=c.vy-a.vy;
+            const velAlongNormal = rvx*nx+rvy*ny;
+            if(velAlongNormal<0){
+              const jimp = -2*velAlongNormal / (1/a.m + 1/c.m);
+              const impX = jimp*nx, impY = jimp*ny;
+              if(!a.dragging){ a.vx -= impX/a.m; a.vy -= impY/a.m; }
+              if(!c.dragging){ c.vx += impX/c.m; c.vy += impY/c.m; }
+            }
+          }
+        }
+      }
+    }
+
+    function draw(){
+      clear();
+      balls.forEach((b,i)=>{
+        chalkCircle(b.x,b.y,b.r, i%2===0 ? COL.chalk : COL.blue);
+      });
+      label(balls.length+' balls', W-10, 20, COL.dim, 12, 'right');
+    }
+
+    return {
+      title:'衝突', eq:'m₁v₁ + m₂v₂ = m₁v₁\' + m₂v₂\'',
+      hint:'ボールをドラッグして弾き飛ばせます',
+      controlDefs:[
+        {key:'count', label:'ボールの数', min:2, max:14, step:1, fmt:v=>Math.round(v)},
+        {key:'speed', label:'初速の目安', min:0.5, max:6, step:0.1, fmt:v=>v.toFixed(1)+' m/s'}
+      ],
+      state,
+      init(){
+        makeBalls();
+        let dragBall=null, last=null;
+        unbind = bindPointer({
+          down(p){
+            for(const b of balls){
+              if(Math.hypot(p.x-b.x,p.y-b.y) < b.r+6){ dragBall=b; b.dragging=true; last=p; break; }
+            }
+          },
+          move(p){
+            if(dragBall && last){
+              dragBall.vx = (p.x-last.x)*8; dragBall.vy=(p.y-last.y)*8;
+              dragBall.x = p.x; dragBall.y = p.y; last = p;
+            }
+          },
+          up(){ if(dragBall){ dragBall.dragging=false; dragBall=null; last=null; } }
+        });
+      },
+      tick(dt){ step(dt); draw(); },
+      onResize(){ makeBalls(); },
+      reset(){ makeBalls(); },
+      destroy(){ unbind && unbind(); }
+    };
+  }
+
+  // ==================================================================
+  // SIM 4: Spring Oscillation
+  // ==================================================================
+  function makeSpringSim(){
+    const state = { k: 20, damping: 0.5 };
+    const PX_PER_M = 120;
+    const restX = ()=>W*0.5;
+    const massY = ()=>H*0.5;
+    let x, v, dragging=false, unbind;
+    const m = 1;
+
+    function resetSpring(){ x = 1.0; v = 0; }
+
+    function step(dt){
+      if(dragging) return;
+      const a = (-state.k*x - state.damping*v)/m;
+      v += a*dt;
+      x += v*dt;
+    }
+
+    function massPos(){ return restX() + x*PX_PER_M; }
+
+    function drawCoil(x1,y,x2){
+      const coils = 14;
+      const amp = 12;
+      ctx.strokeStyle = COL.chalk; ctx.lineWidth=1.5;
+      ctx.beginPath();
+      ctx.moveTo(x1,y);
+      const span = x2-x1;
+      for(let i=0;i<=coils;i++){
+        const t = i/coils;
+        const cx = x1 + span*t;
+        const cy = y + (i%2===0?-amp:amp)*(i>0&&i<coils?1:0.3);
+        ctx.lineTo(cx,cy);
+      }
+      ctx.lineTo(x2,y);
+      ctx.stroke();
+    }
+
+    function draw(){
+      clear();
+      const y = massY();
+      const wallX = 24;
+      ctx.fillStyle='rgba(242,239,230,0.15)';
+      ctx.fillRect(wallX-10,y-50,10,100);
+      const mx = massPos();
+      drawCoil(wallX, y, mx-22);
+      dashedLine(restX(), y-50, restX(), y+50, COL.faint, [4,5]);
+      label('自然長', restX(), y-56, COL.faint, 10, 'center');
+      chalkCircle(mx, y, 22, COL.yellow);
+      label('x = '+x.toFixed(2)+' m', W-10, 20, COL.blue, 12, 'right');
+      label('v = '+v.toFixed(2)+' m/s', W-10, 38, COL.blue, 12, 'right');
+    }
+
+    return {
+      title:'バネ振動', eq:'m x\'\' = −kx − c x\'',
+      hint:'おもりをドラッグして引き伸ばせます',
+      controlDefs:[
+        {key:'k', label:'バネ定数 k', min:2, max:60, step:1, fmt:v=>v.toFixed(0)+' N/m'},
+        {key:'damping', label:'減衰係数 c', min:0, max:3, step:0.05, fmt:v=>v.toFixed(2)}
+      ],
+      state,
+      init(){
+        resetSpring();
+        unbind = bindPointer({
+          down(p){
+            const mx = massPos(), y = massY();
+            if(Math.hypot(p.x-mx,p.y-y) < 30) dragging=true;
+          },
+          move(p){
+            if(dragging){ x = (p.x - restX())/PX_PER_M; v = 0; }
+          },
+          up(){ dragging=false; }
+        });
+      },
+      tick(dt){ step(dt); draw(); },
+      reset(){ resetSpring(); },
+      destroy(){ unbind && unbind(); }
+    };
+  }
+
+  // -------- sim registry & switching --------
+  const SIMS = {
+    gravity: makeGravitySim,
+    pendulum: makePendulumSim,
+    collision: makeCollisionSim,
+    spring: makeSpringSim
+  };
+
+  let current = null, rafId = null, lastT = null;
+
+  function loop(t){
+    if(!current) return;
+    if(lastT===null) lastT = t;
+    let dt = (t-lastT)/1000;
+    dt = Math.min(dt, 0.033);
+    lastT = t;
+    current.tick(dt);
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function loadSim(key){
+    if(current){ current.destroy(); }
+    if(rafId) cancelAnimationFrame(rafId);
+    lastT = null;
+    fitCanvas();
+    current = SIMS[key]();
+    stageTitle.textContent = current.title;
+    stageEq.textContent = current.eq;
+    hintEl.textContent = current.hint;
+    buildControls(current.controlDefs, current.state, ()=>{});
+    current.init();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  document.getElementById('tabs').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.tab');
+    if(!btn) return;
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    loadSim(btn.dataset.sim);
+  });
+
+  resetBtn.addEventListener('click', ()=>{ current && current.reset(); });
+
+  fitCanvas();
+  loadSim('gravity');
+})();
+</script>
+</body>
+</html>
