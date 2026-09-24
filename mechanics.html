@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>力学 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="u-mech">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html" class="on">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / 力学</p>
+  <section class="unit-head">
+    <span class="tag">1 章</span>
+    <h1>力学</h1>
+    <p>物体の動き・力・エネルギーの関係を、実際に飛ばして・振って・ぶつけて確かめましょう。</p>
+  </section>
+
+  <p class="section-label">シミュレーション</p>
+  <div class="sim-grid">
+
+    <a class="sim-card" href="./sim-gravity.html">
+      <span class="num">No.01</span>
+      <h2>放物運動とバウンド</h2>
+      <p>ボールを投げて、放物線の軌跡と床での跳ね返りを観察する。</p>
+      <span class="mono">x = v₀ₓt,  y = v₀ᵧt − ½gt²</span>
+      <span class="go">動かしてみる <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </a>
+
+    <a class="sim-card" href="./sim-pendulum.html">
+      <span class="num">No.02</span>
+      <h2>単振り子</h2>
+      <p>糸の長さや重力を変えて、周期がどう変わるかを測る。</p>
+      <span class="mono">T = 2π√(L/g)</span>
+      <span class="go">動かしてみる <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </a>
+
+    <a class="sim-card" href="./sim-collision.html">
+      <span class="num">No.03</span>
+      <h2>衝突と運動量保存</h2>
+      <p>2つの物体の一直線上の衝突。運動量とエネルギーの変化を見る。</p>
+      <span class="mono">m₁v₁ + m₂v₂ = 一定</span>
+      <span class="go">動かしてみる <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </a>
+
+    <a class="sim-card" href="./sim-spring.html">
+      <span class="num">No.04</span>
+      <h2>ばね振り子</h2>
+      <p>ばね定数と質量を変えて、単振動の周期とエネルギーを調べる。</p>
+      <span class="mono">T = 2π√(m/k)</span>
+      <span class="go">動かしてみる <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </a>
+
+    <a class="sim-card" href="./sim-monkey.html">
+      <span class="num">No.05</span>
+      <h2>モンキーハンティング</h2>
+      <p>落ち始めたスイカを狙って撃つ。狙ったまま撃つと、なぜ必ず当たる?</p>
+      <span class="mono">同じ時間に ½gt² ずつ落ちる</span>
+      <span class="go">動かしてみる <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </a>
+
+    <div class="sim-card soon">
+      <span class="badge">準備中</span>
+      <h2>斜面と摩擦</h2>
+    </div>
+
+    <div class="sim-card soon">
+      <span class="badge">準備中</span>
+      <h2>等速円運動</h2>
+    </div>
+
+    <div class="sim-card soon">
+      <span class="badge">準備中</span>
+      <h2>万有引力と惑星の運動</h2>
+    </div>
+  </div>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+  </footer>
+
+</div>
+</body>
+</html>

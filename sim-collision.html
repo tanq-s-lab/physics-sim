@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>衝突と運動量保存 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="u-mech">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html" class="on">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./mechanics.html">力学</a> / 衝突と運動量保存</p>
+
+  <div class="sim-head">
+    <h1>衝突と運動量保存</h1>
+    <span class="eq">m₁v₁ + m₂v₂ = m₁v₁′ + m₂v₂′</span>
+  </div>
+
+  <section class="stage">
+    <canvas class="sim" id="sim" aria-label="衝突と運動量保存のシミュレーション"></canvas>
+    <ul class="readout" id="readout"></ul>
+    <div class="controls" id="controls"></div>
+    <div class="actions">
+      <span class="hint">スライダーを動かすと最初からやり直します。右向きが正です。</span>
+      <span class="btns"><button class="btn" id="reset">もう一度</button></span>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>衝突の前後で <strong>運動量の和は常に保存</strong>されます(外力がないため)。</li>
+        <li>反発係数 e = 1(弾性衝突)なら <strong>運動エネルギーも保存</strong>されます。</li>
+        <li>e &lt; 1 では運動エネルギーの一部が熱や音に変わり、<strong>ΔK &lt; 0</strong> になります。</li>
+        <li>e = (離れる速さ)/(近づく速さ) = −(v₁′ − v₂′)/(v₁ − v₂)</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>m₁ = m₂、e = 1、B を静止させて衝突させると何が起こる?</li>
+        <li>e = 0(完全非弾性衝突)のとき、衝突後の2つの速度はどうなる?</li>
+        <li>軽い A が重い B に当たるとき、A はどちらに跳ね返る? 質量比を変えて試そう。</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-pendulum.html">← 単振り子</a>
+    <a href="./mechanics.html">力学の一覧へ</a>
+    <a href="./sim-spring.html">ばね振り子 →</a>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+  </footer>
+
+</div>
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  var S = { m1: 1, m2: 2, v1: 3, v2: -1, e: 1 };
+  var TRACK = 10;                   // レールの長さ [m]
+  var scale, x1, x2, u1, u2, mode, before, after, hits;
+
+  function r(m){ return 10 + 9*Math.cbrt(m); }
+  function px(v, x){ return 20 + x*scale; }
+  function reset(v){
+    scale = (v.W - 40)/TRACK;
+    x1 = 2.2; x2 = 6.5; u1 = S.v1; u2 = S.v2; mode = 'run'; hits = 0; v.t = 0;
+    before = { p: S.m1*u1 + S.m2*u2, K: 0.5*S.m1*u1*u1 + 0.5*S.m2*u2*u2 };
+    after = null;
+  }
+
+  PhysSim({
+    state: S,
+    onChange: function(v){ reset(v); },
+    controls: [
+      { key:'m1', label:'A の質量 m₁', min:0.5, max:5, step:0.5, fmt:function(x){return x.toFixed(1)+' kg';} },
+      { key:'m2', label:'B の質量 m₂', min:0.5, max:5, step:0.5, fmt:function(x){return x.toFixed(1)+' kg';} },
+      { key:'v1', label:'A の初速 v₁', min:-2, max:5, step:0.5, fmt:function(x){return x.toFixed(1)+' m/s';} },
+      { key:'v2', label:'B の初速 v₂', min:-4, max:2, step:0.5, fmt:function(x){return x.toFixed(1)+' m/s';} },
+      { key:'e',  label:'反発係数 e',  min:0, max:1, step:0.05, fmt:function(x){return x.toFixed(2);} }
+    ],
+    init: reset, reset: reset, resize: function(v){ scale = (v.W - 40)/TRACK; },
+
+    step: function(v, h){
+      if(mode !== 'run') return;
+      x1 += u1*h; x2 += u2*h;
+      var gap = (x2 - x1)*scale - (r(S.m1) + r(S.m2));
+      if(gap <= 0 && u1 > u2){
+        var M = S.m1 + S.m2, P = S.m1*u1 + S.m2*u2;
+        var n1 = (P + S.m2*S.e*(u2 - u1))/M;
+        var n2 = (P + S.m1*S.e*(u1 - u2))/M;
+        u1 = n1; u2 = n2; hits++;
+        after = { p: S.m1*u1 + S.m2*u2, K: 0.5*S.m1*u1*u1 + 0.5*S.m2*u2*u2 };
+      }
+      if(gap < 0){ var fix = -gap/scale/2; x1 -= fix; x2 += fix; }
+      var a1 = px(v,x1) - r(S.m1), b2 = px(v,x2) + r(S.m2);
+      if(a1 < 0 || b2 > v.W || (u1 === 0 && u2 === 0) || (v.t > 30)) mode = 'end';
+      if(Math.abs(u1 - u2) < 1e-9 && hits > 0 && v.t > 8) mode = 'end';
+    },
+
+    draw: function(v){
+      var C = v.C, ctx = v.ctx; v.clear();
+      var y = v.H*0.62;
+      // レールと目盛り
+      v.line(10, y + 30, v.W - 10, y + 30, C.ink, 2);
+      for(var m=0; m<=TRACK; m++){ var X = px(v,m); v.line(X, y+30, X, y+36, C.faint, 1); }
+      // ボール
+      var A = px(v,x1), B = px(v,x2), rA = r(S.m1), rB = r(S.m2);
+      v.circle(A, y + 30 - rA, rA, C.accent);
+      v.circle(B, y + 30 - rB, rB, C.accent2);
+      v.text('A', A, y + 34 - rA, C.ink, 12, 'center');
+      v.text('B', B, y + 34 - rB, C.paper, 12, 'center');
+      // 速度の矢印
+      var k = scale*0.35;
+      [[A,rA,u1],[B,rB,u2]].forEach(function(o){
+        var top = y + 30 - 2*o[1] - 18;
+        if(Math.abs(o[2]) > 0.01) v.arrow(o[0], top, o[0] + o[2]*k, top, C.ink, 2.2);
+        v.text(o[2].toFixed(2)+' m/s', o[0], top - 10, C.soft, 11, 'center');
+      });
+      // 衝突前・後の比較
+      var bx = 16, by = 26;
+      v.label('衝突前', bx, by, C.soft, 12);
+      v.text('p = '+before.p.toFixed(2)+' kg·m/s   K = '+before.K.toFixed(2)+' J', bx + 56, by, C.ink, 12);
+      v.label('衝突後', bx, by + 22, C.soft, 12);
+      if(after){
+        var dK = after.K - before.K;
+        v.text('p = '+after.p.toFixed(2)+' kg·m/s   K = '+after.K.toFixed(2)+' J', bx + 56, by + 22, C.ink, 12);
+        v.text('ΔK = '+dK.toFixed(2)+' J', bx + 56, by + 42, dK < -0.005 ? C.accent : C.soft, 12);
+      } else {
+        v.text('—', bx + 56, by + 22, C.faint, 12);
+      }
+      if(mode === 'end') v.label('終了 — 「もう一度」で再生', v.W - 12, by, C.soft, 12, 'right');
+      if(hits === 0 && u1 <= u2) v.label('このままでは衝突しません', v.W - 12, by + 22, C.accent, 12, 'right');
+    },
+
+    readout: function(){
+      return [
+        ['v₁', u1.toFixed(2)+' m/s'],
+        ['v₂', u2.toFixed(2)+' m/s'],
+        ['運動量の和', (S.m1*u1 + S.m2*u2).toFixed(2)+' kg·m/s'],
+        ['運動エネルギーの和', (0.5*S.m1*u1*u1 + 0.5*S.m2*u2*u2).toFixed(2)+' J']
+      ];
+    }
+  });
+})();
+</script>
+</body>
+</html>

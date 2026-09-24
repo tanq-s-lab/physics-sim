@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>単振り子 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="u-mech">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html" class="on">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./mechanics.html">力学</a> / 単振り子</p>
+
+  <div class="sim-head">
+    <h1>単振り子</h1>
+    <span class="eq">T = 2π√(L/g)</span>
+  </div>
+
+  <section class="stage">
+    <canvas class="sim" id="sim" aria-label="単振り子のシミュレーション"></canvas>
+    <ul class="readout" id="readout"></ul>
+    <div class="controls" id="controls"></div>
+    <div class="actions">
+      <span class="hint">おもりをドラッグして好きな角度から放せます。</span>
+      <span class="btns"><button class="btn" id="reset">リセット</button></span>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>振れ角が小さいとき、周期は <strong>振れ幅やおもりの質量によらない</strong>(振り子の等時性)。</li>
+        <li>周期は <strong>√L に比例</strong>し、<strong>√g に反比例</strong>します。</li>
+        <li>「周期(測定)」は、シミュレーション上で実際に1往復にかかった時間です。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>L を 4 倍にすると、周期は何倍になる? 実際に測って確かめよう。</li>
+        <li>月面(g ≈ 1.6 m/s²)では周期はどうなる?</li>
+        <li>振れ角を 60° 以上にすると、測定値と公式の値がずれてくる。なぜだろう?</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-gravity.html">← 放物運動とバウンド</a>
+    <a href="./mechanics.html">力学の一覧へ</a>
+    <a href="./sim-collision.html">衝突と運動量保存 →</a>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+  </footer>
+
+</div>
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  var S = { L: 1.5, g: 9.8, b: 0, th0: 20 };
+  var scale = 100, th, om, dragging = false, lastCross = null, Tm = null, prev = 0, amp = 0;
+
+  function pivot(v){ return { x: v.W/2, y: 30 }; }
+  function setScale(v){ scale = Math.min((v.H - 60)/2.6, (v.W/2 - 30)/2.6*1.6); }
+  function reset(v){
+    setScale(v);
+    th = S.th0*Math.PI/180; om = 0; lastCross = null; Tm = null; prev = th; amp = th; v.t = 0;
+  }
+  function bob(v){ var p = pivot(v), L = S.L*scale; return { x: p.x + L*Math.sin(th), y: p.y + L*Math.cos(th) }; }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key:'L',   label:'糸の長さ L',     min:0.2, max:2.5, step:0.05, fmt:function(x){return x.toFixed(2)+' m';}, onChange:function(){ lastCross=null; Tm=null; } },
+      { key:'g',   label:'重力加速度 g',   min:1,   max:20,  step:0.1,  fmt:function(x){return x.toFixed(1)+' m/s²';}, onChange:function(){ lastCross=null; Tm=null; } },
+      { key:'th0', label:'はじめの振れ角', min:5,   max:85,  step:1,    fmt:function(x){return x.toFixed(0)+'°';}, onChange:function(v){ reset(v); } },
+      { key:'b',   label:'空気抵抗(減衰)', min:0,   max:0.5, step:0.01, fmt:function(x){return x.toFixed(2);} }
+    ],
+    init: reset, reset: reset, resize: function(v){ setScale(v); },
+
+    step: function(v, h){
+      if(dragging) return;
+      var a = -(S.g/S.L)*Math.sin(th) - S.b*om;
+      om += a*h; prev = th; th += om*h;
+      if(prev < 0 && th >= 0){
+        var tc = v.t + h*(-prev)/(th - prev);
+        if(lastCross !== null) Tm = tc - lastCross;
+        lastCross = tc;
+      }
+      if(Math.abs(th) > amp) amp = Math.abs(th);
+    },
+
+    draw: function(v){
+      var C = v.C, ctx = v.ctx; v.clear();
+      var p = pivot(v), b = bob(v), L = S.L*scale;
+      // 天井
+      v.line(p.x-40, p.y-12, p.x+40, p.y-12, C.soft, 2);
+      for(var i=-3;i<=3;i++) v.line(p.x+i*12, p.y-12, p.x+i*12-7, p.y-22, C.faint, 1.4);
+      v.line(p.x, p.y-12, p.x, p.y, C.soft, 2);
+      // 鉛直線と振れ幅の弧
+      v.line(p.x, p.y, p.x, p.y + L + 20, C.faint, 1.2, [4,5]);
+      ctx.save(); ctx.strokeStyle = C.line; ctx.lineWidth = 14; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(p.x, p.y, L, Math.PI/2 - amp, Math.PI/2 + amp); ctx.stroke(); ctx.restore();
+      // 角度の表示
+      ctx.save(); ctx.strokeStyle = C.accent2; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 42, Math.PI/2, Math.PI/2 - th, th > 0); ctx.stroke(); ctx.restore();
+      v.text('θ', p.x + 52*Math.sin(th/2), p.y + 52*Math.cos(th/2) + 4, C.accent2, 13, 'center');
+      // 糸とおもり
+      v.line(p.x, p.y, b.x, b.y, C.ink, 1.8);
+      v.circle(p.x, p.y, 3.5, C.ink);
+      v.circle(b.x, b.y, 16, C.accent);
+      // 速度ベクトル(接線方向)
+      if(!dragging){
+        var sp = om*S.L*scale*0.18;
+        v.arrow(b.x, b.y, b.x + sp*Math.cos(th), b.y - sp*Math.sin(th), C.accent2, 2);
+      }
+      if(dragging) v.label('はなすとスタート', b.x + 24, b.y + 4, C.soft, 12);
+    },
+
+    readout: function(v){
+      var T = 2*Math.PI*Math.sqrt(S.L/S.g);
+      return [
+        ['θ', (th*180/Math.PI).toFixed(1)+'°'],
+        ['周期(公式)', T.toFixed(3)+' s'],
+        ['周期(測定)', Tm === null ? '計測中…' : Tm.toFixed(3)+' s'],
+        ['時間', v.t.toFixed(1)+' s']
+      ];
+    },
+
+    down: function(v, p){ var b = bob(v); if(Math.hypot(p.x-b.x, p.y-b.y) < 36) dragging = true; },
+    move: function(v, p){
+      if(!dragging) return;
+      var q = pivot(v);
+      th = Math.max(-Math.PI*0.95, Math.min(Math.PI*0.95, Math.atan2(p.x-q.x, p.y-q.y)));
+      om = 0; amp = Math.abs(th);
+    },
+    up: function(v){ if(dragging){ dragging = false; lastCross = null; Tm = null; prev = th; v.t = 0; } }
+  });
+})();
+</script>
+</body>
+</html>

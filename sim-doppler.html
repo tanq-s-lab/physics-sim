@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>お寿司でわかるドップラー効果 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="u-wave">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html" class="on">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./waves.html">波動</a> / お寿司でわかるドップラー効果</p>
+
+  <div class="sim-head">
+    <h1>お寿司でわかるドップラー効果</h1>
+    <span class="eq">λ′ = (V − vs)T</span>
+  </div>
+
+  <section class="stage">
+    <div class="sketch" id="sketch-holder"></div>
+    <ul class="readout" id="readout"></ul>
+    <div class="controls">
+      <div class="ctrl">
+        <label for="select-mode"><span>① 板さんの動き方</span></label>
+        <select id="select-mode">
+          <option value="stop" selected>静止(動かない)</option>
+          <option value="right">右へ進む(流れと同じ向き)</option>
+          <option value="left">左へ進む(流れと逆向き)</option>
+          <option value="manual">自分で動かす(ドラッグ)</option>
+        </select>
+      </div>
+      <div class="ctrl" id="row-chef-speed">
+        <label for="slider-chef-speed"><span>② 板さんの速さ vs(音源)</span><output id="value-chef-speed">1.0</output></label>
+        <input type="range" id="slider-chef-speed" min="0.2" max="2.0" step="0.1" value="1.0">
+      </div>
+      <div class="ctrl">
+        <label for="slider-speed"><span>③ コンベアの速さ V(音速)</span><output id="value-speed">2.5</output></label>
+        <input type="range" id="slider-speed" min="0.5" max="5.0" step="0.1" value="2.5">
+      </div>
+      <div class="ctrl">
+        <label for="slider-interval"><span>④ お寿司を置く周期 T</span><output id="value-interval">50</output></label>
+        <input type="range" id="slider-interval" min="25" max="100" value="50">
+      </div>
+    </div>
+    <div class="actions">
+      <span class="hint">板さんをドラッグして動かすこともできます。コンベアは右向きに流れます。</span>
+      <span class="btns"><button class="btn" id="reset">リセット</button></span>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>お寿司を <strong>波の山</strong>、コンベアの速さを <strong>音速 V</strong>、お寿司を置く間隔を <strong>周期 T</strong> と考えます。</li>
+        <li>板さんが止まっていると、お寿司の間隔(波長)は <strong>λ = VT</strong>。</li>
+        <li>板さんが流れと同じ向き(右)に進むと間隔が詰まり、<strong>λ′ = (V − vs)T</strong>。反対向きに進むと広がります。</li>
+        <li>お寿司を受け取る人には、間隔が詰まるほど <strong>短い周期</strong>で届きます。音でいえば、<strong>高い音</strong>に聞こえます。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>板さんを右へ進ませると、お寿司の間隔はいくつになる? 表示の理論値と比べよう。</li>
+        <li>板さんの速さをコンベアの速さに近づけると、間隔はどうなる? 音でいうと何が起きている?</li>
+        <li>救急車が近づくときと遠ざかるときの音の違いを、このお寿司のモデルで説明してみよう。</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <span></span>
+    <a href="./waves.html">波動の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+  </footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+<script>
+// お寿司でわかる!ドップラー効果(p5.js)
+// 寿司=波の山、コンベアの速さ=音速 V、寿司を置く周期=T、板さんの速さ=音源の速さ vs
+let sushiList = [];
+const defaultItasanX = 350;
+let itasanX = defaultItasanX;
+const itasanY = 110;
+let conveyorOffset = 0;
+let spawnTimer = 0;
+let isDragging = false;
+
+function cssVar(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+
+function setup() {
+  const c = createCanvas(760, 320);
+  c.parent('sketch-holder');
+  c.elt.style.width = '100%';
+  c.elt.style.height = 'auto';
+  c.elt.setAttribute('aria-label', 'お寿司でドップラー効果を表すシミュレーション');
+  frameRate(60);
+  document.getElementById('reset').addEventListener('click', resetSimulation);
+}
+
+function resetSimulation() {
+  itasanX = defaultItasanX;
+  document.getElementById('select-mode').value = 'stop';
+  sushiList = [];
+  spawnTimer = 0;
+}
+
+function draw() {
+  const beltSpeed = parseFloat(document.getElementById('slider-speed').value);
+  const spawnInterval = parseInt(document.getElementById('slider-interval').value, 10);
+  const moveMode = document.getElementById('select-mode').value;
+  const chefSpeed = parseFloat(document.getElementById('slider-chef-speed').value);
+
+  document.getElementById('value-speed').textContent = beltSpeed.toFixed(1) + ' px/f';
+  document.getElementById('value-interval').textContent = spawnInterval + ' フレーム';
+  document.getElementById('value-chef-speed').textContent = chefSpeed.toFixed(1) + ' px/f';
+  document.getElementById('row-chef-speed').style.visibility = (moveMode === 'right' || moveMode === 'left') ? 'visible' : 'hidden';
+
+  background(cssVar('--paper-card-2') || '#FFF6E4');
+
+  // 1. ベルトコンベア
+  noStroke(); fill(100); rect(0, 213, width, 44);
+  conveyorOffset += beltSpeed;
+  const plateWidth = 80;
+  const scrollX = conveyorOffset % (plateWidth * 2);
+  for (let x = -plateWidth * 2; x < width + plateWidth * 2; x += plateWidth) {
+    const drawX = x + scrollX;
+    noStroke();
+    fill(Math.floor(x / plateWidth) % 2 === 0 ? 235 : 210);
+    rect(drawX, 215, plateWidth, 40);
+    fill(170); triangle(drawX + 30, 227, drawX + 30, 243, drawX + 50, 235);
+    stroke(160); strokeWeight(1.5); line(drawX, 215, drawX, 255);
+  }
+
+  // 2. 板さんの移動(端まで行くと反対側から現れる)
+  if (isDragging) {
+    itasanX = mouseX;
+  } else if (moveMode === 'right') {
+    itasanX += chefSpeed; if (itasanX >= width - 80) itasanX = 80;
+  } else if (moveMode === 'left') {
+    itasanX -= chefSpeed; if (itasanX <= 80) itasanX = width - 80;
+  }
+  itasanX = constrain(itasanX, 80, width - 80);
+  const handX = itasanX - 25;
+
+  // 3. お寿司を周期 T ごとに置く
+  spawnTimer++;
+  if (spawnTimer >= spawnInterval) { sushiList.push({ x: handX, y: 225 }); spawnTimer = 0; }
+
+  // 4. お寿司の移動と描画
+  for (let i = sushiList.length - 1; i >= 0; i--) {
+    const s = sushiList[i];
+    s.x += beltSpeed;
+    noStroke();
+    fill(255); rect(s.x - 16, s.y, 32, 16, 6);
+    fill(231, 76, 60); rect(s.x - 18, s.y - 4, 36, 8, 4);
+    if (s.x > width + 50) sushiList.splice(i, 1);
+  }
+
+  // 5. お寿司の間隔(波長)を測って表示
+  const gaps = [];
+  for (let i = 0; i < sushiList.length - 1; i++) {
+    const sNew = sushiList[i + 1], sOld = sushiList[i];
+    if (sNew.x > 0 && sOld.x < width) {
+      const distance = Math.round(sOld.x - sNew.x);
+      if (distance > 0 && distance < 350) {
+        gaps.push(distance);
+        stroke(52, 152, 219, 170); strokeWeight(1.5);
+        line(sNew.x, 280, sOld.x, 280);
+        line(sNew.x, 275, sNew.x, 285);
+        line(sOld.x, 275, sOld.x, 285);
+        noStroke(); fill(cssVar('--paper-card-2') || 250);
+        ellipse((sNew.x + sOld.x) / 2, 280, 34, 18);
+        fill(41, 128, 185); textSize(12); textAlign(CENTER, CENTER);
+        text(distance, (sNew.x + sOld.x) / 2, 280);
+      }
+    }
+  }
+
+  // 6. 板さん
+  drawItasan();
+
+  // 7. 理論値と測定値
+  let vs = 0;
+  if (!isDragging && moveMode === 'right') vs = chefSpeed;
+  if (!isDragging && moveMode === 'left') vs = -chefSpeed;
+  const lam0 = beltSpeed * spawnInterval;
+  const lam = (beltSpeed - vs) * spawnInterval;
+  const recent = gaps.slice(-3);
+  const meas = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : null;
+  setReadout([
+    ['静止時の間隔 V·T', lam0.toFixed(0)],
+    ['理論値 (V − vs)·T', isDragging ? '—' : lam.toFixed(0)],
+    ['新しい3皿の平均', meas === null ? '—' : meas.toFixed(0)],
+    ['皿が届く周期 T′ = λ′/V', meas === null ? '—' : (meas / beltSpeed).toFixed(1) + ' フレーム']
+  ]);
+}
+
+function setReadout(rows) {
+  const ro = document.getElementById('readout');
+  if (ro.children.length !== rows.length) {
+    ro.innerHTML = '';
+    rows.forEach(() => { const li = document.createElement('li'); li.append(document.createElement('b'), document.createElement('span')); ro.appendChild(li); });
+  }
+  rows.forEach((r, i) => {
+    const li = ro.children[i];
+    if (li.children[0].textContent !== r[0]) li.children[0].textContent = r[0];
+    if (li.children[1].textContent !== r[1]) li.children[1].textContent = r[1];
+  });
+}
+
+function drawItasan() {
+  push();
+  translate(itasanX, itasanY);
+  // 体
+  fill(255); stroke(50); strokeWeight(1.5);
+  rect(-30, 30, 60, 65, 5);
+  fill(255, 224, 199); triangle(-12, 30, 12, 30, 0, 50);
+  fill(31, 78, 161); noStroke();
+  triangle(-4, 38, 4, 38, 0, 55); rect(-2, 35, 4, 5);
+  stroke(50); line(-12, 30, -3, 48); line(12, 30, 3, 48); line(-30, 75, 30, 75);
+  // 右腕
+  fill(255); rect(-42, 35, 16, 30, 3);
+  fill(255, 224, 199); rect(-38, 65, 12, 30); ellipse(-32, 95, 14, 14);
+  // 左腕
+  fill(255); rect(26, 35, 14, 35, 3);
+  // 顔
+  fill(255, 224, 199); ellipse(0, 0, 75, 65); ellipse(-38, 0, 10, 14); ellipse(38, 0, 10, 14);
+  // 髪
+  fill(115, 64, 34); noStroke();
+  arc(-30, -10, 16, 30, HALF_PI, PI + HALF_PI);
+  arc(30, -10, 16, 30, PI + HALF_PI, HALF_PI);
+  // 顔のパーツ
+  stroke(50); noFill(); strokeWeight(1.5);
+  arc(-18, -15, 12, 8, PI, TWO_PI); arc(18, -15, 12, 8, PI, TWO_PI);
+  fill(50); noStroke(); rect(-18, -8, 5, 8, 2); rect(14, -8, 5, 8, 2);
+  stroke(50); line(-2, -2, 2, -2);
+  noStroke(); fill(255, 182, 193, 180); ellipse(-24, 5, 12, 8); ellipse(24, 5, 12, 8);
+  stroke(50); strokeWeight(1.5); fill(235, 97, 0);
+  beginShape(); vertex(-10, 4); bezierVertex(-8, 18, 8, 18, 10, 4); endShape(CLOSE);
+  // 調理帽
+  fill(255); stroke(50);
+  beginShape(); vertex(-32, -26); vertex(-35, -75); vertex(-10, -95); vertex(10, -95); vertex(35, -75); vertex(32, -26); endShape(CLOSE);
+  strokeWeight(1); line(0, -95, 0, -40);
+  pop();
+}
+
+function mousePressed() {
+  if (dist(mouseX, mouseY, itasanX, itasanY + 20) < 60) {
+    isDragging = true;
+    document.getElementById('select-mode').value = 'manual';
+    return false;
+  }
+}
+function mouseReleased() { isDragging = false; }
+</script>
+</body>
+</html>

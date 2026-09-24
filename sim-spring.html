@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ばね振り子 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="u-mech">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html" class="on">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./mechanics.html">力学</a> / ばね振り子</p>
+
+  <div class="sim-head">
+    <h1>ばね振り子</h1>
+    <span class="eq">T = 2π√(m/k)</span>
+  </div>
+
+  <section class="stage">
+    <canvas class="sim" id="sim" aria-label="ばね振り子のシミュレーション"></canvas>
+    <ul class="readout" id="readout"></ul>
+    <div class="controls" id="controls"></div>
+    <div class="actions">
+      <span class="hint">おもりを左右にドラッグして放すと振動します。下は x–t グラフです。</span>
+      <span class="btns"><button class="btn" id="reset">リセット</button></span>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>ばねの力 F = −kx(<strong>変位と逆向き</strong>)で、単振動になります。</li>
+        <li>周期は <strong>√m に比例</strong>し、<strong>√k に反比例</strong>します。<strong>振幅にはよりません。</strong></li>
+        <li>減衰が 0 のとき、力学的エネルギー ½kx² + ½mv² は <strong>一定</strong>です。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>質量を 4 倍にすると周期は何倍になる? グラフの波の間隔で確かめよう。</li>
+        <li>おもりが中央を通るとき、速さと力はそれぞれどうなっている?</li>
+        <li>減衰を大きくするとグラフの形はどう変わる? エネルギーはどこへ行った?</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-collision.html">← 衝突と運動量保存</a>
+    <a href="./mechanics.html">力学の一覧へ</a>
+    <a href="./sim-monkey.html">モンキーハンティング →</a>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+  </footer>
+
+</div>
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  var S = { k: 20, m: 1, c: 0 };
+  var X_MAX = 0.6, WINDOW = 6;      // 表示する最大変位 [m]、グラフの時間幅 [s]
+  var x, u, dragging = false, hist, lastCross, Tm, prev, scale, rest;
+
+  function geom(v){ rest = v.W*0.55; scale = Math.min(v.W*0.38, v.W - rest - 40)/X_MAX; }
+  function reset(v){ geom(v); x = 0.3; u = 0; hist = []; lastCross = null; Tm = null; prev = x; v.t = 0; }
+  function clearMeasure(){ lastCross = null; Tm = null; }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key:'k', label:'ばね定数 k', min:5, max:80, step:1, fmt:function(x){return x.toFixed(0)+' N/m';}, onChange:clearMeasure },
+      { key:'m', label:'おもりの質量 m', min:0.2, max:5, step:0.1, fmt:function(x){return x.toFixed(1)+' kg';}, onChange:clearMeasure },
+      { key:'c', label:'減衰(摩擦)', min:0, max:3, step:0.05, fmt:function(x){return x.toFixed(2);} }
+    ],
+    init: reset, reset: reset, resize: function(v){ geom(v); },
+
+    step: function(v, h){
+      if(!dragging){
+        var a = (-S.k*x - S.c*u)/S.m;
+        u += a*h; prev = x; x += u*h;
+        if(prev < 0 && x >= 0){
+          var tc = v.t + h*(-prev)/(x - prev);
+          if(lastCross !== null) Tm = tc - lastCross;
+          lastCross = tc;
+        }
+      }
+      hist.push({ t: v.t, x: x });
+      while(hist.length && hist[0].t < v.t - WINDOW) hist.shift();
+    },
+
+    draw: function(v){
+      var C = v.C, ctx = v.ctx; v.clear();
+      var y = v.H*0.25, wall = 18, box = 44;
+      var bx = rest + x*scale;
+      // 床と壁
+      v.line(wall, y + box/2 + 2, v.W - 10, y + box/2 + 2, C.soft, 1.5);
+      v.line(wall, y - 44, wall, y + box/2 + 2, C.ink, 2.5);
+      for(var i=0;i<6;i++) v.line(wall, y - 40 + i*12, wall - 8, y - 32 + i*12, C.faint, 1.2);
+      // 自然長の位置
+      v.line(rest, y - 44, rest, y + box/2 + 8, C.faint, 1.2, [4,5]);
+      v.label('つりあいの位置', rest, y - 50, C.faint, 11, 'center');
+      // ばね(コイル)
+      var x1 = wall, x2 = bx - box/2, n = 16, amp = 10;
+      ctx.save(); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x1, y);
+      var lead = 10, span = (x2 - x1 - 2*lead);
+      ctx.lineTo(x1 + lead, y);
+      for(var j=1;j<=n;j++) ctx.lineTo(x1 + lead + span*(j - 0.5)/n, y + (j%2 ? -amp : amp));
+      ctx.lineTo(x2 - lead, y); ctx.lineTo(x2, y); ctx.stroke(); ctx.restore();
+      // おもり
+      ctx.fillStyle = C.accent; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.rect(bx - box/2, y - box/2, box, box); ctx.fill(); ctx.stroke();
+      v.text('m', bx, y + 5, C.ink, 13, 'center');
+      // 力の矢印(ばねの力 −kx)
+      var F = -S.k*x, fk = 1.2;
+      if(Math.abs(F) > 0.05) v.arrow(bx, y - box/2 - 10, bx + Math.max(-120, Math.min(120, F*fk*6)), y - box/2 - 10, C.accent2, 2.2);
+      // x–t グラフ
+      var gTop = v.H*0.5, gBot = v.H - 18, gMid = (gTop + gBot)/2, gH = (gBot - gTop)/2 - 6;
+      var gL = 44, gR = v.W - 12;
+      v.line(gL, gTop, gL, gBot, C.soft, 1.2);
+      v.line(gL, gMid, gR, gMid, C.faint, 1, [4,4]);
+      v.text('x [m]', gL + 6, gTop + 10, C.soft, 11, 'left');
+      v.text('t →', gR, gBot + 14, C.faint, 11, 'right');
+      v.text('+'+X_MAX.toFixed(1), gL - 6, gMid - gH + 4, C.faint, 10, 'right');
+      v.text('−'+X_MAX.toFixed(1), gL - 6, gMid + gH + 4, C.faint, 10, 'right');
+      if(hist.length > 1){
+        var t0 = v.t - WINDOW;
+        ctx.save(); ctx.strokeStyle = C.accent; ctx.lineWidth = 2; ctx.beginPath();
+        hist.forEach(function(p, i){
+          var X = gL + (p.t - t0)/WINDOW*(gR - gL);
+          var Y = gMid - Math.max(-1, Math.min(1, p.x/X_MAX))*gH;
+          if(i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+        });
+        ctx.stroke(); ctx.restore();
+      }
+    },
+
+    readout: function(){
+      var T = 2*Math.PI*Math.sqrt(S.m/S.k);
+      var E = 0.5*S.k*x*x + 0.5*S.m*u*u;
+      return [
+        ['x', x.toFixed(3)+' m'],
+        ['v', u.toFixed(2)+' m/s'],
+        ['周期(公式)', T.toFixed(3)+' s'],
+        ['周期(測定)', Tm === null ? '計測中…' : Tm.toFixed(3)+' s'],
+        ['力学的エネルギー', E.toFixed(3)+' J']
+      ];
+    },
+
+    down: function(v, p){
+      var bx = rest + x*scale, y = v.H*0.25;
+      if(Math.abs(p.x - bx) < 40 && Math.abs(p.y - y) < 40){ dragging = true; }
+    },
+    move: function(v, p){
+      if(!dragging) return;
+      x = Math.max(-X_MAX, Math.min(X_MAX, (p.x - rest)/scale)); u = 0;
+    },
+    up: function(){ if(dragging){ dragging = false; clearMeasure(); prev = x; } }
+  });
+})();
+</script>
+</body>
+</html>

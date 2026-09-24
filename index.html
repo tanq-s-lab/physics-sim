@@ -2,618 +2,174 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>PHYSICA — 物理シミュレーション黒板</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>動く物理ノート — 高校物理シミュレーション</title>
+<meta name="description" content="振り子も、波も、電場も。高校物理の現象を自分の手で動かして確かめるシミュレーション教材。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg: #23322B;
-    --bg-deep: #182420;
-    --chalk: #F2EFE6;
-    --chalk-dim: #AFC0B6;
-    --chalk-faint: #7C8C83;
-    --blue: #86B6D8;
-    --yellow: #E8C468;
-    --line: rgba(242,239,230,0.09);
-    --line-strong: rgba(242,239,230,0.18);
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:
-      radial-gradient(ellipse at 20% -10%, rgba(242,239,230,0.05), transparent 40%),
-      radial-gradient(ellipse at 100% 110%, rgba(134,182,216,0.06), transparent 45%),
-      var(--bg);
-    color:var(--chalk);
-    font-family:'Inter',sans-serif;
-    min-height:100vh;
-    -webkit-font-smoothing:antialiased;
-    padding-top:env(safe-area-inset-top,0px);
-    padding-bottom:env(safe-area-inset-bottom,0px);
-  }
-  .wrap{max-width:920px; margin:0 auto; padding:48px 20px 60px;}
-
-  header{text-align:center; margin-bottom:28px;}
-  .eyebrow{font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.08em; color:var(--chalk-faint);}
-  h1{font-family:'Caveat',cursive; font-weight:700; font-size:64px; margin:6px 0 4px; color:var(--chalk); text-shadow:0 0 18px rgba(242,239,230,0.08);}
-  .tagline{color:var(--chalk-dim); font-size:15px;}
-
-  .tabs{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:32px 0 20px;}
-  .tab{
-    font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.03em;
-    background:transparent; color:var(--chalk-dim);
-    border:1px solid var(--line-strong); border-radius:6px;
-    padding:9px 16px; cursor:pointer; transition:border-color .15s, color .15s, background .15s;
-  }
-  .tab:hover{ color:var(--chalk); border-color:var(--chalk-dim); }
-  .tab.active{ color:var(--bg-deep); background:var(--yellow); border-color:var(--yellow); font-weight:700; }
-
-  .stage{
-    background:var(--bg-deep);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:20px;
-  }
-  .stage-head{display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:12px;}
-  .stage-title{font-family:'Caveat',cursive; font-size:28px; color:var(--yellow);}
-  .stage-eq{font-family:'Space Mono',monospace; font-size:13px; color:var(--blue);}
-
-  canvas.sim{
-    width:100%; height:min(56vw,420px); display:block;
-    background:
-      repeating-linear-gradient(0deg, var(--line) 0 1px, transparent 1px 40px),
-      repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 40px);
-    border-radius:6px; touch-action:none; cursor:grab;
-  }
-  canvas.sim:active{ cursor:grabbing; }
-
-  .controls{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-    gap:16px 24px; margin-top:18px;
-  }
-  .ctrl label{
-    display:flex; justify-content:space-between;
-    font-family:'Space Mono',monospace; font-size:11px; color:var(--chalk-dim);
-    margin-bottom:6px;
-  }
-  .ctrl label b{ color:var(--chalk); font-weight:700; }
-  input[type=range]{
-    -webkit-appearance:none; width:100%; height:2px; background:var(--line-strong); border-radius:2px; outline:none;
-  }
-  input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
-    background:var(--yellow); cursor:pointer; border:2px solid var(--bg-deep);
-  }
-  input[type=range]::-moz-range-thumb{
-    width:14px; height:14px; border-radius:50%; background:var(--yellow); border:2px solid var(--bg-deep); cursor:pointer;
-  }
-
-  .row-bottom{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:18px; flex-wrap:wrap;}
-  button.reset{
-    font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.05em;
-    color:var(--chalk); background:transparent;
-    border:1px solid var(--line-strong); border-radius:4px;
-    padding:8px 14px; cursor:pointer; text-transform:uppercase;
-    transition: border-color .15s, color .15s;
-  }
-  button.reset:hover{ border-color:var(--yellow); color:var(--yellow); }
-  .hint{
-    font-family:'Space Mono',monospace; font-size:10.5px; color:var(--chalk-faint);
-  }
-
-  footer{
-    text-align:center; margin-top:40px;
-    font-family:'Space Mono',monospace; font-size:11px; color:var(--chalk-faint);
-  }
-
-  @media (prefers-reduced-motion: reduce){ * { animation:none !important; } }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<div class="wrap">
+<div class="page">
 
-  <header>
-    <div class="eyebrow">a chalkboard of classical mechanics</div>
-    <h1>Physica</h1>
-    <div class="tagline">見て、触って、確かめる物理シミュレーション</div>
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
   </header>
 
-  <div class="tabs" id="tabs">
-    <button class="tab active" data-sim="gravity">重力とバウンド</button>
-    <button class="tab" data-sim="pendulum">振り子</button>
-    <button class="tab" data-sim="collision">衝突</button>
-    <button class="tab" data-sim="spring">バネ振動</button>
+  <section class="hero">
+    <div class="hero-text">
+      <span class="eyebrow">高校物理 インタラクティブ教材</span>
+      <h1>数式の前に、<br>まず動かしてみよう。</h1>
+      <p class="lead">振り子も、波も、電場も、気体分子も。グラフや公式だけでは掴みにくい物理現象を、自分の手でパラメータを変えながら体験できるノートです。単元ごとに、シミュレーションを順次追加しています。</p>
+    </div>
+    <div class="hero-demo">
+      <canvas id="heroCanvas" aria-label="単振り子のアニメーション"></canvas>
+      <p class="hero-caption">単振り子 — このノートは実際に動きます</p>
+    </div>
+  </section>
+
+  <p class="section-label">単元を選ぶ</p>
+
+  <div class="unit-grid">
+
+    <a class="unit-card u-mech" href="./mechanics.html">
+      <span class="unit-tab">1 章</span>
+      <svg class="icon" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M6 8 Q20 2 34 8" stroke="var(--mech)" stroke-width="2.4" fill="none"/>
+        <circle cx="20" cy="24" r="8" fill="var(--mech)" opacity="0.85"/>
+        <path d="M4 34 H36" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <h2>力学</h2>
+      <p>物体の動き・力・エネルギーの関係を、実際に飛ばして・振って・ぶつけて確かめる。</p>
+      <ul class="chips">
+        <li>放物運動とバウンド</li><li>単振り子</li><li>衝突と運動量保存</li><li>ばね振り子</li><li>モンキーハンティング</li>
+      </ul>
+      <span class="count">5 本公開中</span>
+      <span class="go">体験する
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+    <a class="unit-card u-wave" href="./waves.html">
+      <span class="unit-tab">2 章</span>
+      <svg class="icon" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M4 20 Q10 10 16 20 T28 20 T40 20" stroke="var(--wave)" stroke-width="2.6" fill="none"/>
+        <path d="M4 28 Q10 22 16 28 T28 28 T40 28" stroke="var(--wave)" stroke-width="1.6" fill="none" opacity="0.5"/>
+      </svg>
+      <h2>波動</h2>
+      <p>波の速さ・重ね合わせ・定在波、そして音源が動くと音が変わるドップラー効果まで。</p>
+      <ul class="chips">
+        <li>お寿司でわかるドップラー効果</li><li class="soon">横波の基本</li><li class="soon">重ね合わせと定在波</li>
+      </ul>
+      <span class="count">1 本公開中</span>
+      <span class="go">体験する
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+    <a class="unit-card u-em" href="./electromagnetism.html">
+      <span class="unit-tab">3 章</span>
+      <svg class="icon" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <circle cx="20" cy="20" r="3.4" fill="var(--em)"/>
+        <ellipse cx="20" cy="20" rx="16" ry="7" stroke="var(--em)" stroke-width="1.8" fill="none"/>
+        <ellipse cx="20" cy="20" rx="16" ry="7" stroke="var(--em)" stroke-width="1.8" fill="none" transform="rotate(60 20 20)"/>
+        <ellipse cx="20" cy="20" rx="16" ry="7" stroke="var(--em)" stroke-width="1.8" fill="none" transform="rotate(120 20 20)"/>
+      </svg>
+      <h2>電磁気</h2>
+      <p>電荷が作る電場、電流が作る磁場、そして回路を流れる電流と電圧の関係を可視化。</p>
+      <ul class="chips">
+        <li class="soon">点電荷と電場</li><li class="soon">電流と磁場</li><li class="soon">直列・並列回路</li>
+      </ul>
+      <span class="count">準備中</span>
+      <span class="go">のぞいてみる
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+    <a class="unit-card u-thermo" href="./thermo.html">
+      <span class="unit-tab">4 章</span>
+      <svg class="icon" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <rect x="6" y="8" width="28" height="22" rx="3" stroke="var(--thermo)" stroke-width="2" fill="none"/>
+        <circle cx="14" cy="16" r="2.2" fill="var(--thermo)"/>
+        <circle cx="24" cy="14" r="2.2" fill="var(--thermo)" opacity="0.7"/>
+        <circle cx="20" cy="22" r="2.2" fill="var(--thermo)" opacity="0.5"/>
+        <circle cx="29" cy="24" r="2.2" fill="var(--thermo)" opacity="0.8"/>
+      </svg>
+      <h2>熱と気体</h2>
+      <p>気体分子の運動から圧力と温度の関係、ボイル・シャルルの法則までを体感する。</p>
+      <ul class="chips">
+        <li class="soon">気体分子運動論</li><li class="soon">ボイル・シャルルの法則</li>
+      </ul>
+      <span class="count">準備中</span>
+      <span class="go">のぞいてみる
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
   </div>
 
-  <div class="stage">
-    <div class="stage-head">
-      <div class="stage-title" id="stageTitle">重力とバウンド</div>
-      <div class="stage-eq" id="stageEq">y(t) = y₀ + v₀t − ½gt²</div>
-    </div>
-    <canvas class="sim" id="simCanvas"></canvas>
-    <div class="controls" id="controls"></div>
-    <div class="row-bottom">
-      <div class="hint" id="hint">ドラッグでボールを弾けます</div>
-      <button class="reset" id="resetBtn">RESET</button>
-    </div>
-  </div>
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。数値を変えて何度でも試してみましょう。</span>
+  </footer>
 
-  <footer>PHYSICA — Vanilla JS canvas simulations, no physics engine, just Newton</footer>
 </div>
 
 <script>
 (function(){
-  "use strict";
-
-  const canvas = document.getElementById('simCanvas');
-  const ctx = canvas.getContext('2d');
-  const controlsEl = document.getElementById('controls');
-  const stageTitle = document.getElementById('stageTitle');
-  const stageEq = document.getElementById('stageEq');
-  const hintEl = document.getElementById('hint');
-  const resetBtn = document.getElementById('resetBtn');
-
-  let W = 0, H = 0, DPR = 1;
-  function fitCanvas(){
-    const rect = canvas.getBoundingClientRect();
-    DPR = window.devicePixelRatio || 1;
-    W = rect.width; H = rect.height;
-    canvas.width = Math.round(W * DPR);
-    canvas.height = Math.round(H * DPR);
-    ctx.setTransform(DPR,0,0,DPR,0,0);
+  var canvas = document.getElementById('heroCanvas');
+  var ctx = canvas.getContext('2d');
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var W = 360, H = 240;
+  function fit(){
+    var r = canvas.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+    W = r.width; H = r.height;
+    canvas.width = Math.round(W*d); canvas.height = Math.round(H*d);
+    ctx.setTransform(d,0,0,d,0,0);
   }
-  window.addEventListener('resize', ()=>{ fitCanvas(); if(current) current.onResize && current.onResize(); });
+  function css(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  var theta0 = 0.85, t = 0;
 
-  // -------- chalk drawing helpers --------
-  const COL = {
-    chalk:'#F2EFE6', dim:'rgba(242,239,230,0.55)', faint:'rgba(242,239,230,0.28)',
-    yellow:'#E8C468', blue:'#86B6D8', bg:'#182420'
-  };
-  function chalkCircle(x,y,r,fill){
-    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle = fill || COL.chalk; ctx.fill();
-    ctx.lineWidth=1; ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.stroke();
+  function draw(theta){
+    ctx.clearRect(0,0,W,H);
+    var px = W/2, py = H*0.11, L = H*0.64;
+    var bx = px + L*Math.sin(theta), by = py + L*Math.cos(theta);
+    ctx.strokeStyle = css('--ink-faint'); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(px-24,py-16); ctx.lineTo(px+24,py-16); ctx.stroke();
+    for(var i=-2;i<=2;i++){ ctx.beginPath(); ctx.moveTo(px+i*10,py-16); ctx.lineTo(px+i*10-6,py-6); ctx.stroke(); }
+    ctx.strokeStyle = css('--grid'); ctx.lineWidth = 20;
+    ctx.beginPath(); ctx.arc(px,py,L,Math.PI/2-theta0,Math.PI/2+theta0); ctx.stroke();
+    ctx.strokeStyle = css('--ink-soft'); ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(bx,by); ctx.stroke();
+    ctx.fillStyle = css('--ink'); ctx.beginPath(); ctx.arc(px,py,3,0,7); ctx.fill();
+    ctx.fillStyle = css('--mech'); ctx.beginPath(); ctx.arc(bx,by,Math.max(10,H*0.055),0,7); ctx.fill();
+    ctx.strokeStyle = css('--ink'); ctx.lineWidth = 1.5; ctx.stroke();
   }
-  function dashedLine(x1,y1,x2,y2,color,dash){
-    ctx.save();
-    ctx.strokeStyle = color || COL.faint;
-    ctx.setLineDash(dash || [5,5]);
-    ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-    ctx.restore();
+  fit();
+  window.addEventListener('resize', fit);
+  if(reduceMotion){ draw(theta0*0.6); return; }
+  var omega = Math.sqrt(9.8/1.5), last = null;
+  function frame(ts){
+    if(last === null) last = ts;
+    t += Math.min((ts-last)/1000, 0.05); last = ts;
+    draw(theta0*Math.cos(omega*t));
+    requestAnimationFrame(frame);
   }
-  function label(text,x,y,color,size,align){
-    ctx.font = (size||12)+'px "Space Mono", monospace';
-    ctx.fillStyle = color || COL.dim;
-    ctx.textAlign = align || 'left';
-    ctx.fillText(text,x,y);
-  }
-  function clear(){ ctx.clearRect(0,0,W,H); }
-
-  // -------- slider control builder --------
-  function buildControls(defs, state, onChange){
-    controlsEl.innerHTML = '';
-    defs.forEach(d=>{
-      const wrap = document.createElement('div');
-      wrap.className = 'ctrl';
-      const lab = document.createElement('label');
-      const spanName = document.createElement('span'); spanName.textContent = d.label;
-      const spanVal = document.createElement('b'); spanVal.textContent = d.fmt ? d.fmt(state[d.key]) : state[d.key];
-      lab.appendChild(spanName); lab.appendChild(spanVal);
-      const input = document.createElement('input');
-      input.type = 'range'; input.min = d.min; input.max = d.max; input.step = d.step;
-      input.value = state[d.key];
-      input.addEventListener('input', ()=>{
-        state[d.key] = parseFloat(input.value);
-        spanVal.textContent = d.fmt ? d.fmt(state[d.key]) : state[d.key];
-        onChange && onChange();
-      });
-      wrap.appendChild(lab); wrap.appendChild(input);
-      controlsEl.appendChild(wrap);
-    });
-  }
-
-  // -------- pointer handling (generic) --------
-  function toLocal(evt){
-    const rect = canvas.getBoundingClientRect();
-    const cx = (evt.touches ? evt.touches[0].clientX : evt.clientX) - rect.left;
-    const cy = (evt.touches ? evt.touches[0].clientY : evt.clientY) - rect.top;
-    return {x:cx, y:cy};
-  }
-  function bindPointer(handlers){
-    function down(e){ e.preventDefault(); handlers.down && handlers.down(toLocal(e)); }
-    function move(e){ e.preventDefault(); handlers.move && handlers.move(toLocal(e)); }
-    function up(e){ handlers.up && handlers.up(toLocal(e)); }
-    canvas.addEventListener('mousedown', down);
-    canvas.addEventListener('mousemove', move);
-    window.addEventListener('mouseup', up);
-    canvas.addEventListener('touchstart', down, {passive:false});
-    canvas.addEventListener('touchmove', move, {passive:false});
-    canvas.addEventListener('touchend', up);
-    return function unbind(){
-      canvas.removeEventListener('mousedown', down);
-      canvas.removeEventListener('mousemove', move);
-      window.removeEventListener('mouseup', up);
-      canvas.removeEventListener('touchstart', down);
-      canvas.removeEventListener('touchmove', move);
-      canvas.removeEventListener('touchend', up);
-    };
-  }
-
-  // ==================================================================
-  // SIM 1: Gravity & Bounce
-  // ==================================================================
-  function makeGravitySim(){
-    const state = { g: 9.8, e: 0.8 };
-    const PX_PER_M = 45;
-    let ball, dragging=false, dragStart=null, unbind;
-
-    function resetBall(){
-      ball = { x:W*0.3, y:H*0.25, vx:0, vy:0, r:16 };
-    }
-
-    function floorY(){ return H - 14; }
-
-    function step(dt){
-      if(dragging) return;
-      const g = state.g * PX_PER_M;
-      ball.vy += g*dt;
-      ball.x += ball.vx*dt;
-      ball.y += ball.vy*dt;
-      const fy = floorY();
-      if(ball.y + ball.r > fy){
-        ball.y = fy - ball.r;
-        ball.vy = -ball.vy * state.e;
-        ball.vx *= 0.995;
-        if(Math.abs(ball.vy) < 15) ball.vy = 0;
-      }
-      if(ball.x - ball.r < 0){ ball.x = ball.r; ball.vx = -ball.vx*state.e; }
-      if(ball.x + ball.r > W){ ball.x = W - ball.r; ball.vx = -ball.vx*state.e; }
-    }
-
-    function draw(){
-      clear();
-      const fy = floorY();
-      dashedLine(0,fy,W,fy,COL.faint,[6,6]);
-      label('floor', 8, fy-6, COL.faint, 10);
-      const v = Math.hypot(ball.vx, ball.vy)/PX_PER_M;
-      label('v = '+v.toFixed(2)+' m/s', W-10, 20, COL.blue, 12, 'right');
-      if(dragging && dragStart){
-        dashedLine(dragStart.x, dragStart.y, ball.x, ball.y, COL.yellow, [3,4]);
-      }
-      chalkCircle(ball.x, ball.y, ball.r, COL.chalk);
-    }
-
-    function onResize(){ resetBall(); }
-
-    return {
-      title:'重力とバウンド', eq:'y(t) = y₀ + v₀t − ½gt²',
-      hint:'ドラッグしてボールを弾けます',
-      controlDefs:[
-        {key:'g', label:'重力加速度 g', min:1, max:20, step:0.1, fmt:v=>v.toFixed(1)+' m/s²'},
-        {key:'e', label:'反発係数 e', min:0, max:1, step:0.01, fmt:v=>v.toFixed(2)}
-      ],
-      state,
-      init(){
-        resetBall();
-        unbind = bindPointer({
-          down(p){
-            if(Math.hypot(p.x-ball.x,p.y-ball.y) < ball.r+10){ dragging=true; dragStart={x:p.x,y:p.y}; ball.x=p.x; ball.y=p.y; ball.vx=0; ball.vy=0; }
-          },
-          move(p){ if(dragging){ ball.x=p.x; ball.y=p.y; } },
-          up(p){
-            if(dragging){ ball.vx=(p.x-dragStart.x)*6; ball.vy=(p.y-dragStart.y)*6; dragging=false; dragStart=null; }
-          }
-        });
-      },
-      tick(dt){ step(dt); draw(); },
-      onResize,
-      reset(){ resetBall(); },
-      destroy(){ unbind && unbind(); }
-    };
-  }
-
-  // ==================================================================
-  // SIM 2: Pendulum
-  // ==================================================================
-  function makePendulumSim(){
-    const state = { L: 1.5, g: 9.8, damping: 0.05 };
-    const PX_PER_M = 140;
-    let theta, omega, dragging=false, unbind;
-    const pivot = ()=>({x:W/2, y:36});
-
-    function resetPend(){ theta = 0.6; omega = 0; }
-
-    function step(dt){
-      if(dragging) return;
-      const L = state.L;
-      const alpha = -(state.g/L)*Math.sin(theta) - state.damping*omega;
-      omega += alpha*dt;
-      theta += omega*dt;
-    }
-
-    function bobPos(){
-      const p = pivot();
-      const L = state.L * PX_PER_M;
-      return { x: p.x + L*Math.sin(theta), y: p.y + L*Math.cos(theta) };
-    }
-
-    function draw(){
-      clear();
-      const p = pivot();
-      const b = bobPos();
-      dashedLine(p.x, p.y, p.x, p.y + state.L*PX_PER_M, COL.faint, [3,5]);
-      chalkCircle(p.x, p.y, 4, COL.dim);
-      ctx.strokeStyle = COL.chalk; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(b.x,b.y); ctx.stroke();
-      chalkCircle(b.x, b.y, 18, COL.yellow);
-      const angleDeg = (theta*180/Math.PI);
-      label('θ = '+angleDeg.toFixed(1)+'°', W-10, 20, COL.blue, 12, 'right');
-      label('ω = '+omega.toFixed(2)+' rad/s', W-10, 38, COL.blue, 12, 'right');
-    }
-
-    return {
-      title:'振り子', eq:'θ\'\'(t) = −(g/L)sinθ − bθ\'',
-      hint:'おもりをドラッグして初期角度を変えられます',
-      controlDefs:[
-        {key:'L', label:'紐の長さ L', min:0.5, max:2.5, step:0.05, fmt:v=>v.toFixed(2)+' m'},
-        {key:'g', label:'重力加速度 g', min:1, max:20, step:0.1, fmt:v=>v.toFixed(1)+' m/s²'},
-        {key:'damping', label:'減衰 b', min:0, max:0.3, step:0.01, fmt:v=>v.toFixed(2)}
-      ],
-      state,
-      init(){
-        resetPend();
-        unbind = bindPointer({
-          down(p){
-            const b = bobPos();
-            if(Math.hypot(p.x-b.x,p.y-b.y) < 28) dragging=true;
-          },
-          move(p){
-            if(dragging){
-              const piv = pivot();
-              theta = Math.atan2(p.x-piv.x, p.y-piv.y);
-              omega = 0;
-            }
-          },
-          up(){ dragging=false; }
-        });
-      },
-      tick(dt){ step(dt); draw(); },
-      reset(){ resetPend(); },
-      destroy(){ unbind && unbind(); }
-    };
-  }
-
-  // ==================================================================
-  // SIM 3: Elastic Collisions (billiard-style)
-  // ==================================================================
-  function makeCollisionSim(){
-    const state = { count: 6, speed: 2.5 };
-    let balls = [], unbind, dragIdx=-1;
-    const PX_PER_M = 60;
-
-    function makeBalls(){
-      balls = [];
-      const n = Math.round(state.count);
-      for(let i=0;i<n;i++){
-        const r = 14;
-        let x,y,tries=0, ok;
-        do{
-          x = r + Math.random()*(W-2*r);
-          y = r + Math.random()*(H-2*r);
-          ok = true;
-          for(const b of balls){ if(Math.hypot(x-b.x,y-b.y) < r+b.r+4){ ok=false; break; } }
-          tries++;
-        } while(!ok && tries<200);
-        const ang = Math.random()*Math.PI*2;
-        const spd = state.speed * PX_PER_M * (0.6+Math.random()*0.8);
-        balls.push({x,y,r, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd, m:r*r});
-      }
-    }
-
-    function step(dt){
-      for(const b of balls){
-        if(b.dragging) continue;
-        b.x += b.vx*dt; b.y += b.vy*dt;
-        if(b.x-b.r<0){ b.x=b.r; b.vx=-b.vx; }
-        if(b.x+b.r>W){ b.x=W-b.r; b.vx=-b.vx; }
-        if(b.y-b.r<0){ b.y=b.r; b.vy=-b.vy; }
-        if(b.y+b.r>H){ b.y=H-b.r; b.vy=-b.vy; }
-      }
-      for(let i=0;i<balls.length;i++){
-        for(let j=i+1;j<balls.length;j++){
-          const a=balls[i], c=balls[j];
-          const dx=c.x-a.x, dy=c.y-a.y;
-          const dist=Math.hypot(dx,dy);
-          const minDist=a.r+c.r;
-          if(dist>0 && dist<minDist){
-            const nx=dx/dist, ny=dy/dist;
-            const overlap=(minDist-dist)/2;
-            if(!a.dragging){ a.x-=nx*overlap; a.y-=ny*overlap; }
-            if(!c.dragging){ c.x+=nx*overlap; c.y+=ny*overlap; }
-            const rvx=c.vx-a.vx, rvy=c.vy-a.vy;
-            const velAlongNormal = rvx*nx+rvy*ny;
-            if(velAlongNormal<0){
-              const jimp = -2*velAlongNormal / (1/a.m + 1/c.m);
-              const impX = jimp*nx, impY = jimp*ny;
-              if(!a.dragging){ a.vx -= impX/a.m; a.vy -= impY/a.m; }
-              if(!c.dragging){ c.vx += impX/c.m; c.vy += impY/c.m; }
-            }
-          }
-        }
-      }
-    }
-
-    function draw(){
-      clear();
-      balls.forEach((b,i)=>{
-        chalkCircle(b.x,b.y,b.r, i%2===0 ? COL.chalk : COL.blue);
-      });
-      label(balls.length+' balls', W-10, 20, COL.dim, 12, 'right');
-    }
-
-    return {
-      title:'衝突', eq:'m₁v₁ + m₂v₂ = m₁v₁\' + m₂v₂\'',
-      hint:'ボールをドラッグして弾き飛ばせます',
-      controlDefs:[
-        {key:'count', label:'ボールの数', min:2, max:14, step:1, fmt:v=>Math.round(v)},
-        {key:'speed', label:'初速の目安', min:0.5, max:6, step:0.1, fmt:v=>v.toFixed(1)+' m/s'}
-      ],
-      state,
-      init(){
-        makeBalls();
-        let dragBall=null, last=null;
-        unbind = bindPointer({
-          down(p){
-            for(const b of balls){
-              if(Math.hypot(p.x-b.x,p.y-b.y) < b.r+6){ dragBall=b; b.dragging=true; last=p; break; }
-            }
-          },
-          move(p){
-            if(dragBall && last){
-              dragBall.vx = (p.x-last.x)*8; dragBall.vy=(p.y-last.y)*8;
-              dragBall.x = p.x; dragBall.y = p.y; last = p;
-            }
-          },
-          up(){ if(dragBall){ dragBall.dragging=false; dragBall=null; last=null; } }
-        });
-      },
-      tick(dt){ step(dt); draw(); },
-      onResize(){ makeBalls(); },
-      reset(){ makeBalls(); },
-      destroy(){ unbind && unbind(); }
-    };
-  }
-
-  // ==================================================================
-  // SIM 4: Spring Oscillation
-  // ==================================================================
-  function makeSpringSim(){
-    const state = { k: 20, damping: 0.5 };
-    const PX_PER_M = 120;
-    const restX = ()=>W*0.5;
-    const massY = ()=>H*0.5;
-    let x, v, dragging=false, unbind;
-    const m = 1;
-
-    function resetSpring(){ x = 1.0; v = 0; }
-
-    function step(dt){
-      if(dragging) return;
-      const a = (-state.k*x - state.damping*v)/m;
-      v += a*dt;
-      x += v*dt;
-    }
-
-    function massPos(){ return restX() + x*PX_PER_M; }
-
-    function drawCoil(x1,y,x2){
-      const coils = 14;
-      const amp = 12;
-      ctx.strokeStyle = COL.chalk; ctx.lineWidth=1.5;
-      ctx.beginPath();
-      ctx.moveTo(x1,y);
-      const span = x2-x1;
-      for(let i=0;i<=coils;i++){
-        const t = i/coils;
-        const cx = x1 + span*t;
-        const cy = y + (i%2===0?-amp:amp)*(i>0&&i<coils?1:0.3);
-        ctx.lineTo(cx,cy);
-      }
-      ctx.lineTo(x2,y);
-      ctx.stroke();
-    }
-
-    function draw(){
-      clear();
-      const y = massY();
-      const wallX = 24;
-      ctx.fillStyle='rgba(242,239,230,0.15)';
-      ctx.fillRect(wallX-10,y-50,10,100);
-      const mx = massPos();
-      drawCoil(wallX, y, mx-22);
-      dashedLine(restX(), y-50, restX(), y+50, COL.faint, [4,5]);
-      label('自然長', restX(), y-56, COL.faint, 10, 'center');
-      chalkCircle(mx, y, 22, COL.yellow);
-      label('x = '+x.toFixed(2)+' m', W-10, 20, COL.blue, 12, 'right');
-      label('v = '+v.toFixed(2)+' m/s', W-10, 38, COL.blue, 12, 'right');
-    }
-
-    return {
-      title:'バネ振動', eq:'m x\'\' = −kx − c x\'',
-      hint:'おもりをドラッグして引き伸ばせます',
-      controlDefs:[
-        {key:'k', label:'バネ定数 k', min:2, max:60, step:1, fmt:v=>v.toFixed(0)+' N/m'},
-        {key:'damping', label:'減衰係数 c', min:0, max:3, step:0.05, fmt:v=>v.toFixed(2)}
-      ],
-      state,
-      init(){
-        resetSpring();
-        unbind = bindPointer({
-          down(p){
-            const mx = massPos(), y = massY();
-            if(Math.hypot(p.x-mx,p.y-y) < 30) dragging=true;
-          },
-          move(p){
-            if(dragging){ x = (p.x - restX())/PX_PER_M; v = 0; }
-          },
-          up(){ dragging=false; }
-        });
-      },
-      tick(dt){ step(dt); draw(); },
-      reset(){ resetSpring(); },
-      destroy(){ unbind && unbind(); }
-    };
-  }
-
-  // -------- sim registry & switching --------
-  const SIMS = {
-    gravity: makeGravitySim,
-    pendulum: makePendulumSim,
-    collision: makeCollisionSim,
-    spring: makeSpringSim
-  };
-
-  let current = null, rafId = null, lastT = null;
-
-  function loop(t){
-    if(!current) return;
-    if(lastT===null) lastT = t;
-    let dt = (t-lastT)/1000;
-    dt = Math.min(dt, 0.033);
-    lastT = t;
-    current.tick(dt);
-    rafId = requestAnimationFrame(loop);
-  }
-
-  function loadSim(key){
-    if(current){ current.destroy(); }
-    if(rafId) cancelAnimationFrame(rafId);
-    lastT = null;
-    fitCanvas();
-    current = SIMS[key]();
-    stageTitle.textContent = current.title;
-    stageEq.textContent = current.eq;
-    hintEl.textContent = current.hint;
-    buildControls(current.controlDefs, current.state, ()=>{});
-    current.init();
-    rafId = requestAnimationFrame(loop);
-  }
-
-  document.getElementById('tabs').addEventListener('click', (e)=>{
-    const btn = e.target.closest('.tab');
-    if(!btn) return;
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    btn.classList.add('active');
-    loadSim(btn.dataset.sim);
-  });
-
-  resetBtn.addEventListener('click', ()=>{ current && current.reset(); });
-
-  fitCanvas();
-  loadSim('gravity');
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>

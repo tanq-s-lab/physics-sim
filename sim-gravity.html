@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>放物運動とバウンド — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="u-mech">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html" class="on">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./mechanics.html">力学</a> / 放物運動とバウンド</p>
+
+  <div class="sim-head">
+    <h1>放物運動とバウンド</h1>
+    <span class="eq">x = v₀cosθ·t,  y = v₀sinθ·t − ½gt²</span>
+  </div>
+
+  <section class="stage">
+    <canvas class="sim" id="sim" aria-label="放物運動とバウンドのシミュレーション"></canvas>
+    <ul class="readout" id="readout"></ul>
+    <div class="controls" id="controls"></div>
+    <div class="actions">
+      <span class="hint">ボールをドラッグして放すと、その勢いで飛びます。</span>
+      <span class="btns"><button class="btn primary" id="launch">投げる</button><button class="btn" id="reset">リセット</button></span>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>点は <strong>0.1 秒ごと</strong>のボールの位置です。</li>
+        <li>水平方向:力がはたらかないので <strong>等速直線運動</strong>(点の横の間隔が一定)。</li>
+        <li>鉛直方向:重力だけがはたらくので <strong>加速度 −g の等加速度運動</strong>。</li>
+        <li>床ではね返ると、鉛直方向の速さが <strong>e 倍</strong>になります。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>角度を変えて、いちばん遠くまで届く角度を探そう。何度になる?(空気抵抗なし)</li>
+        <li>30° と 60° で投げると、到達距離はどうなる? 理由も考えよう。</li>
+        <li>e = 0.5 のとき、はね返った後の最高点は元の高さの何倍になる?(ヒント:h′ = e²h)</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <span></span>
+    <a href="./mechanics.html">力学の一覧へ</a>
+    <a href="./sim-pendulum.html">単振り子 →</a>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+  </footer>
+
+</div>
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  var S = { v0: 9, ang: 55, g: 9.8, e: 0.75 };
+  var HEIGHT_M = 8;                 // 画面の高さに入る実寸 [m]
+  var scale = 40, R = 11;           // px/m, ボール半径 px
+  var ball, mode, trail, trailT, hmax, bounces, samples, start;
+
+  function floorY(v){ return v.H - 26; }
+  function Wm(v){ return v.W / scale; }
+  function toPx(v, x, y){ return { x: 30 + x*scale, y: floorY(v) - R - y*scale }; }
+  function toM(v, p){ return { x: (p.x - 30)/scale, y: (floorY(v) - R - p.y)/scale }; }
+
+  function setScale(v){ scale = (v.H - 60) / HEIGHT_M; start = { x: 0.4, y: 0 }; }
+  function ready(v){
+    setScale(v);
+    ball = { x: start.x, y: start.y, vx: 0, vy: 0 };
+    mode = 'ready'; trail = []; trailT = 0; hmax = 0; bounces = 0; v.t = 0;
+  }
+  function launch(v){
+    ready(v);
+    var a = S.ang * Math.PI/180;
+    ball.vx = S.v0*Math.cos(a); ball.vy = S.v0*Math.sin(a);
+    mode = 'fly';
+  }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key:'v0',  label:'初速 v₀',        min:1, max:15, step:0.5, fmt:function(x){return x.toFixed(1)+' m/s';}, onChange:function(v){ if(mode==='ready') ready(v); } },
+      { key:'ang', label:'投げる角度 θ',    min:0, max:90, step:1,   fmt:function(x){return x.toFixed(0)+'°';},     onChange:function(v){ if(mode==='ready') ready(v); } },
+      { key:'g',   label:'重力加速度 g',    min:1, max:20, step:0.1, fmt:function(x){return x.toFixed(1)+' m/s²';} },
+      { key:'e',   label:'反発係数 e',      min:0, max:1,  step:0.01, fmt:function(x){return x.toFixed(2);} }
+    ],
+    init: function(v){ launch(v); v.extraButton('launch', launch); },
+    reset: function(v){ ready(v); },
+    resize: function(v){ setScale(v); },
+
+    step: function(v, h){
+      if(mode !== 'fly') return;
+      ball.vy -= S.g*h;
+      ball.x += ball.vx*h; ball.y += ball.vy*h;
+      if(ball.y < 0){
+        ball.y = 0;
+        if(Math.abs(ball.vy) > 0.25){ ball.vy = -ball.vy*S.e; bounces++; }
+        else ball.vy = 0;
+      }
+      if(ball.y === 0 && ball.vy === 0){ ball.vx *= (1 - 1.2*h); if(Math.abs(ball.vx) < 0.02) ball.vx = 0; }
+      var right = Wm(v) - 60/scale;
+      if(ball.x < 0){ ball.x = 0; ball.vx = -ball.vx*S.e; }
+      if(ball.x > right){ ball.x = right; ball.vx = -ball.vx*S.e; }
+      if(ball.y > hmax) hmax = ball.y;
+      trailT += h;
+      if(trailT >= 0.1 && !(ball.y === 0 && ball.vy === 0)){ trailT = 0; trail.push({x:ball.x, y:ball.y}); if(trail.length > 300) trail.shift(); }
+    },
+
+    draw: function(v){
+      var C = v.C, ctx = v.ctx; v.clear();
+      var fy = floorY(v);
+      // 目盛り(1 m ごと)
+      for(var m=1; m<HEIGHT_M; m++){
+        var yy = fy - m*scale;
+        v.line(24, yy, 30, yy, C.faint, 1);
+        v.text(m+'m', 20, yy+4, C.faint, 10, 'right');
+      }
+      v.line(0, fy, v.W, fy, C.ink, 2);
+      // 最高点
+      if(hmax > 0.05){
+        var hy = toPx(v, 0, hmax).y;
+        v.line(30, hy, v.W, hy, C.accent2, 1, [5,5]);
+        v.text('最高点 '+hmax.toFixed(2)+' m', v.W-10, hy-6, C.accent2, 11, 'right');
+      }
+      // 軌跡(0.1 秒ごとの位置)
+      ctx.fillStyle = C.soft;
+      trail.forEach(function(p){ var q = toPx(v, p.x, p.y); ctx.beginPath(); ctx.arc(q.x, q.y, 2.4, 0, 7); ctx.fill(); });
+      var b = toPx(v, ball.x, ball.y);
+      if(mode === 'ready'){
+        var a = S.ang*Math.PI/180, L = S.v0*scale*0.18;
+        v.arrow(b.x, b.y, b.x + L*Math.cos(a), b.y - L*Math.sin(a), C.accent2, 2.4);
+        v.label('「投げる」を押すか、ボールをドラッグして放す', b.x + 20, 20, C.soft, 12);
+      }
+      v.circle(b.x, b.y, R, C.accent);
+      if(mode === 'fly' && (ball.vx !== 0 || ball.vy !== 0)){
+        var k = scale*0.12;
+        v.arrow(b.x, b.y, b.x + ball.vx*k, b.y, C.accent2, 1.8);
+        v.arrow(b.x, b.y, b.x, b.y - ball.vy*k, C.accent2, 1.8);
+      }
+    },
+
+    readout: function(v){
+      return [
+        ['時間', v.t.toFixed(2)+' s'],
+        ['高さ', ball.y.toFixed(2)+' m'],
+        ['vₓ', ball.vx.toFixed(2)+' m/s'],
+        ['vᵧ', ball.vy.toFixed(2)+' m/s'],
+        ['バウンド', bounces+' 回']
+      ];
+    },
+
+    down: function(v, p){
+      var b = toPx(v, ball.x, ball.y);
+      if(Math.hypot(p.x-b.x, p.y-b.y) < R + 16){ mode = 'drag'; samples = [{p:p, t:performance.now()}]; trail = []; hmax = 0; bounces = 0; }
+    },
+    move: function(v, p){
+      if(mode !== 'drag') return;
+      var m = toM(v, p);
+      ball.x = Math.max(0, Math.min(Wm(v)-60/scale, m.x)); ball.y = Math.max(0, m.y);
+      samples.push({p:p, t:performance.now()}); if(samples.length > 6) samples.shift();
+    },
+    up: function(v){
+      if(mode !== 'drag') return;
+      var a = samples[0], b = samples[samples.length-1], dt = Math.max((b.t - a.t)/1000, 0.016);
+      ball.vx = (b.p.x - a.p.x)/scale/dt; ball.vy = -(b.p.y - a.p.y)/scale/dt;
+      var sp = Math.hypot(ball.vx, ball.vy); if(sp > 20){ ball.vx *= 20/sp; ball.vy *= 20/sp; }
+      mode = 'fly'; v.t = 0; hmax = ball.y;
+    }
+  });
+})();
+</script>
+</body>
+</html>

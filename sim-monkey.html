@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>モンキーハンティング — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="u-mech">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html" class="on">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./mechanics.html">力学</a> / モンキーハンティング</p>
+
+  <div class="sim-head">
+    <h1>モンキーハンティング</h1>
+    <span class="eq">狙えば必ず当たる?</span>
+  </div>
+
+  <section class="stage">
+    <canvas class="sim wide" id="sim" aria-label="モンキーハンティングのシミュレーション"></canvas>
+    <ul class="readout" id="readout"></ul>
+    <div class="controls" id="controls"></div>
+    <div class="actions">
+      <span class="angle-set"><span class="lbl">発射角度</span><button class="btn small" id="a-1">−1°</button><button class="btn small" id="a-01">−0.1°</button><button class="btn small" id="a+01">+0.1°</button><button class="btn small" id="a+1">+1°</button></span>
+      <span class="btns"><button class="btn" id="slow" aria-pressed="false">スロー</button><button class="btn primary" id="fire">発射!</button><button class="btn" id="reset">リセット</button></span>
+    </div>
+    <p class="hint" style="margin:10px 0 0">角度をスイカに向けたまま(21.8°)なら、初速度を変えても当たります。</p>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>弾とスイカは、同じ瞬間から <strong>同じ重力加速度 g</strong> で落ち始めます。</li>
+        <li>重力がなければ、弾は照準線の上をまっすぐ進み、スイカは止まったまま。だから必ず当たります。</li>
+        <li>重力があっても、どちらも <strong>同じ時間に同じだけ(½gt²)落ちる</strong>ので、ずれは生まれません。</li>
+        <li>初速度が小さすぎると、届く前にスイカが地面に着いてしまいます。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>角度を 21.8° のまま初速度を変えて、何回か発射してみよう。当たるための条件はある?</li>
+        <li>角度を少しずらすと当たらなくなる。なぜだろう?</li>
+        <li>月面で同じ実験をしたら、重力加速度が小さくなっても当たる? 理由を説明しよう。</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-spring.html">← ばね振り子</a>
+    <a href="./mechanics.html">力学の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+  </footer>
+
+</div>
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  // 論理座標 800×450(元の教材と同じ)。画面幅に合わせて拡大縮小する。
+  var LW = 800, LH = 450;
+  var g = 0.2;                                  // [px/frame²](元の値)
+  var hunterX = 50, hunterY = 400, melonX = 700, melonY = 140;
+  var AIM = Math.atan((hunterY - melonY)/(melonX - hunterX))*180/Math.PI;   // 21.8°
+  var S = { v0: 20 };
+  var angle = Math.round(AIM*10)/10, slow = false;
+  var running, ended, hit, t, bullet, melon, trB, trM, gapAtCross;
+
+  function init(){
+    running = false; ended = false; hit = false; t = 0; gapAtCross = null;
+    bullet = { x: hunterX, y: hunterY }; melon = { x: melonX, y: melonY };
+    trB = []; trM = [];
+    setDisabled(false);
+  }
+  function setDisabled(d){
+    ['fire','a-1','a-01','a+01','a+1'].forEach(function(id){ var b = document.getElementById(id); if(b) b.disabled = d; });
+    var s = document.querySelector('#controls input'); if(s) s.disabled = d;
+  }
+  function changeAngle(d){
+    angle = Math.max(5, Math.min(45, Math.round((angle + d)*10)/10));
+    init();
+  }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key:'v0', label:'初速度(弾の速さ)', min:12, max:30, step:1, fmt:function(x){return x.toFixed(0);}, onChange:function(){ init(); } }
+    ],
+    init: function(v){
+      init();
+      v.extraButton('fire', function(){ if(!ended && !running){ running = true; setDisabled(true); } });
+      v.extraButton('a-1',  function(){ changeAngle(-1); });
+      v.extraButton('a-01', function(){ changeAngle(-0.1); });
+      v.extraButton('a+01', function(){ changeAngle(0.1); });
+      v.extraButton('a+1',  function(){ changeAngle(1); });
+      v.extraButton('slow', function(v){
+        slow = !slow;
+        var b = document.getElementById('slow'); b.classList.toggle('primary', slow); b.setAttribute('aria-pressed', slow);
+      });
+    },
+    reset: function(){ init(); },
+
+    step: function(v, h){
+      if(!running) return;
+      t += h*60*(slow ? 0.25 : 1);             // 元の教材の「フレーム」単位の時間
+      var rad = angle*Math.PI/180;
+      bullet.x = hunterX + S.v0*Math.cos(rad)*t;
+      bullet.y = hunterY - S.v0*Math.sin(rad)*t + 0.5*g*t*t;
+      melon.y = melonY + 0.5*g*t*t;
+      var last = trB[trB.length-1];
+      if(!last || Math.hypot(bullet.x-last.x, bullet.y-last.y) > 3){ trB.push({x:bullet.x, y:bullet.y}); trM.push({x:melon.x, y:melon.y}); }
+      if(bullet.x >= melonX){
+        // すれ違う瞬間の高さの差を、式から正確に求める
+        var tc = (melonX - hunterX)/(S.v0*Math.cos(rad));
+        gapAtCross = (hunterY - S.v0*Math.sin(rad)*tc + 0.5*g*tc*tc) - (melonY + 0.5*g*tc*tc);
+        if(Math.abs(gapAtCross) < 16) hit = true;
+        running = false; ended = true;
+      }
+      if(bullet.y > 415 || melon.y > 415){ running = false; ended = true; }
+    },
+
+    draw: function(v){
+      var C = v.C, ctx = v.ctx, k = v.W/LW;
+      v.clear();
+      ctx.save(); ctx.scale(k, k);
+      // 地面と台
+      ctx.fillStyle = 'rgba(110,160,70,0.55)'; ctx.fillRect(0, 420, LW, 30);
+      ctx.fillStyle = C.faint; ctx.fillRect(melonX - 10, melonY + 15, 20, 420 - melonY - 15);
+      // 照準線
+      var rad = angle*Math.PI/180;
+      ctx.save(); ctx.strokeStyle = C.accent; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.5; ctx.setLineDash([6,6]);
+      ctx.beginPath(); ctx.moveTo(hunterX, hunterY); ctx.lineTo(hunterX + 900*Math.cos(rad), hunterY - 900*Math.sin(rad)); ctx.stroke(); ctx.restore();
+      // 軌跡
+      function path(tr, col){
+        if(tr.length < 2) return;
+        ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tr[0].x, tr[0].y);
+        tr.forEach(function(p){ ctx.lineTo(p.x, p.y); }); ctx.stroke();
+      }
+      path(trB, C.accent2); path(trM, '#2E9E5B');
+      // 大砲
+      ctx.save(); ctx.translate(hunterX, hunterY); ctx.rotate(-rad);
+      ctx.fillStyle = C.ink; ctx.fillRect(-10, -10, 40, 20);
+      ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill(); ctx.restore();
+      // スイカ
+      var mx = melon.x, my = melon.y;
+      ctx.fillStyle = '#2ECC71'; ctx.beginPath(); ctx.arc(mx, my, 15, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#1E7A45'; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(mx-7, my-11); ctx.quadraticCurveTo(mx-4, my, mx-7, my+11);
+      ctx.moveTo(mx, my-15);   ctx.quadraticCurveTo(mx+1, my, mx, my+15);
+      ctx.moveTo(mx+7, my-11); ctx.quadraticCurveTo(mx+4, my, mx+7, my+11);
+      ctx.stroke();
+      // 弾
+      if(running || ended){ ctx.fillStyle = C.accent2; ctx.beginPath(); ctx.arc(bullet.x, bullet.y, 6, 0, Math.PI*2); ctx.fill(); }
+      // 角度表示
+      ctx.font = '600 16px "JetBrains Mono", monospace'; ctx.fillStyle = C.ink; ctx.textAlign = 'left';
+      ctx.fillText(angle.toFixed(1)+'°', hunterX + 30, hunterY - 30);
+      // メッセージ
+      ctx.textAlign = 'center';
+      if(hit){ ctx.fillStyle = C.accent; ctx.font = '900 34px "Zen Maru Gothic", sans-serif'; ctx.fillText('衝突成功! HIT!!', LW/2, 200); }
+      else if(ended){ ctx.fillStyle = C.soft; ctx.font = '900 34px "Zen Maru Gothic", sans-serif'; ctx.fillText('はずれ…', LW/2, 200); }
+      else if(!running){ ctx.fillStyle = C.soft; ctx.font = '500 15px "Noto Sans JP", sans-serif'; ctx.fillText('「発射!」を押すと、弾が出た瞬間にスイカが落ち始めます', LW/2, 40); }
+      ctx.restore();
+    },
+
+    readout: function(){
+      return [
+        ['発射角度', angle.toFixed(1)+'°'],
+        ['スイカを狙う角度', AIM.toFixed(1)+'°'],
+        ['初速度', S.v0.toFixed(0)],
+        ['すれ違ったときの高さの差', gapAtCross === null ? '—' : Math.abs(gapAtCross).toFixed(1)+' px']
+      ];
+    }
+  });
+})();
+</script>
+</body>
+</html>
