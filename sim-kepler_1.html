@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ケプラーの法則と面積速度 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+
+<body class="u-mech">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html" class="on">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./mechanics.html">力学</a> / ケプラーの法則と面積速度</p>
+
+  <div class="sim-head">
+    <h1>ケプラーの法則と面積速度</h1>
+    <span class="eq">½ r v sinθ = 一定,  T² / a³ = 一定</span>
+  </div>
+
+  <section class="stage">
+    <canvas class="sim" id="sim" style="height:clamp(340px,92vw,480px)" aria-label="ケプラーの第2法則(面積速度一定)のシミュレーション"></canvas>
+    <ul class="readout" id="readout"></ul>
+    <div class="controls" id="controls"></div>
+    <div class="actions">
+      <span class="hint" id="hint"></span>
+      <span class="btns">
+        <button class="btn small" id="m-ellipse">楕円モード</button>
+        <button class="btn small" id="m-launch">打ち出しモード</button>
+        <button class="btn" id="pause">一時停止</button>
+        <button class="btn" id="reset">リセット</button>
+      </span>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>色つきの扇形は、<strong>同じ時間 Δt ごと</strong>に太陽と惑星を結ぶ線が通過した部分。形は違っても<strong>面積はすべて等しい</strong>(左上のグラフ)。</li>
+        <li>面積速度 <strong>½ r v sinθ</strong> が一定なのは、万有引力がいつも太陽の方向を向く(中心力)から。角運動量保存と同じ内容です。</li>
+        <li>近日点では速く、遠日点では遅い。<strong>r<sub>近</sub>v<sub>近</sub> = r<sub>遠</sub>v<sub>遠</sub></strong>。</li>
+        <li>楕円では <strong>c² = a² − b²</strong>、離心率 e = c/a。太陽は焦点の一つ F にあります。F から短軸の端までの距離は、ちょうど a になります。</li>
+        <li>第3法則:<strong>T² / a³ は一定</strong>。長さを天文単位(AU)、時間を年で測ると 1 になります。</li>
+        <li><strong>AU(天文単位)</strong>は太陽と地球の平均距離で、<strong>1 AU ≒ 1.5 億 km</strong>(1.496×10⁸ km)。a = b = 1.00 AU にすると地球の軌道(周期 1 年、速さ 約 30 km/s)になります。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>b を a と同じにすると円になる。このとき速さが一定になる理由を、面積速度一定から説明しよう。</li>
+        <li>a = 2.00, b = 1.20 のとき、近日点と遠日点の速さの比 v<sub>近</sub>/v<sub>遠</sub> を計算してから確かめよう。(ヒント:c を求めて r<sub>近</sub>, r<sub>遠</sub> を出す)</li>
+        <li>a を 1 から 4 にすると、周期は何倍になる?</li>
+        <li>打ち出しモードで、円運動の速さの約 1.41 倍以上で打ち出すとどうなる? 飛び去るときも面積速度は一定?</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-monkey.html">← モンキーハンティング</a>
+    <a href="./mechanics.html">力学の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  // 単位:長さ AU(天文単位)、時間 年、太陽質量 → GM = 4π² AU³/年²(T = a^1.5)
+  var GM = 4*Math.PI*Math.PI, KMS = 4.7406;   // 1 AU/年 ≒ 4.74 km/s
+  var S = { a: 2.0, b: 1.6, n: 12, speed: 0.4 };
+  var BMIN = 0.3;                              // b ≥ 0.3a(離心率 約0.95まで)
+
+  var mode = 'ellipse', phase = 'run', paused = false;
+  var P = null, tY = 0, scale = 60, sunPx = {x:0, y:0};
+  var G = null;                                // 楕円モードの幾何量
+  var orb = null;                              // 打ち出しモードの軌道要素
+  var sectors = [], cur, secT = 0, dT = 1, areaRef = 1, secIdx = 0, sectorCount = 0;
+  var trail = [], trailT = 0, drag = null, preview = null;
+
+  function geo(){
+    var a = S.a, b = S.b, c = Math.sqrt(Math.max(a*a - b*b, 0)), e = c/a;
+    var rp = a - c, ra = a + c, vp = Math.sqrt(GM*(1+e)/rp), va = vp*rp/ra;
+    return { a:a, b:b, c:c, e:e, rp:rp, ra:ra, vp:vp, va:va, T:Math.pow(a, 1.5) };
+  }
+  // 位置・速度から軌道要素を求める(円錐曲線)
+  function conic(x, y, vx, vy){
+    var r = Math.hypot(x, y), v2 = vx*vx + vy*vy, h = x*vy - y*vx;
+    var rv = x*vx + y*vy, k = v2 - GM/r;
+    var ex = (k*x - rv*vx)/GM, ey = (k*y - rv*vy)/GM, e = Math.hypot(ex, ey);
+    var E = v2/2 - GM/r, a = E < 0 ? -GM/(2*E) : null;
+    return { h:h, e:e, w:Math.atan2(ey, ex), p:h*h/GM, a:a,
+             T: a ? Math.pow(a, 1.5) : null, bound: E < 0 };
+  }
+
+  function layout(v){
+    if(mode === 'ellipse'){
+      scale = Math.min((v.W - 56)/(2*G.a), (v.H - 100)/(2*G.b));
+      sunPx = { x: v.W/2 - G.c*scale, y: v.H/2 + 18 };
+    } else {
+      scale = Math.min(v.W, v.H)/2/3.2;
+      sunPx = { x: v.W/2, y: v.H/2 };
+    }
+  }
+  function px(x, y){ return { x: sunPx.x + x*scale, y: sunPx.y - y*scale }; }
+  function world(p){ return { x: (p.x - sunPx.x)/scale, y: (sunPx.y - p.y)/scale }; }
+
+  function clearSectors(){
+    sectors = []; secT = 0; sectorCount = 0; secIdx = 0;
+    cur = { pts: P ? [[P.x, P.y]] : [], area: 0, idx: 0 };
+  }
+  function startEllipse(v){
+    mode = 'ellipse'; phase = 'run'; G = geo(); orb = null;
+    P = { x: -G.rp, y: 0, vx: 0, vy: -G.vp };
+    dT = G.T/S.n; areaRef = Math.PI*G.a*G.b/S.n; tY = 0;
+    trail = []; drag = null; preview = null;
+    clearSectors(); layout(v); ui();
+  }
+  function startLaunch(v){
+    mode = 'launch'; phase = 'wait'; P = null; orb = null; tY = 0;
+    trail = []; drag = null; preview = null;
+    clearSectors(); layout(v); ui();
+  }
+  function launchFrom(v, x, y, vx, vy){
+    P = { x:x, y:y, vx:vx, vy:vy }; orb = conic(x, y, vx, vy);
+    dT = orb.bound ? orb.T/S.n : 1.2/S.n;
+    areaRef = Math.max(Math.abs(orb.h)/2*dT, 1e-6);
+    tY = 0; trail = [[x, y]]; trailT = 0; phase = 'run';
+    clearSectors(); ui();
+  }
+
+  // UI ------------------------------------------------------------
+  function hint(s){ document.getElementById('hint').textContent = s; }
+  function ui(){
+    document.getElementById('m-ellipse').classList.toggle('primary', mode === 'ellipse');
+    document.getElementById('m-launch').classList.toggle('primary', mode === 'launch');
+    document.getElementById('pause').textContent = paused ? '再開' : '一時停止';
+    hint(mode === 'ellipse'
+      ? 'スライダーで楕円の形を変えられます。b = a で円軌道。'
+      : '打ち出したい場所を押して、飛ばしたい向きに引っぱって放します。');
+  }
+  function syncSlider(key, txt){
+    var el = document.getElementById('c-' + key); if(!el) return;
+    el.value = S[key];
+    var out = document.querySelector('label[for="c-' + key + '"] output');
+    if(out) out.textContent = txt;
+  }
+  var fAU = function(x){ return x.toFixed(2) + ' AU'; };
+
+  // 物理 ----------------------------------------------------------
+  function closeSector(){
+    cur.pts.push([P.x, P.y]);
+    sectors.push(cur); sectorCount++;
+    if(sectors.length > S.n) sectors.shift();
+    secT = 0; secIdx++;
+    cur = { pts: [[P.x, P.y]], area: 0, idx: secIdx };
+    // 楕円モード:1周ごとに近日点に合わせ直して数値誤差をためない
+    if(mode === 'ellipse' && secIdx % S.n === 0){
+      P.x = -G.rp; P.y = 0; P.vx = 0; P.vy = -G.vp; cur.pts = [[P.x, P.y]];
+    }
+  }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key:'a', label:'半長軸 a', min:1, max:4, step:0.05, fmt:fAU,
+        onChange:function(v){
+          if(S.b > S.a){ S.b = S.a; syncSlider('b', fAU(S.b)); }
+          if(S.b < BMIN*S.a){ S.b = +(BMIN*S.a).toFixed(2); syncSlider('b', fAU(S.b)); }
+          startEllipse(v);
+        } },
+      { key:'b', label:'半短軸 b', min:0.3, max:4, step:0.05, fmt:fAU,
+        onChange:function(v){
+          if(S.b > S.a){ S.b = S.a; syncSlider('b', fAU(S.b)); }
+          if(S.b < BMIN*S.a){ S.b = +(BMIN*S.a).toFixed(2); syncSlider('b', fAU(S.b)); }
+          startEllipse(v);
+        } },
+      { key:'n', label:'1周の分割数 N', min:6, max:24, step:1,
+        fmt:function(x){ return x.toFixed(0) + ' 区間'; },
+        onChange:function(v){ mode === 'ellipse' ? startEllipse(v) : startLaunch(v); } },
+      { key:'speed', label:'再生速度', min:0.1, max:1.5, step:0.05,
+        fmt:function(x){ return x.toFixed(2) + ' 年/秒'; }, onChange:function(){} }
+    ],
+    init: function(v){
+      startEllipse(v);
+      v.extraButton('m-ellipse', function(v){ paused = false; startEllipse(v); });
+      v.extraButton('m-launch',  function(v){ paused = false; startLaunch(v); });
+      v.extraButton('pause', function(){ paused = !paused; ui(); });
+    },
+    reset: function(v){ paused = false; mode === 'ellipse' ? startEllipse(v) : startLaunch(v); },
+    resize: function(v){ if(G || mode === 'launch') layout(v); },
+
+    step: function(v, h){
+      if(paused || phase !== 'run' || !P) return;
+      var rem = h*S.speed;
+      while(rem > 1e-12){
+        var r = Math.hypot(P.x, P.y);
+        var ds = Math.min(rem, 0.0005*Math.pow(r, 1.5), dT - secT);
+        if(ds <= 0){ closeSector(); continue; }
+        // leapfrog(速度ベルレ)
+        var r3 = r*r*r;
+        P.vx -= GM*P.x/r3*ds/2; P.vy -= GM*P.y/r3*ds/2;
+        var x0 = P.x, y0 = P.y;
+        P.x += P.vx*ds; P.y += P.vy*ds;
+        r = Math.hypot(P.x, P.y); r3 = r*r*r;
+        P.vx -= GM*P.x/r3*ds/2; P.vy -= GM*P.y/r3*ds/2;
+
+        cur.area += 0.5*(x0*P.y - P.x*y0);      // 掃いた面積(三角形)を足す
+        secT += ds; rem -= ds; tY += ds;
+        var lp = cur.pts[cur.pts.length - 1];
+        var da = Math.atan2(lp[0]*P.y - lp[1]*P.x, lp[0]*P.x + lp[1]*P.y);
+        if(Math.abs(da) > 0.03) cur.pts.push([P.x, P.y]);
+        if(secT >= dT - 1e-12) closeSector();
+
+        if(mode === 'launch'){
+          trailT += ds;
+          if(trailT > 0.004){ trailT = 0; trail.push([P.x, P.y]); if(trail.length > 3000) trail.shift(); }
+        }
+        if(r < 0.03){ phase = 'fell'; break; }
+        if(r > 40){ phase = 'gone'; break; }
+      }
+    },
+
+    draw: function(v){
+      var C = v.C, ctx = v.ctx; v.clear();
+      var sp = sunPx;
+
+      // 打ち出しモードの目安の円
+      if(mode === 'launch'){
+        for(var k = 1; k <= 3; k++){
+          ctx.beginPath(); ctx.arc(sp.x, sp.y, k*scale, 0, Math.PI*2);
+          ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.setLineDash([3,5]); ctx.stroke(); ctx.setLineDash([]);
+          v.text(k + ' AU', sp.x + k*scale*0.707 + 4, sp.y - k*scale*0.707 - 4, C.faint, 10);
+        }
+      }
+
+      // 扇形
+      function poly(sec, extra){
+        var pts = sec.pts.slice(); if(extra) pts.push(extra);
+        if(pts.length < 1) return;
+        ctx.beginPath(); ctx.moveTo(sp.x, sp.y);
+        pts.forEach(function(q){ var p = px(q[0], q[1]); ctx.lineTo(p.x, p.y); });
+        ctx.closePath();
+      }
+      function secColor(i){ return i % 2 ? C.accent2 : C.accent; }
+      sectors.forEach(function(sec){
+        poly(sec); ctx.globalAlpha = 0.22; ctx.fillStyle = secColor(sec.idx); ctx.fill();
+        ctx.globalAlpha = 0.5; ctx.strokeStyle = secColor(sec.idx); ctx.lineWidth = 1; ctx.stroke();
+        ctx.globalAlpha = 1;
+      });
+      if(P && phase !== 'wait'){
+        poly(cur, [P.x, P.y]); ctx.globalAlpha = 0.38; ctx.fillStyle = secColor(cur.idx); ctx.fill(); ctx.globalAlpha = 1;
+      }
+
+      // 楕円と a, b, c(太陽 F は左側の焦点)
+      if(mode === 'ellipse'){
+        var O = { x: sp.x + G.c*scale, y: sp.y };
+        ctx.beginPath(); ctx.ellipse(O.x, O.y, G.a*scale, G.b*scale, 0, 0, Math.PI*2);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.stroke();
+        v.line(O.x - G.a*scale, O.y, O.x + G.a*scale, O.y, C.faint, 1, [4,4]);
+        v.line(O.x, O.y - G.b*scale, O.x, O.y + G.b*scale, C.faint, 1, [4,4]);
+        var B = { x: O.x, y: O.y - G.b*scale }, R = { x: O.x + G.a*scale, y: O.y };
+        // a:半長軸 = 中心 O から長軸の端まで(長軸の上に重ねる)
+        v.line(O.x, O.y, R.x, R.y, C.accent2, 2.2);
+        v.text('a', (O.x + R.x)/2, O.y + 18, C.accent2, 13, 'center');
+        // b:中心 O から短軸の端まで
+        v.line(O.x, O.y, B.x, B.y, C.accent2, 2.2);
+        v.text('b', B.x + 8, (O.y + B.y)/2, C.accent2, 13, 'left');
+        if(G.c*scale > 6){
+          // c:中心 O から焦点 F(太陽)まで
+          v.line(O.x, O.y, sp.x, sp.y, C.accent2, 2.2);
+          v.text('c', (O.x + sp.x)/2, O.y - 8, C.accent2, 13, 'center');
+          var Fp = { x: O.x + G.c*scale, y: O.y };
+          v.line(Fp.x - 5, Fp.y - 5, Fp.x + 5, Fp.y + 5, C.soft, 1.5);
+          v.line(Fp.x - 5, Fp.y + 5, Fp.x + 5, Fp.y - 5, C.soft, 1.5);
+          v.label("F'", Fp.x, Fp.y - 10, C.soft, 12, 'center');
+        }
+        ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(O.x, O.y, 2.5, 0, 7); ctx.fill();
+        v.label('O', O.x - 9, O.y - 8, C.soft, 12, 'center');
+        // 近日点(左)・遠日点(右)
+        var rx = O.x + G.a*scale, lx = O.x - G.a*scale;
+        if(v.W >= 560){
+        v.label('近日点', lx + 4, O.y - 24, C.soft, 11, 'left');
+        v.text((G.vp*KMS).toFixed(1) + ' km/s', lx + 4, O.y - 10, C.ink, 11, 'left');
+        v.label('遠日点', rx - 4, O.y - 24, C.soft, 11, 'right');
+        v.text((G.va*KMS).toFixed(1) + ' km/s', rx - 4, O.y - 10, C.ink, 11, 'right');
+        }
+      }
+
+      // 打ち出しモード:軌跡と予想軌道
+      function drawConic(o, color, dash){
+        if(!o || o.p < 1e-5) return;
+        ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1.4; ctx.setLineDash(dash || []);
+        ctx.beginPath(); var pen = false;
+        for(var i = 0; i <= 720; i++){
+          var th = o.w + (i/720)*2*Math.PI - Math.PI, den = 1 + o.e*Math.cos(th - o.w);
+          var rr = den > 0.02 ? o.p/den : Infinity;
+          if(rr > 60){ pen = false; continue; }
+          var q = px(rr*Math.cos(th), rr*Math.sin(th));
+          if(pen) ctx.lineTo(q.x, q.y); else { ctx.moveTo(q.x, q.y); pen = true; }
+        }
+        ctx.stroke(); ctx.restore();
+      }
+      if(mode === 'launch'){
+        if(trail.length > 1){
+          ctx.beginPath(); trail.forEach(function(q, i){ var p = px(q[0], q[1]); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); });
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 1.4; ctx.stroke();
+        }
+        if(drag) drawConic(preview, C.accent2, [5,5]);
+        else if(orb && phase === 'run') drawConic(orb, C.faint, [3,5]);
+      }
+
+      // 太陽
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, 11, 0, Math.PI*2);
+      ctx.fillStyle = C.accent; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = C.ink; ctx.stroke();
+      v.label(mode === 'ellipse' ? '太陽(焦点 F)' : '太陽', sp.x, sp.y + 28, C.soft, 12, 'center');
+
+      // 惑星・動径・速度
+      if(P && phase !== 'wait' && phase !== 'fell'){
+        var p = px(P.x, P.y);
+        v.line(sp.x, sp.y, p.x, p.y, C.ink, 1.3);
+        var kv = mode === 'ellipse' ? 0.45*G.a*scale/(2*Math.PI/Math.sqrt(G.a)) : scale/(2*Math.PI);
+        if(!drag) v.arrow(p.x, p.y, p.x + P.vx*kv, p.y - P.vy*kv, C.accent2, 2.2);
+        v.circle(p.x, p.y, 7, C.accent2);
+      }
+
+      // ドラッグ中の矢印
+      if(drag){
+        var s0 = px(drag.x, drag.y);
+        v.arrow(s0.x, s0.y, drag.cx, drag.cy, C.accent2, 2.4);
+        v.circle(s0.x, s0.y, 7, C.accent2);
+        var ratio = drag.vc > 0 ? drag.v/drag.vc : 0;
+        v.text((drag.v*KMS).toFixed(1) + ' km/s(円運動の ' + ratio.toFixed(2) + ' 倍)',
+               Math.min(drag.cx + 10, v.W - 8), drag.cy - 10, C.ink, 11, drag.cx + 10 > v.W - 200 ? 'right' : 'left');
+      }
+
+      // 状態メッセージ
+      if(mode === 'launch' && phase === 'wait' && !drag) v.label('太陽のまわりの好きな場所を押して、引っぱって放そう', v.W/2, v.H - 14, C.soft, 12, 'center');
+      if(phase === 'fell') v.label('太陽に落ちました。もう一度打ち出そう', v.W/2, v.H - 14, C.accent, 13, 'center');
+      if(phase === 'gone') v.label('太陽系の外へ飛び去りました', v.W/2, v.H - 14, C.accent, 13, 'center');
+
+      // 左上:Δt ごとの面積グラフ
+      var bw = Math.min(190, v.W*0.4), bh = v.W < 560 ? 50 : 62, bx = 10, by = 10;
+      ctx.globalAlpha = 0.9; ctx.fillStyle = C.paper; ctx.fillRect(bx, by, bw, bh); ctx.globalAlpha = 1;
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, by + 0.5, bw, bh);
+      v.label('Δt ごとの面積', bx + 8, by + 16, C.soft, 11);
+      var list = sectors.slice(); if(P && phase === 'run') list.push(cur);
+      var slots = S.n + 1, gw = (bw - 16)/slots, base = by + bh - 8, full = bh - 30;
+      v.line(bx + 6, base - full, bx + bw - 6, base - full, C.faint, 1, [3,3]);
+      list.forEach(function(sec, i){
+        var hgt = Math.min(Math.abs(sec.area)/areaRef, 1.15)*full;
+        ctx.fillStyle = secColor(sec.idx); ctx.globalAlpha = sec === cur ? 0.55 : 0.9;
+        ctx.fillRect(bx + 8 + i*gw, base - hgt, Math.max(gw - 2, 1), hgt); ctx.globalAlpha = 1;
+      });
+
+      // 右下:スケール
+      var u = scale > 110 ? 0.5 : (scale < 35 ? 2 : 1), L = u*scale;
+      v.line(v.W - 14 - L, v.H - 14, v.W - 14, v.H - 14, C.soft, 2);
+      v.text(u + ' AU', v.W - 14 - L/2, v.H - 20, C.soft, 10, 'center');
+    },
+
+    readout: function(v){
+      var dash = '—';
+      if(!P || phase === 'wait') return [['時間', dash], ['距離 r', dash], ['速さ v', dash], ['面積速度', dash], ['Δt ごとの面積', dash], ['離心率 e', dash], ['周期 T', dash], ['T²/a³', dash]];
+      var r = Math.hypot(P.x, P.y), sp = Math.hypot(P.vx, P.vy);
+      var h = Math.abs(P.x*P.vy - P.y*P.vx)/2;
+      var last = sectors.length ? Math.abs(sectors[sectors.length - 1].area).toFixed(3) + ' AU²' : '計測中';
+      var e, T, a;
+      if(mode === 'ellipse'){ e = G.e; T = G.T; a = G.a; }
+      else { e = orb.e; T = orb.T; a = orb.a; }
+      return [
+        ['時間', tY.toFixed(2) + ' 年'],
+        ['距離 r', r.toFixed(2) + ' AU'],
+        ['速さ v', (sp*KMS).toFixed(1) + ' km/s'],
+        ['面積速度', h.toFixed(3) + ' AU²/年'],
+        ['Δt ごとの面積', last],
+        ['離心率 e', e.toFixed(3)],
+        ['周期 T', T ? T.toFixed(2) + ' 年' : '(周回しない)'],
+        ['T²/a³', T ? (T*T/(a*a*a)).toFixed(3) : dash]
+      ];
+    },
+
+    down: function(v, p){
+      if(mode !== 'launch') return;
+      var w = world(p); if(Math.hypot(w.x, w.y) < 0.15) return;
+      phase = 'wait'; P = null; trail = []; clearSectors();
+      drag = { x: w.x, y: w.y, cx: p.x, cy: p.y, v: 0, vc: 2*Math.PI/Math.sqrt(Math.hypot(w.x, w.y)) };
+      preview = null;
+    },
+    move: function(v, p){
+      if(!drag) return;
+      drag.cx = p.x; drag.cy = p.y;
+      var s0 = px(drag.x, drag.y);
+      drag.vx = (p.x - s0.x)/scale*2*Math.PI; drag.vy = -(p.y - s0.y)/scale*2*Math.PI;
+      drag.v = Math.hypot(drag.vx, drag.vy);
+      preview = conic(drag.x, drag.y, drag.vx, drag.vy);
+    },
+    up: function(v){
+      if(!drag) return;
+      var d = drag; drag = null; preview = null;
+      launchFrom(v, d.x, d.y, d.vx || 0, d.vy || 0);
+    }
+  });
+})();
+</script>
+</body>
+</html>

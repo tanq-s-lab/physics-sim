@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一様な電場と電位 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="u-em">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html" class="on">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./electromagnetism.html">電磁気</a> / 一様な電場と電位</p>
+
+  <div class="sim-head">
+    <h1>一様な電場と電位</h1>
+    <span class="eq">V = Ed,  W = qΔV</span>
+  </div>
+
+  <section class="stage">
+    <canvas class="sim" id="sim" style="height:clamp(460px,118vw,600px)" aria-label="平行板コンデンサー内の一様な電場と電位のシミュレーション"></canvas>
+    <ul class="readout" id="readout"></ul>
+    <div class="controls" id="controls"></div>
+    <div class="actions">
+      <span class="hint" id="hint">電荷をドラッグして動かし、「放す」で手をはなします。下のグラフ上でもドラッグできます。</span>
+      <span class="btns">
+        <button class="btn small" id="sign">電荷:＋</button>
+        <button class="btn small" id="gmode">グラフ:電位 V</button>
+        <button class="btn primary" id="release">放す</button>
+        <button class="btn" id="reset">リセット</button>
+      </span>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>平行な極板の間の電場は、どこでも同じ強さ・同じ向き(<strong>一様な電場</strong>)。強さは <strong>E = V/d</strong>。</li>
+        <li><strong>等電位線は電場に垂直</strong>で、一様な電場では<strong>等間隔</strong>に並びます。</li>
+        <li>電位は<strong>電場の向きに下がる</strong>。V–x グラフは直線で、その<strong>傾きが −E</strong>。</li>
+        <li>電荷 q を A から B へゆっくり運ぶ外力の仕事は <strong>W = q(V<sub>B</sub> − V<sub>A</sub>)</strong>。<strong>道筋によらない</strong>。</li>
+        <li>電荷は<strong>位置エネルギー U = qV の坂を下る</strong>ように動きます。負電荷は電位の<strong>高い</strong>ほうへ。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>電圧 V を変えずに極板の間隔 d を半分にすると、E と等電位線の間隔はどうなる?</li>
+        <li>電荷を等電位線に沿って(上下に)動かすと、外力の仕事はいくら? ぐねぐね動かしたときと比べよう。</li>
+        <li>＋電荷を＋極板のすぐそばで放すと、−極板に着いたときの運動エネルギーは? V を 2 倍にすると?</li>
+        <li>負電荷に切りかえて放すと、どちらへ動く? グラフを「位置エネルギー U」にして理由を説明しよう。</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <span></span>
+    <a href="./electromagnetism.html">電磁気の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  // 単位: 位置 cm, 電位 V, 電場 V/m, 電荷 μC, エネルギー μJ, 力 μN
+  var S = { V: 6, d: 6 };
+  var DMAX = 10, VMAX = 12, Q = 1;       // Q: 電荷の大きさ 1 μC
+  var sign = 1, gmode = 'V';
+  var ch, A, path, pathLen, mode, dragOn, K;
+  var L = { };                            // レイアウト
+  var col = { plus:'', minus:'' };
+
+  function cssv(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+  function readCol(){ col.plus = cssv('--thermo'); col.minus = cssv('--accent-2'); }
+
+  function E(){ return S.V / (S.d/100); }                 // V/m
+  function pot(x){ return S.V * (1 - x/S.d); }            // x: cm
+  function layout(v){
+    L.x0 = 58; L.x1 = v.W - 22;
+    L.pc = (L.x1 - L.x0) / DMAX;                           // px / cm
+    L.top = 34; L.pb = Math.round(v.H*0.54);               // 極板の図
+    L.gt = L.pb + 44; L.gb = v.H - 34;                     // グラフ
+  }
+  function px(x){ return L.x0 + x*L.pc; }
+  function cx(p){ return (p - L.x0)/L.pc; }
+  function gy(val){                                        // グラフ縦位置
+    var lo = (gmode==='U' && sign<0) ? -VMAX : 0, hi = lo + VMAX;
+    return L.gb - (val - lo)/(hi - lo) * (L.gb - L.gt);
+  }
+  function gval(x){ return gmode==='V' ? pot(x) : sign*Q*pot(x); }
+
+  function place(x, yf){
+    ch = { x: Math.max(0, Math.min(S.d, x)), y: Math.max(0.06, Math.min(0.94, yf)), v: 0 };
+  }
+  function startMeasure(){ A = { x: ch.x, y: ch.y, V: pot(ch.x) }; path = [{x:ch.x, y:ch.y}]; pathLen = 0; K = 0; }
+  function reset(){ place(S.d*0.3, 0.5); mode = 'hold'; startMeasure(); }
+
+  function setBtns(){
+    var s = document.getElementById('sign'); s.textContent = '電荷:' + (sign>0 ? '＋' : '−');
+    document.getElementById('gmode').textContent = 'グラフ:' + (gmode==='V' ? '電位 V' : '位置エネルギー U');
+    var r = document.getElementById('release');
+    r.textContent = mode==='move' ? '止める' : '放す';
+  }
+
+  function pickY(v, p){ return (p.y - L.top) / (L.pb - L.top); }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key:'V', label:'極板間の電圧 V', min:0, max:VMAX, step:0.5, fmt:function(x){return x.toFixed(1)+' V';},
+        onChange:function(){ if(mode!=='move') startMeasure(); } },
+      { key:'d', label:'極板の間隔 d', min:2, max:DMAX, step:0.5, fmt:function(x){return x.toFixed(1)+' cm';},
+        onChange:function(){ if(ch.x > S.d) ch.x = S.d; if(mode!=='move') startMeasure(); } }
+    ],
+    init: function(v){
+      readCol(); layout(v); reset();
+      if(window.matchMedia){ var mq = window.matchMedia('(prefers-color-scheme: dark)'); if(mq.addEventListener) mq.addEventListener('change', readCol); }
+      v.extraButton('sign', function(){ sign = -sign; if(mode==='move') mode='hold'; startMeasure(); setBtns(); });
+      v.extraButton('gmode', function(){ gmode = gmode==='V' ? 'U' : 'V'; setBtns(); });
+      v.extraButton('release', function(){
+        if(mode==='move'){ mode='hold'; startMeasure(); }
+        else { mode='move'; ch.v = 0; startMeasure(); }
+        setBtns();
+      });
+      setBtns();
+    },
+    reset: function(){ reset(); setBtns(); },
+    resize: function(v){ layout(v); },
+
+    step: function(v, h){
+      if(mode !== 'move') return;
+      // 見やすい速さに調整した運動(向きと到達時の運動エネルギーは正確)
+      var a = sign * 0.06 * E();                           // cm/s²
+      ch.v += a*h; ch.x += ch.v*h;
+      if(ch.x <= 0 || ch.x >= S.d){ ch.x = Math.max(0, Math.min(S.d, ch.x)); ch.v = 0; mode = 'stop'; setBtns(); }
+      K = sign*Q*(A.V - pot(ch.x));
+      path.push({x:ch.x, y:ch.y});
+    },
+
+    draw: function(v){
+      var C = v.C, ctx = v.ctx; v.clear();
+      var xl = px(0), xr = px(S.d), yt = L.top, yb = L.pb, Ev = E();
+
+      // ---------- 極板の図 ----------
+      // 等電位線(1 V ごと)
+      var gap = S.V > 0 ? (xr-xl)/S.V : 0;
+      var every = gap < 16 ? 3 : gap < 26 ? 2 : 1;
+      for(var k=1; k<S.V - 1e-9; k++){
+        var xx = xl + (S.V - k)/S.V * (xr - xl);          // 電位 k [V] の位置
+        if(xx <= xl+1 || xx >= xr-1) continue;
+        v.line(xx, yt+4, xx, yb-4, C.accent, 1.2, [4,5]);
+        if(k % every === 0) v.text(k+'V', xx, yt-6, C.accent, 10, 'center');
+      }
+      // 電気力線(一様)
+      if(S.V > 0){
+        var rows = 6;
+        for(var i=0; i<rows; i++){
+          var yy = yt + (i+0.5)*(yb-yt)/rows;
+          v.line(xl+6, yy, xr-6, yy, C.faint, 1.1);
+          [0.3,0.7].forEach(function(f){ var mx = xl + f*(xr-xl); v.arrow(mx-8, yy, mx+6, yy, C.faint, 1.3); });
+        }
+      }
+      // 極板
+      ctx.fillStyle = col.plus;  ctx.fillRect(xl-8, yt, 8, yb-yt);
+      ctx.fillStyle = col.minus; ctx.fillRect(xr, yt, 8, yb-yt);
+      v.label('＋', xl-18, yt+14, col.plus, 14, 'center');
+      v.label('−', xr+18, yt+14, col.minus, 14, 'center');
+      v.text(S.V.toFixed(1)+'V', xl-4, yb+16, col.plus, 11, 'center');
+      v.text('0V', xr+4, yb+16, col.minus, 11, 'center');
+      // 間隔 d
+      var dy = yb + 16;
+      var mid = (xl+xr)/2, hw = 44;
+      if(xr - xl > 2*hw + 40){
+        v.arrow(mid-hw, dy-4, xl+24, dy-4, C.soft, 1); v.arrow(mid+hw, dy-4, xr-20, dy-4, C.soft, 1);
+      }
+      v.text('d = '+S.d.toFixed(1)+' cm', mid, dy, C.soft, 11, 'center');
+      v.label('E = V/d = '+Ev.toFixed(0)+' V/m  →', xl+2, yt-20, C.ink, 12, 'left');
+
+      // 経路と始点 A
+      if(path.length > 1){
+        ctx.save(); ctx.strokeStyle = C.soft; ctx.lineWidth = 1.4; ctx.setLineDash([2,4]); ctx.beginPath();
+        path.forEach(function(p,j){ var X=px(p.x), Y=yt+p.y*(yb-yt); j?ctx.lineTo(X,Y):ctx.moveTo(X,Y); });
+        ctx.stroke(); ctx.restore();
+      }
+      var ax = px(A.x), ay = yt + A.y*(yb-yt);
+      v.circle(ax, ay, 4, C.paper, C.soft); v.text('A', ax-8, ay-8, C.soft, 11, 'right');
+
+      // 電荷と力
+      var cxp = px(ch.x), cyp = yt + ch.y*(yb-yt), cc = sign>0 ? col.plus : col.minus;
+      if(S.V > 0){
+        var fl = Math.min(90, 8 + Ev*0.12);
+        v.arrow(cxp + sign*12, cyp, cxp + sign*(12+fl), cyp, C.accent2, 2.2);
+        var tx2 = cxp + sign*(14+fl);
+        if(tx2 > 50 && tx2 < v.W - 50) v.text('F = qE', tx2, cyp - 8, C.accent2, 10, sign>0?'left':'right');
+      }
+      v.circle(cxp, cyp, 11, cc, C.ink);
+      v.label(sign>0 ? '+' : '−', cxp, cyp+5, '#fff', 15, 'center');
+      if(mode !== 'move') v.text('B', cxp+14, cyp-12, C.ink, 11, 'left');
+
+      // ---------- グラフ ----------
+      var gt = L.gt, gb = L.gb, isU = gmode==='U';
+      var lo = (isU && sign<0) ? -VMAX : 0;
+      v.label(isU ? '位置エネルギー U = qV [μJ](q = '+(sign>0?'+':'−')+'1 μC)' : '電位 V [V]', L.x0, gt-12, C.ink, 12);
+      // 目盛り
+      for(var t=lo; t<=lo+VMAX; t+=2){
+        var ty = gy(t);
+        v.line(L.x0, ty, L.x1, ty, C.grid, 1);
+        v.text(String(t), L.x0-8, ty+4, C.faint, 10, 'right');
+      }
+      for(var c=0; c<=DMAX; c++){
+        var tx = px(c);
+        v.line(tx, gb, tx, gb+4, C.faint, 1);
+        if(c%2===0) v.text(c+'', tx, gb+16, C.faint, 10, 'center');
+      }
+      v.text('x [cm]', L.x1, gb+28, C.faint, 10, 'right');
+      v.line(L.x0, gt, L.x0, gb, C.soft, 1.2);
+      var base = gy(0);
+      v.line(L.x0, base, L.x1, base, C.soft, 1.2);
+      // 坂(塗り)
+      var y0 = gy(gval(0)), y1 = gy(gval(S.d));
+      ctx.save(); ctx.globalAlpha = 0.16; ctx.fillStyle = C.accent;
+      ctx.beginPath(); ctx.moveTo(xl, base); ctx.lineTo(xl, y0); ctx.lineTo(xr, y1); ctx.lineTo(xr, base); ctx.closePath(); ctx.fill(); ctx.restore();
+      v.line(xl, y0, xr, y1, C.accent, 2.6);
+      v.line(xr, gt, xr, gb, C.line, 1, [3,4]);
+      // 傾きの三角形(Δx = 1 cm)
+      if(S.V > 0 && S.d >= 2){
+        var sx = ch.x > S.d/2 ? Math.max(0, S.d*0.25 - 0.5) : S.d*0.62, sxe = sx + 1;
+        if(sxe <= S.d){
+          var p1x = px(sx), p1y = gy(gval(sx)), p2x = px(sxe), p2y = gy(gval(sxe));
+          v.line(p1x, p1y, p2x, p1y, C.accent2, 1.2);
+          v.line(p2x, p1y, p2x, p2y, C.accent2, 1.2);
+          var dV = gval(sxe) - gval(sx);
+          v.text('1cm', (p1x+p2x)/2, p1y + (p2y>p1y?-5:13), C.accent2, 10, 'center');
+          var down = p2y > p1y;
+          v.text((dV>=0?'+':'')+dV.toFixed(2)+(isU?' μJ':' V'), p2x+5, down ? p1y+10 : (p1y+p2y)/2+4, C.accent2, 10, 'left');
+          if(!isU) v.label('傾き = −E', (p1x+p2x)/2, p1y-19, C.accent2, 11, 'center');
+        }
+      }
+      // A 点と電荷
+      var gA = gy(gval(A.x));
+      v.circle(px(A.x), gA, 3.5, C.paper, C.soft);
+      var gyC = gy(gval(ch.x));
+      v.line(cxp, gyC, cxp, base, cc, 1, [2,3]);
+      v.circle(cxp, gyC - (isU?9:0), 9, cc, C.ink);
+      v.label(sign>0 ? '+' : '−', cxp, gyC - (isU?9:0) + 4.5, '#fff', 13, 'center');
+      if(S.V === 0) v.label('電圧 0 V:電場も電位差もありません', (L.x0+L.x1)/2, (gt+gb)/2, C.soft, 12, 'center');
+    },
+
+    readout: function(v){
+      var Vb = pot(ch.x), W = sign*Q*(Vb - A.V);
+      var rows = [
+        ['位置 x', ch.x.toFixed(2)+' cm'],
+        ['電位 V', Vb.toFixed(2)+' V'],
+        ['電場 E', E().toFixed(0)+' V/m'],
+        ['力 F=qE', (sign*Q*E()).toFixed(0)+' μN']
+      ];
+      if(mode==='move' || mode==='stop') rows.push(['運動エネルギー K', Math.max(0,K).toFixed(2)+' μJ']);
+      else {
+        rows.push(['外力の仕事 W(A→B)', (W>=0?'+':'')+W.toFixed(2)+' μJ']);
+        rows.push(['道のり', pathLen.toFixed(1)+' cm']);
+      }
+      return rows;
+    },
+
+    down: function(v, p){
+      var inTop = p.y < L.pb + 10, inGraph = p.y > L.gt - 20;
+      if(!inTop && !inGraph) return;
+      var near = Math.hypot(p.x - px(ch.x), p.y - (L.top + ch.y*(L.pb-L.top))) < 28;
+      if(mode==='move' || mode==='stop') mode = 'hold';
+      // つかんだ点(またはタップした点)を始点 A とする
+      if(inTop){ if(!near) place(cx(p.x), pickY(v,p)); }
+      else if(Math.abs(p.x - px(ch.x)) > 24) place(cx(p.x), ch.y);
+      startMeasure();
+      dragOn = inTop ? 'top' : 'graph'; setBtns();
+    },
+    move: function(v, p){
+      if(!dragOn) return;
+      var ox = ch.x, oy = ch.y;
+      if(dragOn==='top') place(cx(p.x), pickY(v,p)); else place(cx(p.x), ch.y);
+      var h = L.pb - L.top;
+      pathLen += Math.hypot(ch.x-ox, (ch.y-oy)*h/L.pc);
+      path.push({x:ch.x, y:ch.y}); if(path.length > 4000) path.shift();
+    },
+    up: function(){ dragOn = null; }
+  });
+})();
+</script>
+</body>
+</html>

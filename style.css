@@ -290,3 +290,4 @@ canvas.sim.wide{height:auto;aspect-ratio:16/9;}
   width:100%;font:inherit;font-size:0.92rem;padding:6px 10px;border-radius:8px;
   border:1px solid var(--line);background:var(--paper);color:var(--ink);
 }
+footer .copy{flex-basis:100%;text-align:center;padding-top:12px;border-top:1px dashed var(--line);font-size:0.8rem;}
