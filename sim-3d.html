@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>立体で見る電場と電位 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="u-em">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html" class="on">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./electromagnetism.html">電磁気</a> / 立体で見る電場と電位</p>
+
+  <div class="sim-head">
+    <h1>立体で見る電場と電位</h1>
+    <span class="eq">電位 = 高さ,  等電位線 = 等高線</span>
+  </div>
+
+  <section class="stage">
+    <canvas class="sim" id="sim" style="height:clamp(440px,105vw,640px)" aria-label="電位の地形と、空間の電気力線・等電位面を立体で表示するシミュレーション"></canvas>
+    <ul class="readout" id="readout"></ul>
+    <div class="controls" id="controls"></div>
+    <div class="actions">
+      <span class="angle-set"><span class="lbl">見かた</span>
+        <button class="btn small" id="v-terrain">電位の山と谷</button>
+        <button class="btn small" id="v-space">空間の電気力線と等電位面</button>
+      </span>
+      <span class="angle-set"><span class="lbl">電荷の配置</span>
+        <button class="btn small" id="p-single">点電荷 1 個</button>
+        <button class="btn small" id="p-dipole">正と負</button>
+        <button class="btn small" id="p-same">正と正</button>
+        <button class="btn small" id="p-plates">平行板</button>
+      </span>
+    </div>
+    <div class="actions" style="margin-top:10px">
+      <span class="hint" id="hint"></span>
+      <span class="btns">
+        <button class="btn small" id="spin">自動回転</button>
+        <button class="btn primary" id="roll">転がす</button>
+        <button class="btn" id="reset">リセット</button>
+      </span>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>電位を<strong>高さ</strong>として表すと、正電荷は<strong>山</strong>、負電荷は<strong>谷</strong>、一様な電場は<strong>一定の傾きの坂</strong>になります。</li>
+        <li>地形の<strong>等高線が等電位線</strong>。等高線がつまっている(坂が急な)ところほど<strong>電場が強い</strong>。</li>
+        <li>電場は<strong>坂のいちばん急な下り方向</strong>を向き、＋の試験電荷は坂を転がり下ります(負電荷なら地形を上下逆さにして考える:U = qV)。</li>
+        <li>平行板では電荷の大きさに比例して電圧が変わります(このページでは V = 600 V × Q)。</li>
+        <li>空間で見ると、点電荷の等電位面は<strong>球面</strong>(半径 r = kQ/V)、平行板の等電位面は<strong>平面</strong>。電気力線はいつも等電位面を<strong>垂直につらぬきます</strong>。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>点電荷 1 個で、等電位面の半径は 250 V・500 V・1000 V でどう変わる? r と V の関係は?</li>
+        <li>「正と負」の地形で、ボールを山の近くに置いて転がすと、どこへ向かう? 途中の速さの変化も予想しよう。</li>
+        <li>「正と正」の真ん中は、地形ではどんな場所? ボールをそこに置くとどうなる?</li>
+        <li>平行板の地形と、前のページの V–x グラフを見比べよう。同じところ・ちがうところは?</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-pointcharge.html">← 点電荷の電場と電位</a>
+    <a href="./electromagnetism.html">電磁気の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  // 単位: 位置 cm, 電荷 nC, 電位 V, 電場 V/m, エネルギー μJ(試験電荷 +1 nC)
+  var S = { Q: 2 };
+  var BOX = 10, VCAP = 1500, HZ = 6;            // 地形: 電位 VCAP を高さ HZ cm で表す
+  var N = 56;                                    // 地形の分割数
+  var view = 'terrain', preset = 'single', srcs = [], plates = null, spin = false;
+  var cam = { yaw: -0.6, pitch: 0.62, zoom: 1 };
+  var ball, mode, A, K, drag = null, last = null;
+  var col = {}, geo = null;
+
+  function cssv(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+  function hex(h){ h = (h||'#888').replace('#',''); if(h.length===3) h = h.replace(/./g,'$&$&'); var n = parseInt(h,16); return [n>>16&255, n>>8&255, n&255]; }
+  function readCol(){
+    col.plus = cssv('--thermo'); col.minus = cssv('--accent-2'); col.acc = cssv('--em');
+    col.pr = hex(col.plus); col.mr = hex(col.minus); col.base = hex(cssv('--paper-card-2')); col.ink = hex(cssv('--ink'));
+    geo = null;
+  }
+  function rgb(c, a){ return 'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+(a==null?1:a)+')'; }
+  function mix(a, b, t){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; }
+
+  // ---------- 物理 ----------
+  function plateV0(){ return 600*S.Q; }                       // 平行板の電圧 [V]
+  function pot(x, y, z){
+    z = z || 0;
+    if(plates){ var d = plates.d, V0 = plateV0(), xc = Math.max(-d/2, Math.min(d/2, x)); return V0*(-xc/d); }
+    var v = 0;
+    for(var i=0;i<srcs.length;i++){ var s = srcs[i]; var r = Math.max(Math.sqrt((x-s.x)*(x-s.x)+y*y+z*z), 0.25); v += 899*s.q/r; }
+    return v;
+  }
+  function field(x, y, z){                                   // V/m
+    z = z || 0;
+    if(plates){ return (Math.abs(x) < plates.d/2) ? {x: plateV0()/(plates.d/100), y:0, z:0} : {x:0,y:0,z:0}; }
+    var ex=0, ey=0, ez=0;
+    for(var i=0;i<srcs.length;i++){
+      var s = srcs[i], dx = x-s.x, dy = y, dz = z, r = Math.max(Math.sqrt(dx*dx+dy*dy+dz*dz), 0.25), e = 89900*s.q/(r*r);
+      ex += e*dx/r; ey += e*dy/r; ez += e*dz/r;
+    }
+    return {x:ex, y:ey, z:ez};
+  }
+
+  function setPreset(p){
+    preset = p; plates = null; var Q = S.Q;
+    if(p==='single') srcs = [{x:0, q:Q, s:1}];
+    else if(p==='dipole') srcs = [{x:-4, q:Q, s:1}, {x:4, q:-Q, s:-1}];
+    else if(p==='same') srcs = [{x:-4, q:Q, s:1}, {x:4, q:Q, s:1}];
+    else { srcs = []; plates = { d: 8 }; }
+    ['single','dipole','same','plates'].forEach(function(k){ document.getElementById('p-'+k).classList.toggle('primary', k===p); });
+    geo = null;
+  }
+  function applyQ(){ srcs.forEach(function(s){ s.q = s.s*S.Q; }); geo = null; }
+
+  // ---------- カメラ ----------
+  var W = 0, H = 0;
+  function rot(p){
+    var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), ce = Math.cos(cam.pitch), se = Math.sin(cam.pitch);
+    var xr = p[0]*cy - p[1]*sy, yr = p[0]*sy + p[1]*cy;
+    return [xr, yr*ce - p[2]*se, p[2]*ce + yr*se];           // [横, 奥行き, 上]
+  }
+  function F(){ return Math.min(W, H) * 1.5 * cam.zoom; }
+  var DIST = 38;
+  function proj(p){
+    var r = rot(p), s = F()/(DIST + r[1]);
+    return { x: W/2 + r[0]*s, y: H*0.52 - r[2]*s, d: r[1], s: s };
+  }
+  // 画面の点 → 世界の水平面 z = h との交点
+  function unproj(sx, sy, h){
+    var f = F(), cxp = (sx - W/2)*DIST/f, czp = -(sy - H*0.52)*DIST/f;
+    var e = [0, -DIST, 0], dir = [cxp, DIST, czp];
+    function inv(v){                                         // カメラ座標 → 世界
+      var ce = Math.cos(cam.pitch), se = Math.sin(cam.pitch), cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+      var xr = v[0], yr = v[1]*ce + v[2]*se, z = -v[1]*se + v[2]*ce;
+      return [xr*cy + yr*sy, -xr*sy + yr*cy, z];
+    }
+    var E = inv(e), D = inv(dir);
+    if(Math.abs(D[2]) < 1e-6) return null;
+    var t = (h - E[2])/D[2]; if(t < 0) return null;
+    return { x: E[0] + t*D[0], y: E[1] + t*D[1] };
+  }
+
+  // ---------- 地形の計算 ----------
+  function height(V){ return Math.max(-VCAP, Math.min(VCAP, V))/VCAP*HZ; }
+  function buildTerrain(){
+    var g = 2*BOX/N, Vs = new Float32Array((N+1)*(N+1));
+    for(var j=0;j<=N;j++) for(var i=0;i<=N;i++) Vs[j*(N+1)+i] = pot(-BOX+i*g, -BOX+j*g);
+    // 各マスの等高線(250 V ごと)
+    var cells = [];
+    for(j=0;j<N;j++) for(i=0;i<N;i++){
+      var a = Vs[j*(N+1)+i], b = Vs[j*(N+1)+i+1], c = Vs[(j+1)*(N+1)+i+1], d = Vs[(j+1)*(N+1)+i];
+      var segs = [], lo = Math.min(a,b,c,d), hi = Math.max(a,b,c,d);
+      lo = Math.max(lo, -VCAP); hi = Math.min(hi, VCAP);
+      for(var lv = Math.ceil(lo/250)*250; lv <= hi; lv += 250){
+        var A1=a-lv, B1=b-lv, C1=c-lv, D1=d-lv, X=-BOX+i*g, Y=-BOX+j*g, pts=[];
+        if((A1>0)!==(B1>0)) pts.push([X+g*A1/(A1-B1), Y]);
+        if((B1>0)!==(C1>0)) pts.push([X+g, Y+g*B1/(B1-C1)]);
+        if((D1>0)!==(C1>0)) pts.push([X+g*D1/(D1-C1), Y+g]);
+        if((A1>0)!==(D1>0)) pts.push([X, Y+g*A1/(A1-D1)]);
+        if(pts.length>=2) segs.push([pts[0][0],pts[0][1],pts[1][0],pts[1][1], lv]);
+        if(pts.length===4) segs.push([pts[2][0],pts[2][1],pts[3][0],pts[3][1], lv]);
+      }
+      cells.push(segs);
+    }
+    return { g: g, Vs: Vs, cells: cells };
+  }
+
+  // ---------- 空間:電気力線と等電位面(x 軸まわりの回転対称を利用) ----------
+  function buildSpace(){
+    var lines = [], surf = [], levels = [];
+    if(plates){
+      var d = plates.d, V0 = plateV0(), Lh = 6;
+      for(var a=-1; a<=1; a+=2/3) for(var b=-1; b<=1; b+=2/3) lines.push([[-d/2, a*Lh*0.8, b*Lh*0.8],[d/2, a*Lh*0.8, b*Lh*0.8]]);
+      for(var k=1;k<4;k++){ var xv = -d/2 + d*k/4; levels.push({x:xv, V: V0*(-xv/d)}); }
+      return { lines: lines, planes: levels, Lh: Lh };
+    }
+    // 電気力線(子午面 (x, ρ) でたどって回転させる)
+    var pos = srcs.filter(function(s){return s.q>0;});
+    var nth = Math.max(3, Math.round(1.5 + 1.5*S.Q)), nphi = 8;
+    pos.forEach(function(s){
+      for(var k=0;k<nth;k++){
+        var th = (k+0.5)*Math.PI/nth, x = s.x + 0.35*Math.cos(th), r = 0.35*Math.sin(th), pl = [[x, r]];
+        for(var st=0; st<1500; st++){
+          var e = field(x, r, 0), m = Math.hypot(e.x, e.y); if(m < 1e-9) break;
+          var h = 0.1, mx = x + 0.5*h*e.x/m, mr = r + 0.5*h*e.y/m, e2 = field(mx, mr, 0), m2 = Math.hypot(e2.x, e2.y);
+          x += h*e2.x/m2; r += h*e2.y/m2; pl.push([x, r]);
+          if(Math.hypot(x, r) > BOX*1.05) break;
+          var hit = false; srcs.forEach(function(q){ if(q!==s && Math.hypot(x-q.x, r) < 0.35) hit = true; }); if(hit) break;
+        }
+        for(var f=0; f<nphi; f++){
+          var ph = (f+0.5)*2*Math.PI/nphi, cp = Math.cos(ph), sp = Math.sin(ph);
+          lines.push(pl.map(function(q){ return [q[0], q[1]*cp, q[1]*sp]; }));
+        }
+      }
+    });
+    // 等電位面(子午面の等高線を回転)
+    var LV = [250, 500, 1000], lvl = [];
+    LV.forEach(function(v){ lvl.push(v); if(srcs.some(function(s){return s.q<0;})) lvl.push(-v); });
+    if(preset==='dipole') lvl.push(0);
+    var g = 0.12, nx = Math.round(2*BOX/g), nr = Math.round(BOX/g), grid = [];
+    for(var j=0;j<=nr;j++){ grid.push([]); for(var i=0;i<=nx;i++) grid[j].push(pot(-BOX+i*g, j*g)); }
+    lvl.forEach(function(lv){
+      var segs = [];
+      for(var j=0;j<nr;j++) for(var i=0;i<nx;i++){
+        var a=grid[j][i]-lv, b=grid[j][i+1]-lv, c=grid[j+1][i+1]-lv, d=grid[j+1][i]-lv, X=-BOX+i*g, R=j*g, pts=[];
+        if((a>0)!==(b>0)) pts.push([X+g*a/(a-b), R]);
+        if((b>0)!==(c>0)) pts.push([X+g, R+g*b/(b-c)]);
+        if((d>0)!==(c>0)) pts.push([X+g*d/(d-c), R+g]);
+        if((a>0)!==(d>0)) pts.push([X, R+g*a/(a-d)]);
+        if(pts.length>=2) segs.push([pts[0][0],pts[0][1],pts[1][0],pts[1][1]]);
+      }
+      surf.push({ V: lv, segs: segs });
+    });
+    return { lines: lines, surf: surf };
+  }
+
+  // ---------- 試験電荷 ----------
+  function placeBall(x, y){ ball = { x: Math.max(-BOX+0.3, Math.min(BOX-0.3, x)), y: Math.max(-BOX+0.3, Math.min(BOX-0.3, y)), vx:0, vy:0 }; }
+  function startMeasure(){ A = { V: pot(ball.x, ball.y) }; K = 0; }
+  function setHint(){
+    document.getElementById('hint').textContent = view==='terrain'
+      ? '図をドラッグすると回転、ボール(＋1 nC の試験電荷)をドラッグすると置く場所を変えられます。「転がす」で坂を下ります。'
+      : '図をドラッグすると回転します。色つきの網は等電位面、灰色の線は電気力線です。';
+    document.getElementById('roll').style.display = view==='terrain' ? '' : 'none';
+    document.getElementById('roll').textContent = mode==='move' ? '止める' : '転がす';
+    document.getElementById('spin').classList.toggle('primary', spin);
+    document.getElementById('v-terrain').classList.toggle('primary', view==='terrain');
+    document.getElementById('v-space').classList.toggle('primary', view==='space');
+  }
+  function resetBall(){
+    if(preset==='plates') placeBall(-3, 2); else if(preset==='same') placeBall(0, 3.5); else placeBall(-4+1.5, 2.2);
+    if(preset==='single') placeBall(2, 1.5);
+    mode = 'hold'; startMeasure();
+  }
+
+  // ---------- 描画 ----------
+  function drawTerrain(v){
+    var C = v.C, ctx = v.ctx, T = geo, g = T.g, quads = [];
+    var light = [-0.45, -0.35, 0.82];
+    // 床(地図)
+    var zf = -HZ - 0.6;
+    var fc = [[-BOX,-BOX,zf],[BOX,-BOX,zf],[BOX,BOX,zf],[-BOX,BOX,zf]].map(proj);
+    ctx.beginPath(); fc.forEach(function(p,i){ i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y); }); ctx.closePath();
+    ctx.fillStyle = rgb(col.base, 0.9); ctx.fill(); ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke();
+    ctx.lineWidth = 0.9;
+    T.cells.forEach(function(segs){ segs.forEach(function(s){
+      var p = proj([s[0],s[1],zf]), q = proj([s[2],s[3],zf]);
+      ctx.strokeStyle = s[4]>0 ? rgb(col.pr,0.55) : s[4]<0 ? rgb(col.mr,0.55) : rgb(col.ink,0.5);
+      ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+    }); });
+    srcs.forEach(function(s){ var p = proj([s.x,0,zf]); ctx.fillStyle = s.q>0?col.plus:col.minus; ctx.beginPath(); ctx.arc(p.x,p.y,4,0,7); ctx.fill(); });
+    if(plates){ [-1,1].forEach(function(sg){ var a = proj([sg*plates.d/2,-BOX,zf]), b = proj([sg*plates.d/2,BOX,zf]); v.line(a.x,a.y,b.x,b.y, sg<0?col.plus:col.minus, 3); }); }
+    // 地形のマス(奥から順に塗る)
+    for(var j=0;j<N;j++) for(var i=0;i<N;i++){
+      var x0 = -BOX+i*g, y0 = -BOX+j*g, V = T.Vs;
+      var va = V[j*(N+1)+i], vb = V[j*(N+1)+i+1], vc = V[(j+1)*(N+1)+i+1], vd = V[(j+1)*(N+1)+i];
+      var P = [[x0,y0,height(va)],[x0+g,y0,height(vb)],[x0+g,y0+g,height(vc)],[x0,y0+g,height(vd)]];
+      var r = rot([x0+g/2, y0+g/2, (P[0][2]+P[2][2])/2]);
+      quads.push({ P:P, d:r[1], V:(va+vb+vc+vd)/4, k:j*N+i });
+    }
+    quads.sort(function(a,b){ return b.d - a.d; });
+    var nl = Math.hypot(light[0],light[1],light[2]);
+    quads.forEach(function(q){
+      var P = q.P, pp = P.map(proj);
+      var ux = P[2][0]-P[0][0], uy = P[2][1]-P[0][1], uz = P[2][2]-P[0][2], wx = P[3][0]-P[1][0], wy = P[3][1]-P[1][1], wz = P[3][2]-P[1][2];
+      var nx = uy*wz-uz*wy, ny = uz*wx-ux*wz, nz = ux*wy-uy*wx, nn = Math.hypot(nx,ny,nz)||1;
+      var lam = Math.max(0, (nx*light[0]+ny*light[1]+nz*light[2])/(nn*nl));
+      var t = Math.min(1, Math.abs(q.V)/VCAP), base = q.V>=0 ? col.pr : col.mr;
+      var c = mix(col.base, base, 0.18 + 0.62*Math.sqrt(t));
+      var shade = 0.72 + 0.34*lam; c = [c[0]*shade, c[1]*shade, c[2]*shade];
+      ctx.beginPath(); pp.forEach(function(p,i){ i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y); }); ctx.closePath();
+      ctx.fillStyle = rgb(c); ctx.fill(); ctx.strokeStyle = rgb(c); ctx.lineWidth = 0.6; ctx.stroke();
+      // この マスの等高線
+      var segs = geo.cells[q.k];
+      if(segs.length){
+        ctx.lineWidth = 1.1; ctx.strokeStyle = rgb(col.ink, 0.55);
+        ctx.beginPath();
+        segs.forEach(function(s){ var h = height(s[4]); var a = proj([s[0],s[1],h]), b = proj([s[2],s[3],h]); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); });
+        ctx.stroke();
+      }
+    });
+    // ボール
+    var bh = height(pot(ball.x, ball.y)), bp = proj([ball.x, ball.y, bh + 0.45]), fp = proj([ball.x, ball.y, zf]);
+    v.line(bp.x, bp.y, fp.x, fp.y, C.soft, 1, [2,3]);
+    ctx.fillStyle = C.soft; ctx.beginPath(); ctx.arc(fp.x, fp.y, 3, 0, 7); ctx.fill();
+    var e = field(ball.x, ball.y), em = Math.hypot(e.x, e.y);
+    if(em > 1 && mode !== 'move'){
+      var len = Math.min(3.2, 0.6 + 0.9*Math.log10(1 + em/2000)), ex = ball.x + e.x/em*len, ey = ball.y + e.y/em*len;
+      var ep = proj([ex, ey, height(pot(ex, ey)) + 0.45]);
+      v.arrow(bp.x, bp.y, ep.x, ep.y, C.accent2, 2.2);
+    }
+    var rr = Math.max(6, 0.45*bp.s);
+    var gr = ctx.createRadialGradient(bp.x-rr*0.35, bp.y-rr*0.35, rr*0.2, bp.x, bp.y, rr);
+    gr.addColorStop(0, '#fff'); gr.addColorStop(1, col.plus);
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(bp.x, bp.y, rr, 0, 7); ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.stroke();
+    v.label('高さ = 電位 V(等高線:250 V ごと)', 12, 22, C.ink, 12);
+    if(!plates) v.label('※ 電荷のすぐ近くは山頂・谷底を切っています', 12, 40, C.soft, 11);
+  }
+
+  function drawSpace(v){
+    var C = v.C, ctx = v.ctx, G = geo;
+    // 軸
+    var a = proj([-BOX,0,0]), b = proj([BOX,0,0]); v.line(a.x,a.y,b.x,b.y, C.faint, 1, [4,4]);
+    function poly(pts, color, w){
+      ctx.strokeStyle = color; ctx.lineWidth = w; ctx.beginPath();
+      pts.forEach(function(p,i){ var q = proj(p); i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y); }); ctx.stroke();
+    }
+    if(plates){
+      var d = plates.d, Lh = G.Lh;
+      G.planes.forEach(function(pl){
+        var sq = [[pl.x,-Lh,-Lh],[pl.x,Lh,-Lh],[pl.x,Lh,Lh],[pl.x,-Lh,Lh]], pp = sq.map(proj);
+        ctx.beginPath(); pp.forEach(function(p,i){ i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y); }); ctx.closePath();
+        ctx.fillStyle = rgb(pl.V>0?col.pr:pl.V<0?col.mr:hex(col.acc), 0.10); ctx.fill();
+        ctx.strokeStyle = pl.V>0?col.plus:pl.V<0?col.minus:col.acc; ctx.lineWidth = 1.3; ctx.setLineDash([5,4]); ctx.stroke(); ctx.setLineDash([]);
+      });
+      G.planes.concat([{x:-d/2, V:plateV0()/2}, {x:d/2, V:-plateV0()/2}]).sort(function(a,b){return a.x-b.x;}).forEach(function(pl, k){
+        var lp = proj([pl.x, -Lh, k%2 ? -Lh : Lh]); v.text((pl.V>0?'+':'')+pl.V.toFixed(0)+' V', lp.x, lp.y + (k%2 ? 14 : -6), C.soft, 10, 'center');
+      });
+      [-1,1].forEach(function(sg){
+        var x = sg*d/2, sq = [[x,-Lh,-Lh],[x,Lh,-Lh],[x,Lh,Lh],[x,-Lh,Lh]].map(proj);
+        ctx.beginPath(); sq.forEach(function(p,i){ i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y); }); ctx.closePath();
+        ctx.fillStyle = rgb(sg<0?col.pr:col.mr, 0.28); ctx.fill(); ctx.strokeStyle = sg<0?col.plus:col.minus; ctx.lineWidth = 2; ctx.stroke();
+      });
+      G.lines.forEach(function(l){ var p = proj(l[0]), q = proj(l[1]); v.line(p.x,p.y,q.x,q.y, C.soft, 1.3); var m = proj([0,l[0][1],l[0][2]]), m2 = proj([0.8,l[0][1],l[0][2]]); v.arrow(m.x,m.y,m2.x,m2.y, C.soft, 1.3); });
+      return;
+    }
+    // 等電位面:子午線 + 輪
+    var nm = 14;
+    G.surf.forEach(function(s){
+      var c = s.V>0 ? col.pr : s.V<0 ? col.mr : hex(col.acc), alpha = s.V===0 ? 0.45 : 0.28 + 0.25*(Math.abs(s.V)/1000);
+      ctx.strokeStyle = rgb(c, alpha); ctx.lineWidth = 1; ctx.beginPath();
+      for(var f=0; f<nm; f++){
+        var ph = f*2*Math.PI/nm, cp = Math.cos(ph), sp = Math.sin(ph);
+        s.segs.forEach(function(q){ var p1 = proj([q[0], q[1]*cp, q[1]*sp]), p2 = proj([q[2], q[3]*cp, q[3]*sp]); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); });
+      }
+      ctx.stroke();
+      ctx.beginPath();
+      // 緯線(x を等間隔に切った輪)
+      var xmin = 1e9, xmax = -1e9;
+      s.segs.forEach(function(q){ xmin = Math.min(xmin, q[0], q[2]); xmax = Math.max(xmax, q[0], q[2]); });
+      for(var k=1; k<8; k++){
+        var xs = xmin + (xmax - xmin)*k/8;
+        s.segs.forEach(function(q){
+          if((q[0]-xs)*(q[2]-xs) > 0 || q[0]===q[2]) return;
+          var r = q[1] + (q[3]-q[1])*(xs-q[0])/(q[2]-q[0]); if(r < 0.05) return;
+          for(var m=0; m<=36; m++){ var ph2 = m*2*Math.PI/36, pp = proj([xs, r*Math.cos(ph2), r*Math.sin(ph2)]); m?ctx.lineTo(pp.x,pp.y):ctx.moveTo(pp.x,pp.y); }
+        });
+      }
+      ctx.stroke();
+    });
+    // 電気力線
+    G.lines.forEach(function(l){
+      poly(l, C.soft, 1.1);
+      if(l.length > 30){ var k = Math.floor(l.length*0.45), p = proj(l[k]), q = proj(l[k+2]); v.arrow(p.x - (q.x-p.x)*2, p.y - (q.y-p.y)*2, q.x, q.y, C.soft, 1.1); }
+    });
+    // 電荷(奥から)
+    srcs.slice().sort(function(a,b){ return rot([b.x,0,0])[1] - rot([a.x,0,0])[1]; }).forEach(function(s){
+      var p = proj([s.x,0,0]), rr = Math.max(7, 0.55*p.s*(0.8+0.12*Math.abs(s.q)));
+      var gr = ctx.createRadialGradient(p.x-rr*0.35, p.y-rr*0.35, rr*0.2, p.x, p.y, rr);
+      gr.addColorStop(0, '#fff'); gr.addColorStop(1, s.q>0?col.plus:col.minus);
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(p.x,p.y,rr,0,7); ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.stroke();
+      v.label(s.q>0?'+':'−', p.x, p.y+5, '#fff', 14, 'center');
+    });
+    v.label('等電位面:'+(preset==='dipole' ? '±250・±500・±1000 V と 0 V' : '250・500・1000 V'), 12, 22, C.ink, 12);
+  }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key:'Q', label:'電荷の大きさ Q', min:0.5, max:5, step:0.5, fmt:function(x){return x.toFixed(1)+' nC';},
+        onChange:function(){ applyQ(); geo = null; if(mode!=='move') startMeasure(); } }
+    ],
+    init: function(v){
+      readCol(); W = v.W; H = v.H;
+      if(window.matchMedia){ var mq = window.matchMedia('(prefers-color-scheme: dark)'); if(mq.addEventListener) mq.addEventListener('change', function(){ setTimeout(readCol,0); }); }
+      ['single','dipole','same','plates'].forEach(function(k){ v.extraButton('p-'+k, function(){ setPreset(k); resetBall(); setHint(); }); });
+      v.extraButton('v-terrain', function(){ view='terrain'; geo=null; cam.pitch = Math.max(cam.pitch, 0.35); setHint(); });
+      v.extraButton('v-space', function(){ view='space'; geo=null; mode = mode==='move' ? 'hold' : mode; setHint(); });
+      v.extraButton('spin', function(){ spin = !spin; setHint(); });
+      v.extraButton('roll', function(){ if(mode==='move') mode='hold'; else { mode='move'; ball.vx = ball.vy = 0; startMeasure(); } setHint(); });
+      document.getElementById('sim').addEventListener('wheel', function(e){ e.preventDefault(); cam.zoom = Math.max(0.6, Math.min(2.2, cam.zoom*Math.exp(-e.deltaY*0.001))); }, {passive:false});
+      setPreset('single'); resetBall(); setHint();
+    },
+    reset: function(){ cam.yaw = -0.6; cam.pitch = 0.62; cam.zoom = 1; spin = false; resetBall(); setHint(); },
+    resize: function(v){ W = v.W; H = v.H; },
+
+    step: function(v, h){
+      if(spin && !drag) cam.yaw += 0.25*h;
+      if(view !== 'terrain' || mode !== 'move') return;
+      // 見やすい速さに調整した運動(向きと運動エネルギーは正確)
+      var e = field(ball.x, ball.y), s = 0.0022;
+      ball.vx += s*e.x*h; ball.vy += s*e.y*h;
+      var sp = Math.hypot(ball.vx, ball.vy); if(sp > 40){ ball.vx *= 40/sp; ball.vy *= 40/sp; }
+      ball.x += ball.vx*h; ball.y += ball.vy*h;
+      var stop = Math.abs(ball.x) > BOX-0.3 || Math.abs(ball.y) > BOX-0.3;
+      srcs.forEach(function(q){ if(Math.hypot(ball.x-q.x, ball.y) < 0.7) stop = true; });
+      if(plates && ball.x >= plates.d/2){ stop = true; }
+      if(stop){ placeBall(ball.x, ball.y); mode = 'stop'; setHint(); }
+      K = (A.V - pot(ball.x, ball.y))/1000;
+    },
+
+    draw: function(v){
+      W = v.W; H = v.H; v.clear();
+      if(!geo) geo = view==='terrain' ? buildTerrain() : buildSpace();
+      if(view==='terrain') drawTerrain(v); else drawSpace(v);
+    },
+
+    readout: function(){
+      if(view==='space'){
+        if(plates) return [['極板間の電圧', plateV0().toFixed(0)+' V'], ['極板の間隔', plates.d+' cm'], ['電場 E', (plateV0()/(plates.d/100)).toFixed(0)+' V/m(どこでも同じ)']];
+        var rows = [['電荷 Q', S.Q.toFixed(1)+' nC']];
+        if(preset==='single') [1000,500,250].forEach(function(V){ rows.push([V+' V の球の半径', (899*S.Q/V).toFixed(2)+' cm']); });
+        else rows.push(['電気力線', geo ? geo.lines.length+' 本' : '']);
+        return rows;
+      }
+      var Vb = pot(ball.x, ball.y), e = field(ball.x, ball.y), em = Math.hypot(e.x, e.y);
+      var r = plates ? [['極板間の電圧', plateV0().toFixed(0)+' V']] : [];
+      r.push(['ボールの電位 V', Vb.toFixed(0)+' V'], ['電場の強さ E', (em>=1000 ? (em/1000).toFixed(1)+'×10³' : em.toFixed(0))+' V/m']);
+      if(mode==='move' || mode==='stop') r.push(['運動エネルギー K', Math.max(0,K).toFixed(3)+' μJ'], ['電位の下がり', (A.V - Vb).toFixed(0)+' V']);
+      return r;
+    },
+
+    down: function(v, p){
+      drag = { x: p.x, y: p.y, yaw: cam.yaw, pitch: cam.pitch, k: 'cam' };
+      if(view==='terrain'){
+        var bp = proj([ball.x, ball.y, height(pot(ball.x, ball.y)) + 0.45]);
+        if(Math.hypot(p.x-bp.x, p.y-bp.y) < Math.max(22, 0.6*bp.s)){ drag.k = 'ball'; if(mode==='move') mode = 'hold'; setHint(); }
+      }
+    },
+    move: function(v, p){
+      if(!drag) return;
+      if(drag.k === 'cam'){
+        cam.yaw = drag.yaw + (p.x - drag.x)*0.008;
+        cam.pitch = Math.max(view==='terrain' ? 0.12 : -1.4, Math.min(1.45, drag.pitch + (p.y - drag.y)*0.008));
+      } else {
+        var h = height(pot(ball.x, ball.y));
+        for(var it=0; it<3; it++){ var w = unproj(p.x, p.y, h); if(!w) return; placeBall(w.x, w.y); h = height(pot(ball.x, ball.y)); }
+        mode = 'hold'; startMeasure();
+      }
+    },
+    up: function(){ drag = null; }
+  });
+})();
+</script>
+</body>
+</html>
