@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>箱が倒れる条件 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>/* 動く物理ノート — 共通スタイル */
+:root{
+  --paper:#F5EFDD;
+  --paper-card:#FFFBF2;
+  --paper-card-2:#FFF6E4;
+  --ink:#1B2A41;
+  --ink-soft:#57647A;
+  --ink-faint:#8B94A3;
+  --grid:rgba(27,42,65,0.07);
+  --line:rgba(27,42,65,0.16);
+  --brand:#C97A1A;
+  --brand-ink:#2A1A05;
+  --shadow:rgba(27,42,65,0.20);
+  --mech:#C97A1A;
+  --wave:#187F76;
+  --em:#6C4FBE;
+  --thermo:#C4432A;
+  --accent:var(--brand);
+  --accent-2:#2F6FB0;
+  --radius:16px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12161F;
+    --paper-card:#1A2029;
+    --paper-card-2:#1E2530;
+    --ink:#ECE7D8;
+    --ink-soft:#A7AFBE;
+    --ink-faint:#727C8C;
+    --grid:rgba(236,231,216,0.055);
+    --line:rgba(236,231,216,0.14);
+    --brand:#E8A33D;
+    --brand-ink:#1B1002;
+    --shadow:rgba(0,0,0,0.45);
+    --mech:#E8A33D;
+    --wave:#2FB9AE;
+    --em:#9C86EA;
+    --thermo:#E2684A;
+    --accent-2:#6FA8E0;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12161F;
+  --paper-card:#1A2029;
+  --paper-card-2:#1E2530;
+  --ink:#ECE7D8;
+  --ink-soft:#A7AFBE;
+  --ink-faint:#727C8C;
+  --grid:rgba(236,231,216,0.055);
+  --line:rgba(236,231,216,0.14);
+  --brand:#E8A33D;
+  --brand-ink:#1B1002;
+  --shadow:rgba(0,0,0,0.45);
+  --mech:#E8A33D;
+  --wave:#2FB9AE;
+  --em:#9C86EA;
+  --thermo:#E2684A;
+  --accent-2:#6FA8E0;
+  color-scheme:dark;
+}
+.u-mech{--accent:var(--mech);}
+.u-wave{--accent:var(--wave);}
+.u-em{--accent:var(--em);}
+.u-thermo{--accent:var(--thermo);}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    linear-gradient(var(--grid),var(--grid)) 0 0/100% 32px,
+    linear-gradient(90deg,var(--grid),var(--grid)) 0 0/32px 100%,
+    var(--paper);
+  color:var(--ink);
+  font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.brand-name{
+  font-family:"Zen Maru Gothic","Noto Sans JP",sans-serif;
+  text-wrap:balance;
+  letter-spacing:0.01em;
+}
+a{color:inherit;}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px;}
+
+.page{max-width:1080px;margin:0 auto;padding:20px 20px 64px;}
+
+/* ---------- header ---------- */
+.site-header{
+  display:flex;flex-wrap:wrap;gap:12px 16px;
+  align-items:center;justify-content:space-between;
+  padding:14px 4px 20px;
+  border-bottom:1px solid var(--line);
+  margin-bottom:32px;
+}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.brand-name{font-size:1.15rem;font-weight:700;color:var(--ink);}
+.brand svg{display:block;}
+.top-nav{display:flex;gap:4px;flex-wrap:wrap;font-size:0.92rem;}
+.top-nav a{
+  padding:7px 14px;border-radius:999px;text-decoration:none;
+  color:var(--ink-soft);font-weight:500;transition:background .15s,color .15s;
+}
+.top-nav a:hover{background:var(--paper-card-2);color:var(--ink);}
+.top-nav a.on{background:var(--ink);color:var(--paper);}
+
+/* ---------- top page ---------- */
+.hero{
+  display:grid;grid-template-columns:1.15fr 0.85fr;gap:48px;
+  align-items:center;padding:16px 0 48px;
+}
+.eyebrow{
+  display:inline-block;font-size:0.82rem;font-weight:700;color:var(--brand-ink);
+  background:var(--brand);padding:5px 12px;border-radius:999px;
+  letter-spacing:0.04em;margin:0 0 18px;transform:rotate(-1deg);
+}
+.hero h1{font-size:clamp(1.7rem,3.4vw,2.5rem);line-height:1.4;margin:0 0 18px;font-weight:900;}
+.hero .lead{color:var(--ink-soft);font-size:1.02rem;max-width:52ch;margin:0;}
+.hero-demo{
+  background:var(--paper-card);border:1px solid var(--line);
+  border-radius:var(--radius);padding:18px 18px 14px;
+  box-shadow:0 10px 24px -12px var(--shadow);
+}
+.hero-demo canvas{width:100%;aspect-ratio:3/2;display:block;border-radius:10px;}
+.hero-caption{margin:10px 2px 0;font-size:0.82rem;color:var(--ink-faint);text-align:center;}
+
+.section-label{
+  font-size:0.86rem;font-weight:700;color:var(--ink-soft);
+  letter-spacing:0.08em;margin:0 0 22px;
+  display:flex;align-items:center;gap:10px;
+}
+.section-label::after{content:"";flex:1;height:1px;background:var(--line);}
+
+.unit-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:26px 22px;
+  margin-bottom:56px;
+}
+.unit-card{
+  position:relative;background:var(--paper-card);
+  border:1px solid var(--line);border-radius:14px;
+  padding:26px 24px 22px;
+  box-shadow:0 8px 18px -14px var(--shadow);
+  display:flex;flex-direction:column;gap:12px;
+  text-decoration:none;color:inherit;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.unit-card:hover{transform:translateY(-3px);box-shadow:0 14px 26px -14px var(--shadow);}
+.unit-tab{
+  position:absolute;top:-11px;left:22px;
+  padding:4px 14px;border-radius:6px;font-size:0.78rem;font-weight:700;
+  color:var(--brand-ink);background:var(--accent);transform:rotate(-2deg);
+  box-shadow:0 2px 6px var(--shadow);
+}
+.unit-card h2{font-size:1.25rem;margin:6px 0 0;font-weight:700;}
+.unit-card p{margin:0;color:var(--ink-soft);font-size:0.94rem;}
+.chips{margin:2px 0 4px;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px;}
+.chips li{
+  font-size:0.76rem;color:var(--ink-soft);background:var(--paper-card-2);
+  border:1px solid var(--line);padding:3px 9px;border-radius:999px;
+}
+.chips li.soon{border-style:dashed;color:var(--ink-faint);}
+.count{font-size:0.8rem;color:var(--ink-faint);}
+.go{
+  margin-top:auto;font-weight:700;font-size:0.9rem;
+  display:inline-flex;align-items:center;gap:6px;color:var(--accent);
+}
+.go svg{transition:transform .15s;}
+.unit-card:hover .go svg,.sim-card:hover .go svg{transform:translateX(3px);}
+.unit-card .icon{width:40px;height:40px;}
+
+/* ---------- breadcrumb ---------- */
+.crumbs{font-size:0.85rem;color:var(--ink-faint);margin:0 0 14px;}
+.crumbs a{color:var(--ink-soft);text-decoration:none;}
+.crumbs a:hover{text-decoration:underline;}
+
+/* ---------- unit page ---------- */
+.unit-head{margin:0 0 32px;}
+.unit-head .tag{
+  display:inline-block;font-size:0.8rem;font-weight:700;color:var(--brand-ink);
+  background:var(--accent);padding:4px 12px;border-radius:6px;transform:rotate(-2deg);
+}
+.unit-head h1{font-size:clamp(1.6rem,3vw,2.2rem);margin:10px 0 8px;font-weight:900;}
+.unit-head p{margin:0;color:var(--ink-soft);max-width:60ch;}
+
+.sim-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;
+  margin-bottom:56px;
+}
+.sim-card{
+  background:var(--paper-card);border:1px solid var(--line);border-left:5px solid var(--accent);
+  border-radius:12px;padding:18px 18px 16px;
+  box-shadow:0 8px 18px -14px var(--shadow);
+  display:flex;flex-direction:column;gap:8px;
+  text-decoration:none;color:inherit;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+a.sim-card:hover{transform:translateY(-3px);box-shadow:0 14px 26px -14px var(--shadow);}
+.sim-card .num{font-size:0.76rem;color:var(--ink-faint);font-weight:700;letter-spacing:0.06em;}
+.sim-card h2{font-size:1.1rem;margin:0;font-weight:700;}
+.sim-card p{margin:0;color:var(--ink-soft);font-size:0.9rem;}
+.sim-card .mono{font-size:0.8rem;color:var(--ink-soft);}
+.sim-card.soon{background:transparent;border:1.5px dashed var(--line);border-left:5px dashed var(--line);box-shadow:none;}
+.sim-card.soon h2{color:var(--ink-soft);}
+.badge{
+  align-self:flex-start;font-size:0.72rem;font-weight:700;
+  padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--ink-faint);
+}
+
+/* ---------- simulation page ---------- */
+.sim-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px;margin:0 0 16px;}
+.sim-head h1{font-size:clamp(1.5rem,3vw,2rem);margin:0;font-weight:900;}
+.eq{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:0.9rem;color:var(--ink-soft);
+  background:var(--paper-card);border:1px solid var(--line);border-radius:8px;padding:4px 12px;}
+.stage{
+  background:var(--paper-card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;box-shadow:0 10px 24px -14px var(--shadow);
+}
+canvas.sim{
+  width:100%;height:clamp(260px,56vw,440px);display:block;
+  border-radius:10px;background:var(--paper-card-2);
+  border:1px solid var(--line);
+  touch-action:none;cursor:grab;
+}
+canvas.sim:active{cursor:grabbing;}
+.readout{display:flex;flex-wrap:wrap;gap:6px 10px;margin:12px 0 0;padding:0;list-style:none;}
+.readout li{
+  font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;
+  font-size:0.82rem;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:3px 10px;
+}
+.readout li b{color:var(--ink-soft);font-weight:500;margin-right:6px;}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 24px;margin-top:16px;}
+.ctrl label{display:flex;justify-content:space-between;gap:8px;font-size:0.86rem;color:var(--ink-soft);margin-bottom:4px;}
+.ctrl label output{font-family:"JetBrains Mono",ui-monospace,monospace;color:var(--ink);font-weight:700;}
+.ctrl input[type=range]{width:100%;accent-color:var(--accent);height:24px;margin:0;}
+.actions{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-top:16px;}
+.hint{font-size:0.85rem;color:var(--ink-faint);}
+.btn{
+  font:inherit;font-size:0.9rem;font-weight:700;cursor:pointer;
+  padding:8px 18px;border-radius:999px;border:1.5px solid var(--ink);
+  background:transparent;color:var(--ink);transition:background .15s,color .15s;
+}
+.btn:hover{background:var(--ink);color:var(--paper);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--brand-ink);}
+.btn.primary:hover{filter:brightness(1.08);}
+.btns{display:flex;gap:8px;flex-wrap:wrap;}
+
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:24px 0 48px;}
+.note{background:var(--paper-card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;}
+.note h2{font-size:1.05rem;margin:0 0 8px;display:flex;align-items:center;gap:8px;}
+.note h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--accent);}
+.note.q h2::before{background:var(--accent-2);}
+.note ul,.note ol{margin:0;padding-left:1.3em;color:var(--ink-soft);font-size:0.94rem;}
+.note li{margin:4px 0;}
+.note li strong{color:var(--ink);}
+
+.pager{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:40px;font-size:0.9rem;}
+.pager a{text-decoration:none;color:var(--ink-soft);}
+.pager a:hover{color:var(--ink);text-decoration:underline;}
+
+footer{
+  border-top:1px solid var(--line);padding-top:24px;
+  display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;
+  color:var(--ink-faint);font-size:0.85rem;
+}
+
+@media (max-width:760px){
+  .page{padding:12px 16px 48px;}
+  .hero{grid-template-columns:1fr;gap:28px;}
+  .unit-grid{grid-template-columns:1fr;}
+  .notes{grid-template-columns:1fr;}
+  .stage{padding:10px;}
+}
+@media (prefers-reduced-motion: reduce){
+  .unit-card,.sim-card{transition:none;}
+}
+
+/* ---------- 追加部品 ---------- */
+canvas.sim.wide{height:auto;aspect-ratio:16/9;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn:disabled:hover{background:transparent;color:var(--ink);}
+.btn.small{padding:5px 12px;font-size:0.85rem;}
+.angle-set{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.angle-set .lbl{font-size:0.86rem;color:var(--ink-soft);margin-right:4px;}
+.sketch{border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--paper-card-2);}
+.sketch canvas{display:block;touch-action:pan-y;}
+.ctrl select{
+  width:100%;font:inherit;font-size:0.92rem;padding:6px 10px;border-radius:8px;
+  border:1px solid var(--line);background:var(--paper);color:var(--ink);
+}
+footer .copy{flex-basis:100%;text-align:center;padding-top:12px;border-top:1px dashed var(--line);font-size:0.8rem;}
+</style>
+<style>
+  /* このページ専用: 図を見ながら操作できるよう、横並び(スマホでは図を上に固定) */
+  .tip-stage{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start;}
+  .tip-stage canvas.sim{height:clamp(320px,44vw,500px);}
+  .tip-left{position:sticky;top:8px;}
+  .mode-tabs{display:flex;gap:6px;}
+  .speed-row{display:flex;align-items:center;gap:5px;margin-top:12px;}
+  .speed-row .lbl{font-size:0.86rem;color:var(--ink-soft);margin-right:2px;white-space:nowrap;}
+  .speed-row .btn{flex:1;padding:5px 4px;min-width:0;}
+  .trail-opt{display:flex;align-items:center;gap:6px;font-size:0.84rem;color:var(--ink-soft);margin-top:8px;cursor:pointer;}
+  .trail-opt input{accent-color:var(--accent);width:16px;height:16px;margin:0;}
+  .mode-tabs .btn{flex:1;padding:6px 8px;}
+  .tip-right .controls{grid-template-columns:1fr;gap:10px;margin-top:14px;}
+  .tip-right .ctrl label{margin-bottom:0;}
+  .tip-btns{margin-top:14px;}
+  .tip-right .hint{margin:10px 0 0;line-height:1.6;}
+  @media (max-width:860px){
+    .tip-stage{grid-template-columns:1fr;gap:10px;}
+    .tip-left{top:0;z-index:5;background:var(--paper-card);padding:6px 0 4px;box-shadow:0 8px 10px -10px var(--shadow);}
+    .tip-stage canvas.sim{height:clamp(280px,78vw,380px);}
+    .tip-left .readout{margin-top:6px;}
+    .tip-left .readout li{font-size:0.74rem;padding:2px 7px;}
+    .tip-right .controls{grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:10px;}
+  }
+</style>
+</head>
+<body class="u-mech">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html" class="on">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./mechanics.html">力学</a> / 箱が倒れる条件</p>
+
+  <div class="sim-head">
+    <h1>箱が倒れる条件</h1>
+    <span class="eq">すべる: tanθ &gt; μ   倒れる: tanθ &gt; w/h</span>
+  </div>
+
+  <section class="stage tip-stage">
+    <div class="tip-left">
+      <canvas class="sim" id="sim" aria-label="斜面上の箱が、すべるか倒れるかを調べるシミュレーション"></canvas>
+      <ul class="readout" id="readout"></ul>
+    </div>
+    <div class="tip-right">
+      <div class="mode-tabs">
+        <button class="btn small" id="m-slope">斜面に置く</button>
+        <button class="btn small" id="m-push">床で押す</button>
+      </div>
+      <div class="speed-row">
+        <span class="lbl">速さ</span>
+        <button class="btn small" data-sp="1">×1</button>
+        <button class="btn small" data-sp="0.25">1/4</button>
+        <button class="btn small" data-sp="0.1">1/10</button>
+        <button class="btn small" id="pause">停止</button>
+      </div>
+      <label class="trail-opt"><input type="checkbox" id="trail" checked> 残像を残す</label>
+      <div class="controls" id="controls"></div>
+      <div class="btns tip-btns">
+        <button class="btn primary" id="ramp">ゆっくり傾ける</button>
+        <button class="btn" id="reset">リセット</button>
+      </div>
+      <p class="hint" id="hint"></p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li><strong>すべらない条件</strong>: mg sinθ ≦ μ·mg cosθ より <strong>tanθ ≦ μ</strong>。</li>
+        <li><strong>倒れない条件</strong>: 重心から下ろした鉛直線が<strong>底面の内側</strong>を通ること。斜面では <strong>tanθ ≦ w/h</strong>。</li>
+        <li>傾けると<strong>垂直抗力の作用点</strong>が下側の端へずれていき、<strong>端に達した瞬間</strong>に倒れ始めます(左上の「倒れ度」メーター)。</li>
+        <li>動き出した後は動摩擦力 μ'N がはたらきます(このシミュレーションでは μ' = 0.8μ)。</li>
+        <li>どちらの条件にも <strong>m が入らない</strong>ので、斜面に置くだけなら質量によりません。</li>
+        <li>水平な床で高さ a を押すとき: すべるのは F &gt; μmg、倒れるのは F·a &gt; mg·w/2。<strong>a &gt; w/(2μ)</strong> なら倒れるのが先。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>幅 30 cm・高さ 60 cm・μ = 0.6 の箱。すべるのと倒れるの、どちらが先? 角度を計算してから「ゆっくり傾ける」で確かめよう。</li>
+        <li>質量を 10 倍にすると、すべり始める角・倒れ始める角は変わる? 力の矢印の比で説明しよう。</li>
+        <li>床を水平(θ = 0)にして押す力 F を少しずつ大きくする。押す高さを何 cm 以上にすると、すべる前に倒れる?</li>
+        <li>平べったい箱(w &gt; h)は、μ がいくら大きくても倒れにくい。なぜ?</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-kepler.html">← ケプラーの法則と面積速度</a>
+    <a href="./mechanics.html">力学の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+<script>/* 動く物理ノート — シミュレーション共通部品
+ * 使い方: PhysSim({ controls, state, init, step, draw, readout, down, move, up, reset, resize })
+ * ページ側に #sim(canvas), #controls, #readout, #reset が必要。
+ */
+(function(){
+  "use strict";
+  function css(name){ return getComputedStyle(document.body).getPropertyValue(name).trim(); }
+
+  window.PhysSim = function(opt){
+    var canvas = document.getElementById('sim');
+    var ctx = canvas.getContext('2d');
+    var v = { ctx:ctx, W:0, H:0, C:{}, t:0 };
+
+    function readColors(){
+      v.C = {
+        ink:css('--ink'), soft:css('--ink-soft'), faint:css('--ink-faint'),
+        line:css('--line'), grid:css('--grid'), card:css('--paper-card-2'),
+        accent:css('--accent'), accent2:css('--accent-2'), paper:css('--paper')
+      };
+    }
+    function fit(){
+      var r = canvas.getBoundingClientRect();
+      var d = window.devicePixelRatio || 1;
+      v.W = r.width; v.H = r.height;
+      canvas.width = Math.round(r.width*d); canvas.height = Math.round(r.height*d);
+      ctx.setTransform(d,0,0,d,0,0);
+    }
+
+    // ---- drawing helpers ----
+    v.clear = function(){ ctx.clearRect(0,0,v.W,v.H); };
+    v.circle = function(x,y,r,fill,stroke){
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle = fill; ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = stroke || v.C.ink; ctx.stroke();
+    };
+    v.line = function(x1,y1,x2,y2,color,width,dash){
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width || 1.5;
+      ctx.setLineDash(dash || []);
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore();
+    };
+    v.arrow = function(x1,y1,x2,y2,color,width){
+      var len = Math.hypot(x2-x1,y2-y1); if(len < 2) return;
+      var a = Math.atan2(y2-y1,x2-x1), h = Math.min(10, len*0.5);
+      v.line(x1,y1,x2,y2,color,width||2.2);
+      ctx.beginPath(); ctx.moveTo(x2,y2);
+      ctx.lineTo(x2-h*Math.cos(a-0.45), y2-h*Math.sin(a-0.45));
+      ctx.lineTo(x2-h*Math.cos(a+0.45), y2-h*Math.sin(a+0.45));
+      ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+    };
+    v.text = function(s,x,y,color,size,align,base){
+      ctx.font = (size||12)+'px "JetBrains Mono", ui-monospace, monospace';
+      ctx.fillStyle = color || v.C.soft; ctx.textAlign = align || 'left';
+      ctx.textBaseline = base || 'alphabetic';
+      ctx.fillText(s,x,y);
+    };
+    v.label = function(s,x,y,color,size,align){
+      ctx.font = '500 '+(size||12)+'px "Noto Sans JP", sans-serif';
+      ctx.fillStyle = color || v.C.soft; ctx.textAlign = align || 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(s,x,y);
+    };
+
+    // ---- controls ----
+    var box = document.getElementById('controls');
+    (opt.controls||[]).forEach(function(c){
+      var wrap = document.createElement('div'); wrap.className = 'ctrl';
+      var id = 'c-'+c.key;
+      var lab = document.createElement('label'); lab.htmlFor = id;
+      var name = document.createElement('span'); name.textContent = c.label;
+      var out = document.createElement('output');
+      var input = document.createElement('input');
+      input.type='range'; input.id=id; input.min=c.min; input.max=c.max; input.step=c.step;
+      input.value = opt.state[c.key];
+      function show(){ out.textContent = c.fmt ? c.fmt(opt.state[c.key]) : opt.state[c.key]; }
+      input.addEventListener('input', function(){
+        opt.state[c.key] = parseFloat(input.value); show();
+        if(c.onChange) c.onChange(v); else if(opt.onChange) opt.onChange(v, c.key);
+      });
+      show();
+      lab.appendChild(name); lab.appendChild(out);
+      wrap.appendChild(lab); wrap.appendChild(input); box.appendChild(wrap);
+    });
+
+    // ---- readout ----
+    var ro = document.getElementById('readout');
+    var roItems = [];
+    function updateReadout(){
+      if(!opt.readout || !ro) return;
+      var rows = opt.readout(v);
+      if(roItems.length !== rows.length){
+        ro.innerHTML = ''; roItems = [];
+        rows.forEach(function(){
+          var li = document.createElement('li'); var b = document.createElement('b'); var s = document.createElement('span');
+          li.appendChild(b); li.appendChild(s); ro.appendChild(li); roItems.push([b,s]);
+        });
+      }
+      rows.forEach(function(r,i){
+        if(roItems[i][0].textContent !== r[0]) roItems[i][0].textContent = r[0];
+        if(roItems[i][1].textContent !== r[1]) roItems[i][1].textContent = r[1];
+      });
+    }
+
+    // ---- pointer ----
+    function pos(e){ var r = canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+    var active = false;
+    canvas.addEventListener('pointerdown', function(e){
+      active = true; try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+      opt.down && opt.down(v, pos(e)); e.preventDefault();
+    });
+    canvas.addEventListener('pointermove', function(e){ if(active && opt.move) opt.move(v, pos(e)); });
+    function end(e){ if(!active) return; active = false; opt.up && opt.up(v, pos(e)); }
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
+
+    // ---- buttons ----
+    var rb = document.getElementById('reset');
+    if(rb) rb.addEventListener('click', function(){ v.t = 0; opt.reset && opt.reset(v); });
+    v.extraButton = function(id, fn){ var b = document.getElementById(id); if(b) b.addEventListener('click', function(){ fn(v); }); };
+
+    // ---- lifecycle ----
+    var ro2 = null;
+    window.addEventListener('resize', function(){ fit(); opt.resize && opt.resize(v); });
+    if(window.matchMedia){
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      if(mq.addEventListener) mq.addEventListener('change', readColors);
+    }
+    readColors(); fit();
+    opt.init && opt.init(v);
+
+    var last = null, acc = 0;
+    function loop(ts){
+      if(last === null) last = ts;
+      var dt = Math.min((ts-last)/1000, 0.05); last = ts;
+      // 固定刻みで計算(精度と再現性のため)
+      acc += dt; var h = 1/240;
+      while(acc >= h){ opt.step && opt.step(v, h); v.t += h; acc -= h; }
+      opt.draw && opt.draw(v);
+      updateReadout();
+      requestAnimationFrame(loop);
+    }
+    document.addEventListener('visibilitychange', function(){ last = null; acc = 0; });
+    requestAnimationFrame(loop);
+    return v;
+  };
+})();
+</script>
+<script>
+(function(){
+  "use strict";
+  var G = 9.8, L = 1.8, KR = 0.8, SE = L - 0.03;   // SE: 下端ストッパーの位置          // 重力加速度、斜面の長さ [m]、動摩擦係数 = 0.8 × 静止摩擦係数
+  var S = { w: 30, h: 60, m: 2, theta: 10, mu: 0.6, F: 0, a: 50 };
+  var D2R = Math.PI/180;
+
+  // 箱の状態(斜面に沿った座標 s:下向き+、n:斜面から垂直に上向き)
+  var cw, ch;            // いま底面になっている辺(幅)と高さ [m]
+  var sc, u;             // 底面中央の位置 s [m]、速度 [m/s]
+  var state;             // 'rest' | 'slide' | 'tip' | 'end'
+  var sgn, psi, om;      // 倒れるときの支点(+1:下側の角, −1:上側の角)、回転角、角速度
+  var pushOn;            // 押す力をかけているか(一度倒れたら手を離す)
+  var fN, fF, xN;        // 垂直抗力、摩擦力(s 成分)、作用点(底面中央から)
+  var event, ramp = false, dragging = false;
+  var geo = {};
+
+  function th(){ return S.theta*D2R; }
+  function Fp(){ return pushOn ? S.F : 0; }
+
+  function resetBox(){
+    cw = S.w/100; ch = S.h/100; sc = L*0.42; u = 0;
+    state = 'rest'; sgn = 1; psi = 0; om = 0; pushOn = true;
+    event = null; fN = S.m*G*Math.cos(th()); fF = 0; xN = 0;
+    trail = []; trailT = 0;
+  }
+  function record(type){
+    if(!event) event = { type: type, theta: S.theta, F: Fp() };
+    // 倒れ始めはちょうどつりあいの角度でほとんど動かないので、さらに 1° だけ傾けてから止める
+    if(ramp){ if(type === 'tip') rampEnd = S.theta + 1; else stopRamp(); }
+  }
+
+  function geom(v){
+    // 60° に傾けても、下端に着いた背の高い箱が画面に収まるように余白をとる
+    geo.k = Math.min((v.H - 64)/(L*Math.sin(60*D2R)), (v.W - 40)/(L + 0.75));   // px / m
+    geo.Bx = v.W - 16 - 0.72*geo.k; geo.By = v.H - 28;   // 斜面の下端(回転の中心)
+  }
+  // 斜面座標 (s, n) → キャンバス座標
+  function P(s, n){
+    var t = th(), c = Math.cos(t), sn = Math.sin(t), k = geo.k;
+    var Tx = geo.Bx - L*k*c, Ty = geo.By - L*k*sn;
+    return { x: Tx + (s*c + n*sn)*k, y: Ty + (s*sn - n*c)*k };
+  }
+  function rot(x, y, a){ var c = Math.cos(a), s = Math.sin(a); return { s: x*c - y*s, n: x*s + y*c }; }
+  // 箱に固定した座標(底面中央が原点)→ 斜面座標
+  function body(bx, by){
+    if(state === 'tip'){
+      var r = rot(bx - sgn*cw/2, by, psi);
+      return { s: sc + sgn*cw/2 + r.s, n: r.n };
+    }
+    return { s: sc + bx, n: by };
+  }
+  function pushPoint(){ return { x: -Math.sign(S.F || 1)*cw/2, y: S.a/100*ch }; }
+
+  // ---------- 計算 ----------
+  function stepFlat(h){
+    var t = th(), N = S.m*G*Math.cos(t), F = Fp();
+    var Fd = S.m*G*Math.sin(t) + F;           // 斜面方向に箱を動かそうとする力
+    var f;
+    if(state === 'rest'){
+      f = -Fd;
+      if(Math.abs(f) > S.mu*N + 1e-9){ state = 'slide'; record('slide'); }
+    }
+    if(state === 'slide'){
+      var dir = u !== 0 ? Math.sign(u) : Math.sign(Fd);
+      f = -KR*S.mu*N*dir;
+      var nu = u + (Fd + f)/S.m*h;
+      if((u !== 0 && Math.sign(nu) !== Math.sign(u)) || (u === 0 && Math.sign(nu) !== dir)){
+        nu = 0;
+        if(Math.abs(Fd) <= S.mu*N){ state = 'rest'; f = -Fd; }
+      }
+      u = nu; sc += u*h;
+    }
+    // 重心まわりの力のモーメントのつりあいから、垂直抗力の作用点を求める
+    var aH = S.a/100*ch;
+    fN = N; fF = f;
+    xN = ((aH - ch/2)*F - (ch/2)*f)/N;
+    if(Math.abs(xN) > cw/2){
+      // すべりながらの場合は、支点を固定したときに本当に回り出すかを確かめる
+      // (回り出さないなら、作用点が端にあるまま、すべり続ける)
+      var sg = Math.sign(xN);
+      if(-sg*pivotTorque(sg, 0).tau > 0){
+        sgn = sg; state = 'tip'; psi = 0; om = 0; u = 0;
+        record('tip');
+      } else xN = sg*cw/2;
+    }
+    if(state !== 'tip'){
+      if(sc + cw/2 >= SE){ sc = SE - cw/2; u = 0; state = 'end'; }
+      else if(sc - cw/2 <= 0){ sc = cw/2; u = 0; state = 'end'; }
+    }
+  }
+
+  // 支点(sg = +1:下側の角, −1:上側の角)まわりの力のモーメント(反時計回り +)
+  function pivotTorque(sg, ps){
+    var t = th(), m = S.m, F = Fp();
+    var Gs = m*G*Math.sin(t), Gn = -m*G*Math.cos(t);
+    var r = rot(-sg*cw/2, ch/2, ps);                       // 支点 → 重心
+    var tau = r.s*Gn - r.n*Gs;
+    if(F){ var q = pushPoint(); var rq = rot(q.x - sg*cw/2, q.y, ps); tau += -rq.n*F; }
+    return { tau: tau, r: r, Gs: Gs, Gn: Gn };
+  }
+
+  function stepTip(h){
+    var m = S.m, F = Fp();
+    var pt = pivotTorque(sgn, psi), r = pt.r, tau = pt.tau, Gs = pt.Gs, Gn = pt.Gn;
+    var I = m*(cw*cw + ch*ch)/3;
+    var al = tau/I;
+    om += al*h; psi += om*h;
+    // 支点が箱に及ぼす力(垂直抗力・摩擦力)= m a_G − (重力 + 押す力)
+    var ax = -al*r.n - om*om*r.s, ay = al*r.s - om*om*r.n;
+    fF = m*ax - Gs - F; fN = m*ay - Gn;
+    if(sgn*psi > 0){                                      // 元に戻った
+      psi = 0; om = 0; state = 'rest';
+    } else if(-sgn*psi >= Math.PI/2){                     // 横倒しになった
+      var pivot = sc + sgn*cw/2, t2 = cw; cw = ch; ch = t2;
+      sc = pivot + sgn*cw/2; psi = 0; om = 0; state = 'rest'; pushOn = false;
+      if(sc + cw/2 >= SE){ sc = SE - cw/2; state = 'end'; }
+      else if(sc - cw/2 <= 0){ sc = cw/2; state = 'end'; }
+    }
+  }
+
+  // ---------- 直接操作・モード ----------
+  var dragTheta = false, mode = 'slope';
+  var GROUP = { theta:'slope', F:'push', a:'push', m:'push', w:'both', h:'both', mu:'both' };
+  var HINT = {
+    slope: '斜面の左上の ● をドラッグして傾け、箱の角の ■ で大きさを変えられます。箱をドラッグすると斜面上を移動します。「速さ」の 1/4・1/10 でスロー再生、「停止」で一時停止できます。',
+    push: '水平な床で、箱の左側を押します。F を少しずつ大きくして、すべるか倒れるかを見よう。箱の角の ■ で大きさも変えられます。'
+  };
+  function toSN(p){
+    var t = th(), top = P(0, 0), dx = p.x - top.x, dy = p.y - top.y;
+    return { s: (dx*Math.cos(t) + dy*Math.sin(t))/geo.k, n: (dx*Math.sin(t) - dy*Math.cos(t))/geo.k };
+  }
+  function handlePos(){ var b = body(cw/2, ch); return P(b.s, b.n); }
+  function setSlider(key, val){
+    S[key] = val;
+    var el = document.getElementById('c-'+key); el.value = val;
+    el.dispatchEvent(new Event('input'));
+  }
+  function sizeChanged(){
+    cw = S.w/100; ch = S.h/100; state = 'rest'; psi = 0; om = 0; u = 0; pushOn = true; event = null;
+    sc = Math.max(cw/2, Math.min(SE - cw/2, sc));
+    var a = document.getElementById('c-a'); if(a) a.dispatchEvent(new Event('input'));
+  }
+  function setMode(md){
+    mode = md; stopRamp();
+    Object.keys(GROUP).forEach(function(k){
+      var w = document.getElementById('c-'+k).closest('.ctrl');
+      w.style.display = (GROUP[k] === 'both' || GROUP[k] === md) ? '' : 'none';
+    });
+    document.getElementById('m-slope').classList.toggle('primary', md === 'slope');
+    document.getElementById('m-push').classList.toggle('primary', md === 'push');
+    rampBtn.style.display = md === 'slope' ? '' : 'none';
+    document.getElementById('hint').textContent = HINT[md];
+    if(md === 'push'){ setSlider('theta', 0); setSlider('F', 0); }
+    else { setSlider('F', 0); }
+    resetBox();
+  }
+  document.getElementById('m-slope').addEventListener('click', function(){ setMode('slope'); });
+  document.getElementById('m-push').addEventListener('click', function(){ setMode('push'); });
+
+  // ---------- スロー再生・一時停止・残像 ----------
+  var rampEnd = 60, speed = 0.25, paused = false, trail = [], trailT = 0, TRAIL_DT = 0.05, TRAIL_MAX = 40;
+  var spBtns = Array.prototype.slice.call(document.querySelectorAll('[data-sp]'));
+  var pauseBtn = document.getElementById('pause');
+  function showSpeed(){
+    spBtns.forEach(function(b){ b.classList.toggle('primary', !paused && parseFloat(b.dataset.sp) === speed); });
+    pauseBtn.textContent = paused ? '再開' : '停止';
+    pauseBtn.classList.toggle('primary', paused);
+    pauseBtn.title = paused ? '再開' : '一時停止';
+  }
+  spBtns.forEach(function(b){ b.addEventListener('click', function(){ speed = parseFloat(b.dataset.sp); paused = false; showSpeed(); }); });
+  pauseBtn.addEventListener('click', function(){ paused = !paused; showSpeed(); });
+  showSpeed();
+  function addTrail(hs){
+    if(state !== 'tip' && state !== 'slide') return;
+    trailT += hs;
+    if(trailT < TRAIL_DT) return;
+    trailT = 0;
+    trail.push([[-cw/2,0],[cw/2,0],[cw/2,ch],[-cw/2,ch]].map(function(b){ return body(b[0], b[1]); }));
+    if(trail.length > TRAIL_MAX) trail.shift();
+  }
+
+  // ---------- ゆっくり傾ける ----------
+  var rampBtn = document.getElementById('ramp');
+  function setTheta(val){
+    S.theta = val;
+    var el = document.getElementById('c-theta');
+    el.value = val;
+    el.parentNode.querySelector('output').textContent = val.toFixed(1)+'°';
+  }
+  function stopRamp(){ ramp = false; rampEnd = 60; rampBtn.textContent = 'ゆっくり傾ける'; }
+  rampBtn.addEventListener('click', function(){
+    if(ramp){ stopRamp(); return; }
+    if(state !== 'rest' || S.theta >= 60){ resetBox(); setTheta(0); }
+    ramp = true; rampBtn.textContent = '止める';
+  });
+
+  function stateText(){
+    if(dragging) return '移動中';
+    switch(state){
+      case 'rest':  return pushOn && S.F ? '静止(押している)' : '静止';
+      case 'slide': return 'すべっている';
+      case 'tip':   return '倒れている';
+      default:      return '斜面の端に着いた';
+    }
+  }
+
+  // ---------- 描画 ----------
+  function bar(v, x, y, w, ratio, color, title, valTxt){
+    var ctx = v.ctx, C = v.C;
+    v.label(title, x, y, C.soft, 11.5);
+    v.text(valTxt, x + w + 8, y + 13, ratio >= 1 ? C.accent2 : C.ink, 12, 'left');
+    ctx.fillStyle = C.paper; ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.rect(x, y + 5, w, 8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = ratio >= 1 ? C.accent2 : color;
+    ctx.fillRect(x, y + 5, w*Math.min(1, Math.max(0, ratio)), 8);
+  }
+
+  function draw(v){
+    var C = v.C, ctx = v.ctx, k = geo.k, t = th();
+    v.clear();
+    // 床と斜面(くさび)
+    var top = P(0, 0), bot = P(L, 0);
+    v.line(0, geo.By, v.W, geo.By, C.soft, 1.5);
+    for(var i = 0; i < v.W; i += 14) v.line(i, geo.By, i - 8, geo.By + 8, C.faint, 1);
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(top.x, top.y); ctx.lineTo(bot.x, bot.y); ctx.lineTo(top.x, geo.By); ctx.closePath();
+    ctx.fillStyle = C.card; ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.8; ctx.stroke();
+    ctx.restore();
+    // 下端のストッパー
+    var st0 = P(SE, 0), st1 = P(L, 0), st2 = P(L, 0.06), st3 = P(SE, 0.06);
+    ctx.save(); ctx.beginPath(); ctx.moveTo(st0.x, st0.y); ctx.lineTo(st1.x, st1.y); ctx.lineTo(st2.x, st2.y); ctx.lineTo(st3.x, st3.y); ctx.closePath();
+    ctx.fillStyle = C.soft; ctx.fill(); ctx.restore();
+    if(S.theta > 0.5){
+      ctx.save(); ctx.strokeStyle = C.soft; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(bot.x, bot.y, 40, Math.PI, Math.PI + t); ctx.stroke(); ctx.restore();
+      v.text('θ', bot.x - 52*Math.cos(t/2), bot.y - 52*Math.sin(t/2) + 5, C.ink, 13, 'center');
+    }
+
+    // 残像(一定時間ごとの箱の位置)
+    if(document.getElementById('trail').checked && trail.length){
+      ctx.save(); ctx.strokeStyle = C.ink; ctx.lineWidth = 1;
+      trail.forEach(function(q, j){
+        ctx.globalAlpha = 0.08 + 0.32*(j + 1)/trail.length;
+        ctx.beginPath(); q.forEach(function(b, i){ var pp = P(b.s, b.n); i ? ctx.lineTo(pp.x, pp.y) : ctx.moveTo(pp.x, pp.y); });
+        ctx.closePath(); ctx.stroke();
+      });
+      ctx.restore();
+    }
+    // 再生速度の表示
+    if(paused || speed !== 1){
+      v.label(paused ? '一時停止中' : 'スロー ' + (speed === 0.25 ? '1/4' : '1/10'), v.W - 12, 22, paused ? C.accent2 : C.soft, 13, 'right');
+    }
+
+    // 箱
+    var cs = [[-cw/2,0],[cw/2,0],[cw/2,ch],[-cw/2,ch]].map(function(b){ var p = body(b[0], b[1]); return P(p.s, p.n); });
+    ctx.save();
+    ctx.beginPath(); cs.forEach(function(p, j){ j ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); }); ctx.closePath();
+    ctx.globalAlpha = 0.85; ctx.fillStyle = C.accent; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.restore();
+
+    // 操作用のハンドル(斜面の角度・箱の大きさ)
+    if(mode === 'slope'){
+      v.circle(top.x, top.y, dragTheta ? 9 : 7, C.accent2, C.ink);
+      if(v.W > 500) v.label('ドラッグで傾ける', top.x + 12, top.y - 8, C.faint, 11);
+    }
+    if(state === 'rest' || state === 'slide'){
+      var hd = handlePos();
+      ctx.save(); ctx.fillStyle = C.paper; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.rect(hd.x - 6, hd.y - 6, 12, 12); ctx.fill(); ctx.stroke(); ctx.restore();
+    }
+
+    // 重心と、重心から下ろした鉛直線
+    var g = body(0, ch/2), gp = P(g.s, g.n);
+    var hitS = g.s + g.n*Math.tan(t), hp = P(hitS, 0);
+    var b0 = body(-cw/2, 0).s, b1 = body(cw/2, 0).s;
+    var inside = state !== 'tip' && hitS >= Math.min(b0, b1) - 1e-6 && hitS <= Math.max(b0, b1) + 1e-6;
+    v.line(gp.x, gp.y, hp.x, hp.y, inside ? C.soft : C.accent2, 1.4, [5,4]);
+    ctx.save(); ctx.strokeStyle = inside ? C.soft : C.accent2; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(hp.x - 5, hp.y - 5); ctx.lineTo(hp.x + 5, hp.y + 5);
+    ctx.moveTo(hp.x + 5, hp.y - 5); ctx.lineTo(hp.x - 5, hp.y + 5); ctx.stroke(); ctx.restore();
+    v.circle(gp.x, gp.y, 4, C.ink, C.ink);
+    v.label('G', gp.x + 7, gp.y - 6, C.ink, 12);
+
+    // 力の矢印(長さは mg を基準にした比)
+    var mg = S.m*G, Lf = Math.min(80, 0.9*Math.max(cw, ch)*k + 30);
+    function vecSN(s0, n0, Fs, Fn, color, lab){
+      var p0 = P(s0, n0), c = Math.cos(t), sn = Math.sin(t);
+      var dx = (Fs*c + Fn*sn)/mg*Lf, dy = (Fs*sn - Fn*c)/mg*Lf;
+      if(Math.hypot(dx, dy) < 3) return;
+      v.arrow(p0.x, p0.y, p0.x + dx, p0.y + dy, color, 2.4);
+      if(lab) v.label(lab, p0.x + dx + 4, p0.y + dy + (dy > 0 ? 12 : -4), color, 12);
+    }
+    v.arrow(gp.x, gp.y, gp.x, gp.y + Lf, C.ink, 2.4);
+    v.label('mg', gp.x + 6, gp.y + Lf + 2, C.ink, 12);
+    if(state === 'tip'){
+      var pv = P(sc + sgn*cw/2, 0);
+      ctx.save(); ctx.strokeStyle = C.accent2; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(pv.x, pv.y, 7, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+      v.label('支点', pv.x + (sgn > 0 ? 10 : -38), pv.y + 18, C.accent2, 11.5);
+      vecSN(sc + sgn*cw/2, 0, 0, Math.max(0, fN), C.accent2, 'N');
+      vecSN(sc + sgn*cw/2, 0, fF, 0, C.soft, 'f');
+    } else if(state !== 'end'){
+      var xs = Math.max(-cw/2, Math.min(cw/2, xN));
+      vecSN(sc + xs, 0, 0, fN, C.accent2, 'N');
+      vecSN(sc + xs, 0, fF, 0, C.soft, state === 'slide' ? "μ'N" : 'f');
+      // 作用点の印
+      var xp = P(sc + xs, 0);
+      v.circle(xp.x, xp.y, 3, C.accent2, C.accent2);
+    }
+    var F = Fp();
+    if(F){
+      var q = pushPoint(), qb = body(q.x, q.y), qs = qb.s, qn = qb.n;
+      var c2 = Math.cos(t), s2 = Math.sin(t), len = Math.abs(F)/mg*Lf + 8;
+      var qp = P(qs, qn), dir = Math.sign(F);
+      var ex = c2*dir, ey = s2*dir;               // 押す力は斜面に平行
+      v.arrow(qp.x - ex*(len + 4), qp.y - ey*(len + 4), qp.x - ex*4, qp.y - ey*4, C.accent, 2.6);
+      v.label('F', qp.x - ex*(len + 4) - 4, qp.y - ey*(len + 4) - 8, C.accent, 12, 'center');
+    }
+
+    // 左上: 判定メーター
+    var bw = Math.min(190, v.W*0.36), x0 = 14, y0 = 22;
+    if(state === 'rest' || dragging){
+      var N = S.m*G*Math.cos(t);
+      var fr = Math.abs(fF)/(S.mu*N || 1e-9);
+      bar(v, x0, y0, bw, S.mu > 0 ? fr : (Math.abs(fF) > 1e-9 ? 1 : 0), C.soft, 'すべり度  f / μN', fr.toFixed(2));
+      var tr = Math.abs(xN)/(cw/2);
+      bar(v, x0, y0 + 34, bw, tr, C.accent, '倒れ度  作用点のずれ / (w/2)', tr.toFixed(2));
+    } else {
+      v.label(stateText() + '!', x0, y0 + 6, C.accent2, 15);
+    }
+    // 角度の数直線(押していないとき)
+    if(mode === 'slope'){
+      var ly = y0 + 82, lw = bw, as = Math.atan(S.mu)/D2R, at = Math.atan(cw/ch)/D2R;
+      function ax(d){ return x0 + Math.min(90, d)/90*lw; }
+      v.line(x0, ly, x0 + lw, ly, C.soft, 1.2);
+      [0, 30, 60, 90].forEach(function(d){ v.line(ax(d), ly - 3, ax(d), ly + 3, C.soft, 1); v.text(d+'°', ax(d), ly + 15, C.faint, 10, 'center'); });
+      ctx.fillStyle = C.soft; ctx.fillRect(ax(as) - 1.5, ly - 10, 3, 10);
+      function tag(txt, x, y, col, right){
+        ctx.font = '500 10.5px "Noto Sans JP", sans-serif';
+        var tw = ctx.measureText(txt).width, l = right ? x - tw : x;
+        v.label(txt, Math.max(4, Math.min(v.W - tw - 4, l)), y, col, 10.5, 'left');
+      }
+      tag('すべる ' + as.toFixed(1) + '°', ax(as), ly - 13, C.soft, as <= at);
+      ctx.fillStyle = C.accent; ctx.fillRect(ax(at) - 1.5, ly - 10, 3, 10);
+      tag('倒れる ' + at.toFixed(1) + '°', ax(at), ly - (Math.abs(as - at) < 12 ? 26 : 13), C.accent, as > at);
+      ctx.beginPath(); ctx.moveTo(ax(S.theta), ly + 1); ctx.lineTo(ax(S.theta) - 5, ly + 9); ctx.lineTo(ax(S.theta) + 5, ly + 9); ctx.closePath();
+      ctx.fillStyle = C.ink; ctx.fill();
+    }
+  }
+
+  var sim = PhysSim({
+    state: S,
+    controls: [
+      { key:'theta', label:'傾き θ', min:0, max:60, step:0.1, fmt:function(x){return x.toFixed(1)+'°';} },
+      { key:'F', label:'押す力 F', min:0, max:150, step:1, fmt:function(x){return x.toFixed(0)+' N';} },
+      { key:'a', label:'押す高さ a', min:5, max:100, step:1, fmt:function(x){return (x/100*S.h).toFixed(0)+' cm';} },
+      { key:'w', label:'幅 w', min:10, max:80, step:1, fmt:function(x){return x.toFixed(0)+' cm';}, onChange:sizeChanged },
+      { key:'h', label:'高さ h', min:10, max:80, step:1, fmt:function(x){return x.toFixed(0)+' cm';}, onChange:sizeChanged },
+      { key:'mu', label:'摩擦係数 μ', min:0, max:1.5, step:0.01, fmt:function(x){return x.toFixed(2);} },
+      { key:'m', label:'質量 m', min:0.5, max:20, step:0.5, fmt:function(x){return x.toFixed(1)+' kg';} }
+    ],
+    onChange: function(){},
+    init: function(v){ geom(v); resetBox(); setTimeout(function(){ setMode('slope'); }, 0); },
+    reset: function(v){ stopRamp(); resetBox(); },
+    resize: function(v){ geom(v); },
+
+    step: function(v, h){
+      if(dragging) return;
+      if(paused) return;
+      if(ramp){ var nt = Math.min(rampEnd, S.theta + 3*h); setTheta(nt); if(nt >= rampEnd) stopRamp(); }
+      var hs = h*speed;                       // スロー再生: 物理の時間だけをゆっくり進める
+      if(state === 'rest' || state === 'slide') stepFlat(hs);
+      else if(state === 'tip') stepTip(hs);
+      addTrail(hs);
+    },
+    draw: draw,
+
+    readout: function(){
+      var t = th(), res = '—';
+      if(event) res = (event.type === 'tip' ? '倒れた' : 'すべった') + (mode === 'push' ? '(F = ' + event.F.toFixed(0) + ' N)' : '(θ = ' + event.theta.toFixed(1) + '°)');
+      if(mode === 'push'){
+        var mg = S.m*G, aH = S.a/100*S.h/100;
+        return [
+          ['状態', stateText()],
+          ['すべる F >', 'μmg = ' + (S.mu*mg).toFixed(1) + ' N'],
+          ['倒れる F >', 'mg·w/(2a) = ' + (mg*(S.w/100)/(2*aH)).toFixed(1) + ' N'],
+          ['結果', res]
+        ];
+      }
+      return [
+        ['状態', stateText()],
+        ['tanθ', Math.tan(t).toFixed(3)],
+        ['w/h', (cw/ch).toFixed(3)],
+        ['結果', res]
+      ];
+    },
+
+    down: function(v, p){
+      var top = P(0, 0);
+      if(mode === 'slope' && Math.hypot(p.x - top.x, p.y - top.y) < 26){ dragTheta = true; stopRamp(); return; }
+      if(state === 'tip') return;
+      var hd = handlePos();
+      if(state !== 'end' && Math.hypot(p.x - hd.x, p.y - hd.y) < 20){ dragging = 'size'; stopRamp(); return; }
+      var c = body(0, ch/2), cp = P(c.s, c.n), r = Math.max(cw, ch)*geo.k/2 + 12;
+      if(Math.hypot(p.x - cp.x, p.y - cp.y) < r){ dragging = 'box'; stopRamp(); trail = []; }
+    },
+    move: function(v, p){
+      if(dragTheta){
+        var d = Math.atan2(geo.By - p.y, geo.Bx - p.x)/D2R;
+        setTheta(Math.round(Math.max(0, Math.min(60, d))*10)/10);
+        return;
+      }
+      if(!dragging) return;
+      var q = toSN(p);
+      if(dragging === 'size'){
+        var w = Math.round(Math.max(10, Math.min(80, 2*(q.s - sc)*100)));
+        var hh = Math.round(Math.max(10, Math.min(80, q.n*100)));
+        setSlider('w', w); setSlider('h', hh);
+        cw = w/100; ch = hh/100; pushOn = true; event = null; state = 'rest';
+        sc = Math.max(cw/2, Math.min(SE - cw/2, sc));
+        return;
+      }
+      sc = Math.max(cw/2, Math.min(SE - cw/2, q.s)); u = 0;
+    },
+    up: function(){ dragTheta = false; if(dragging){ dragging = false; state = 'rest'; u = 0; } }
+  });
+})();
+</script>
+</body>
+</html>
