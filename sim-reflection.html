@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>平面波の反射と干渉 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* このページだけの追加（色は style.css のトークンを使う） */
+  .toggles{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .btn.toggle[aria-pressed="false"]{opacity:.55;border-style:dashed;}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:10px 2px 0;font-size:0.82rem;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{display:inline-block;width:22px;height:0;border-top:2px solid currentColor;}
+  .legend i.dash{border-top-style:dashed;}
+  .legend i.thick{border-top-width:4px;}
+  .legend i.dot{width:10px;height:10px;border-radius:50%;border:2px solid currentColor;}
+  .legend i.dot.fill{background:currentColor;}
+  .lg-inc{color:var(--accent-2);}
+  .lg-ref{color:var(--thermo);}
+  .lg-node{color:var(--ink);}
+  .lg-anti{color:var(--brand);}
+</style>
+</head>
+<body class="u-wave">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html" class="on">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./waves.html">波動</a> / 平面波の反射と干渉</p>
+
+  <div class="sim-head">
+    <h1>平面波の反射と干渉</h1>
+    <span class="eq">i = i′,  節線の間隔 = λ / (2cos i)</span>
+  </div>
+
+  <section class="stage">
+    <canvas class="sim" id="sim" style="height:clamp(380px,72vw,540px)" aria-label="境界面で反射する平面波と、入射波・反射波の干渉のシミュレーション"></canvas>
+    <div class="legend" id="legend">
+      <span class="lg-inc"><i></i>入射波の山</span>
+      <span class="lg-inc"><i class="dash"></i>入射波の谷</span>
+      <span class="lg-ref"><i></i>反射波の山</span>
+      <span class="lg-ref"><i class="dash"></i>反射波の谷</span>
+      <span class="lg-node"><i class="thick"></i>節線</span>
+      <span class="lg-anti"><i class="dash"></i>腹線</span>
+      <span class="lg-ref"><i class="dot fill"></i>山と山</span>
+      <span class="lg-ref"><i class="dot"></i>谷と谷</span>
+    </div>
+    <ul class="readout" id="readout"></ul>
+    <div class="controls" id="controls"></div>
+    <div class="toggles">
+      <button class="btn small" id="b-view">表示:波面の線</button>
+      <button class="btn small" id="b-phase">反射:位相変化なし</button>
+      <button class="btn small toggle" id="b-inc" aria-pressed="true">入射波</button>
+      <button class="btn small toggle" id="b-ref" aria-pressed="true">反射波</button>
+      <button class="btn small toggle" id="b-lines" aria-pressed="false">節線・腹線</button>
+      <button class="btn small toggle" id="b-dots" aria-pressed="false">強め合う点</button>
+      <button class="btn small toggle" id="b-ray" aria-pressed="true">入射角・反射角</button>
+    </div>
+    <div class="actions">
+      <span class="hint">入射波の矢印(光線)をドラッグしても入射角を変えられます。「はじめから」で波が届くところから再生します。</span>
+      <span class="btns">
+        <button class="btn" id="b-pause">一時停止</button>
+        <button class="btn primary" id="reset">はじめから</button>
+      </span>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>境界面で反射するとき、<strong>入射角 i と反射角 i′ は等しい</strong>(反射の法則)。</li>
+        <li>入射波と反射波が重なると干渉し、<strong>境界面に平行な節線・腹線</strong>ができます。</li>
+        <li>隣り合う節線の間隔は <strong>λ / (2cos i)</strong>。入射角が大きいほど間隔は広がります。<strong>入射角 0°</strong>(垂直入射)では間隔 λ/2 の<strong>定常波</strong>になります。</li>
+        <li>強め合う点(山と山・谷と谷)は、境界面に沿って <strong>v / sin i</strong> の速さで動きます。</li>
+        <li>反射で位相が変わらないとき境界面は<strong>腹線</strong>、位相が π ずれるとき境界面は<strong>節線</strong>になります。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>入射角 30° のとき、節線の間隔は波長 λ の何倍? 表示の値と計算を比べよう。</li>
+        <li>「強め合う点」を表示して、点がどちら向きにどれだけの速さで動くか確かめよう。</li>
+        <li>入射角を 0° に近づける・90° に近づけると、節線の間隔はどうなる?</li>
+        <li>反射の位相を「π ずれる」に切りかえると、節線と腹線の位置はどう入れかわる?</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-doppler.html">← お寿司でわかるドップラー効果</a>
+    <a href="./waves.html">波動の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  // 座標:境界面 AB 上に原点、x は右向き、z は境界面から上(媒質1側)向き。単位は px。
+  // 入射波  u_i = cos(2π(s  − ct)/λ),  s  = x sin i − z cos i
+  // 反射波  u_r = ±cos(2π(s′ − ct)/λ), s′ = x sin i + z cos i   (＋:位相変化なし、−:π ずれる)
+  var S = { th: 30, lam: 80, spd: 1 };
+  var view = 'lines', fixedEnd = false, showInc = true, showRef = true;
+  var showLines = false, showDots = false, showRay = true, paused = false;
+  var T = 0, steady = false, dragRay = false;
+  var L = {}, col = {}, off = null, offCtx = null, CELL = 3;
+
+  function cssv(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+  function hex(h){ h = h.replace('#',''); if(h.length===3) h = h.split('').map(function(c){return c+c;}).join('');
+    var n = parseInt(h,16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+  function readCol(){
+    col.inc = cssv('--accent-2'); col.ref = cssv('--thermo'); col.anti = cssv('--brand'); col.wave = cssv('--wave');
+    col.pos = hex(cssv('--thermo')); col.neg = hex(cssv('--accent-2'));
+  }
+  function rad(){ return S.th*Math.PI/180; }
+  function speed(){ return S.lam*1.1; }                 // 波の速さ c [px/s](周期 約0.9秒)
+  function layout(v){ L.yB = Math.round(v.H - Math.max(56, v.H*0.13)); L.P = v.W*0.5; }
+  function front(v){                                    // 波の先頭(入射波の s の値)
+    if(steady) return Infinity;
+    // 先頭が境界面の左端 A に届く少し前からスタート
+    var a = rad(), f = -L.yB*Math.cos(a)*0.35 + speed()*T;
+    if(f > v.W*Math.sin(a) + L.yB*Math.cos(a) + S.lam) { steady = true; return Infinity; }
+    return f;
+  }
+  function restart(){ T = 0; steady = false; }
+
+  // ---------- 描画部品 ----------
+  // 入射波の線 s = c(境界面へ向かう)
+  function incLine(ctx, v, c){
+    var a = rad(), X = c*Math.sin(a), Y = L.yB + c*Math.cos(a), R = v.W + L.yB;
+    ctx.moveTo(X - R*Math.cos(a), Y + R*Math.sin(a)); ctx.lineTo(X + R*Math.cos(a), Y - R*Math.sin(a));
+  }
+  // 反射波の線 s′ = c(境界面から離れる)
+  function refLine(ctx, v, c){
+    var a = rad(), X = c*Math.sin(a), Y = L.yB - c*Math.cos(a), R = v.W + L.yB;
+    ctx.moveTo(X - R*Math.cos(a), Y - R*Math.sin(a)); ctx.lineTo(X + R*Math.cos(a), Y + R*Math.sin(a));
+  }
+  function waveLines(v, kind, sf){
+    var ctx = v.ctx, a = rad(), lam = S.lam, ct = speed()*T;
+    var smin = kind==='inc' ? -L.yB*Math.cos(a) : 0;
+    var smax = v.W*Math.sin(a) + (kind==='inc' ? 0 : L.yB*Math.cos(a));
+    var ofs = (kind==='ref' && fixedEnd) ? lam/2 : 0;   // π ずれると反射波の山が半波長ずれる
+    var color = kind==='inc' ? col.inc : col.ref;
+    for(var half=0; half<2; half++){                    // half=0:山、1:谷
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = half ? 1.4 : 1.9;
+      ctx.setLineDash(half ? [6,6] : []); ctx.beginPath();
+      var base = ct + ofs + half*lam/2;
+      var n0 = Math.floor((smin - base)/lam) - 1, n1 = Math.ceil((smax - base)/lam) + 1;
+      for(var n=n0; n<=n1; n++){
+        var c = base + n*lam;
+        if(c >= sf) continue;
+        kind==='inc' ? incLine(ctx, v, c) : refLine(ctx, v, c);
+      }
+      ctx.stroke(); ctx.restore();
+    }
+  }
+  function frontLines(v, sf){
+    if(!isFinite(sf)) return;
+    var ctx = v.ctx;
+    ctx.save(); ctx.globalAlpha = 0.55; ctx.lineWidth = 1; ctx.setLineDash([2,4]); ctx.strokeStyle = v.C.soft;
+    ctx.beginPath(); if(showInc) incLine(ctx, v, sf); if(showRef) refLine(ctx, v, sf); ctx.stroke(); ctx.restore();
+  }
+
+  function colorField(v, sf){
+    var w = Math.ceil(v.W/CELL), h = Math.ceil(L.yB/CELL);
+    if(!off || off.width!==w || off.height!==h){
+      off = document.createElement('canvas'); off.width = w; off.height = h; offCtx = off.getContext('2d');
+    }
+    var img = offCtx.createImageData(w, h), d = img.data;
+    var a = rad(), sa = Math.sin(a), ca = Math.cos(a), k = 2*Math.PI/S.lam, ct = speed()*T, sg = fixedEnd ? -1 : 1;
+    var nWaves = (showInc?1:0) + (showRef?1:0); if(!nWaves) return;
+    for(var j=0; j<h; j++){
+      var z = L.yB - (j+0.5)*CELL;
+      for(var i=0; i<w; i++){
+        var x = (i+0.5)*CELL, s = x*sa - z*ca, s2 = x*sa + z*ca, u = 0;
+        if(showInc && s < sf)  u += Math.cos(k*(s - ct));
+        if(showRef && s2 < sf) u += sg*Math.cos(k*(s2 - ct));
+        var m = Math.min(1, Math.abs(u)/2), c = u >= 0 ? col.pos : col.neg, p = (j*w + i)*4;
+        d[p] = c[0]; d[p+1] = c[1]; d[p+2] = c[2]; d[p+3] = Math.round(m*0.85*255);
+      }
+    }
+    offCtx.putImageData(img, 0, 0);
+    var ctx = v.ctx; ctx.save(); ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(off, 0, 0, w*CELL, h*CELL); ctx.restore();
+  }
+
+  function nodeLines(v, sf){
+    var ctx = v.ctx, a = rad(), D = S.lam/(2*Math.cos(a)), sa = Math.sin(a), ca = Math.cos(a);
+    var firstNodes = [], labeled = {};
+    for(var m=0; m*D/2 <= L.yB + D; m++){
+      var z = m*D/2; if(z > L.yB) break;
+      var isAnti = fixedEnd ? (m%2===1) : (m%2===0);    // 位相変化なし:z = 0, D, 2D… が腹線
+      var xEnd;                                         // 反射波が届いている所まで
+      if(!isFinite(sf)) xEnd = v.W;
+      else if(sa < 1e-6) xEnd = (z*ca < sf) ? v.W : 0;   // 垂直入射:境界面に平行に届く
+      else xEnd = (sf - z*ca)/sa;
+      if(xEnd <= 0) continue;
+      xEnd = Math.min(v.W, xEnd);
+      var Y = L.yB - z;
+      if(isAnti) v.line(0, Y, xEnd, Y, col.anti, 2, [8,6]);
+      else { v.line(0, Y, xEnd, Y, v.C.ink, 3.2); firstNodes.push(Y); }
+      // ラベルは境界面にいちばん近い節線・腹線にだけ付ける
+      var key = isAnti ? 'a' : 'n';
+      if(!labeled[key] && z > 6 && xEnd > 120){
+        labeled[key] = true;
+        var tx = Math.min(xEnd - 50, v.W*0.66);
+        ctx.save(); ctx.fillStyle = v.C.card; ctx.fillRect(tx - 4, Y - 9, 40, 18); ctx.restore();
+        v.label(isAnti ? '腹線' : '節線', tx, Y + 4, isAnti ? col.anti : v.C.ink, 12, 'left');
+      }
+    }
+    // 節線の間隔を示す
+    if(firstNodes.length >= 2 && isFinite(sf) === false){
+      var x = v.W - 26, y1 = firstNodes[0], y2 = firstNodes[1];
+      v.arrow(x, (y1+y2)/2, x, y2 + 2, v.C.ink, 1.4); v.arrow(x, (y1+y2)/2, x, y1 - 2, v.C.ink, 1.4);
+      ctx.save(); ctx.fillStyle = v.C.card; ctx.fillRect(x - 84, (y1+y2)/2 - 9, 76, 18); ctx.restore();
+      v.text('λ/(2cos i)', x - 8, (y1+y2)/2 + 4, v.C.ink, 11, 'right');
+    }
+  }
+
+  function strongDots(v, sf){
+    var ctx = v.ctx, a = rad(), sa = Math.sin(a), ca = Math.cos(a), lam = S.lam, D = lam/(2*ca), ct = speed()*T;
+    if(sa < 1e-6){ v.label('入射角 0°:強め合う「点」は腹線全体に広がります(定常波)', 10, 44, v.C.soft, 12, 'left'); return; }
+    for(var q=0; ; q++){
+      var z = (q + (fixedEnd ? 0.5 : 0))*D; if(z > L.yB) break;
+      // 山と山:s = ct + nλ かつ s′ = ct + mλ(+λ/2) → x sin i = ct + (q/2 + n)λ (+λ/4)
+      var base = ct + q*lam/2 + (fixedEnd ? lam/4 : 0);
+      for(var kind=0; kind<2; kind++){                   // 0:山と山、1:谷と谷
+        var b = base + kind*lam/2;
+        var n0 = Math.floor((-b)/lam) - 1, n1 = Math.ceil((v.W*sa - b)/lam) + 1;
+        for(var n=n0; n<=n1; n++){
+          var X = (b + n*lam)/sa;
+          if(X < 0 || X > v.W) continue;
+          if(X*sa + z*ca >= sf) continue;                // 反射波がまだ来ていない
+          var Y = L.yB - z;
+          ctx.beginPath(); ctx.arc(X, Y, 5.5, 0, Math.PI*2);
+          ctx.lineWidth = 2; ctx.strokeStyle = col.ref;
+          if(kind===0){ ctx.fillStyle = col.ref; ctx.fill(); }
+          else { ctx.fillStyle = v.C.card; ctx.fill(); }
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  function rayDiagram(v){
+    var ctx = v.ctx, a = rad(), P = L.P, yB = L.yB, R = Math.min(yB*0.78, v.W*0.36);
+    var gap = S.th < 4 ? 7 : 0;                         // 0°付近は入射・反射の矢印が重なるので左右にずらす
+    var ix = P - R*Math.sin(a) - gap, iy = yB - R*Math.cos(a), rx = P + R*Math.sin(a) + gap, ry = iy;
+    v.line(P, yB, P, yB - R - 6, v.C.soft, 1.3, [5,5]);              // 法線
+    v.text('法線', P + 4, yB - R - 10, v.C.soft, 10, 'left');
+    ctx.save(); ctx.lineCap = 'round';
+    v.arrow(ix, iy, P - gap - 3*Math.sin(a), yB - 3*Math.cos(a), col.inc, 3);
+    v.arrow(P + gap, yB, rx, ry, col.ref, 3);
+    ctx.restore();
+    v.circle(ix, iy, 6, v.C.card, col.inc);                          // つまみ
+    var r = 34;
+    ctx.save(); ctx.lineWidth = 1.6;
+    ctx.strokeStyle = col.inc; ctx.beginPath(); ctx.arc(P, yB, r, -Math.PI/2 - a, -Math.PI/2); ctx.stroke();
+    ctx.strokeStyle = col.ref; ctx.beginPath(); ctx.arc(P, yB, r + 6, -Math.PI/2, -Math.PI/2 + a); ctx.stroke();
+    ctx.restore();
+    var lr = r + 22;
+    v.label('i = ' + S.th + '°', P + lr*Math.cos(-Math.PI/2 - a/2), yB + lr*Math.sin(-Math.PI/2 - a/2) + 4, col.inc, 12, 'right');
+    v.label('i′ = ' + S.th + '°', P + (lr+6)*Math.cos(-Math.PI/2 + a/2), yB + (lr+6)*Math.sin(-Math.PI/2 + a/2) + 4, col.ref, 12, 'left');
+    L.knob = { x: ix, y: iy };
+  }
+
+  function setBtns(){
+    document.getElementById('b-view').textContent = '表示:' + (view==='lines' ? '波面の線' : '色(変位)');
+    document.getElementById('b-phase').textContent = '反射:' + (fixedEnd ? '位相が π ずれる' : '位相変化なし');
+    [['b-inc',showInc],['b-ref',showRef],['b-lines',showLines],['b-dots',showDots],['b-ray',showRay]].forEach(function(p){
+      document.getElementById(p[0]).setAttribute('aria-pressed', p[1] ? 'true' : 'false');
+    });
+    document.getElementById('b-pause').textContent = paused ? '再生' : '一時停止';
+  }
+  function setTheta(deg){
+    var el = document.getElementById('c-th'); if(!el) return;
+    el.value = Math.max(0, Math.min(80, Math.round(deg)));
+    el.dispatchEvent(new Event('input'));
+  }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key:'th',  label:'入射角 i',         min:0,  max:80, step:1,    fmt:function(x){ return x + '°'; } },
+      { key:'lam', label:'波長 λ(画面上)',   min:40, max:130, step:2,    fmt:function(x){ return x + ' px'; } },
+      { key:'spd', label:'再生の速さ',        min:0.25, max:2, step:0.25, fmt:function(x){ return '×' + x.toFixed(2); } }
+    ],
+    init: function(v){
+      readCol(); layout(v); restart();
+      if(window.matchMedia){ var mq = window.matchMedia('(prefers-color-scheme: dark)'); if(mq.addEventListener) mq.addEventListener('change', readCol); }
+      new MutationObserver(readCol).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+      v.extraButton('b-view',  function(){ view = view==='lines' ? 'color' : 'lines'; setBtns(); });
+      v.extraButton('b-phase', function(){ fixedEnd = !fixedEnd; setBtns(); });
+      v.extraButton('b-inc',   function(){ showInc = !showInc; setBtns(); });
+      v.extraButton('b-ref',   function(){ showRef = !showRef; setBtns(); });
+      v.extraButton('b-lines', function(){ showLines = !showLines; setBtns(); });
+      v.extraButton('b-dots',  function(){ showDots = !showDots; setBtns(); });
+      v.extraButton('b-ray',   function(){ showRay = !showRay; setBtns(); });
+      v.extraButton('b-pause', function(){ paused = !paused; setBtns(); });
+      setBtns();
+    },
+    reset: function(){ restart(); paused = false; setBtns(); },
+    resize: function(v){ layout(v); },
+    step: function(v, h){ if(!paused) T += h*S.spd; },
+
+    draw: function(v){
+      var ctx = v.ctx; v.clear();
+      var sf = front(v), yB = L.yB;
+
+      // 媒質2
+      ctx.save(); ctx.fillStyle = v.C.line; ctx.fillRect(0, yB, v.W, v.H - yB); ctx.restore();
+      for(var hx = -v.H; hx < v.W; hx += 14) v.line(hx, v.H, hx + (v.H - yB), yB, v.C.grid, 1);
+
+      // 波
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, v.W, yB); ctx.clip();
+      if(view==='color') colorField(v, sf);
+      else { if(showInc) waveLines(v, 'inc', sf); if(showRef) waveLines(v, 'ref', sf); }
+      frontLines(v, sf);
+      if(showDots) strongDots(v, sf);
+      if(showLines) nodeLines(v, sf);
+      ctx.restore();
+
+      // 境界面 AB
+      v.line(0, yB, v.W, yB, v.C.ink, 2.4);
+      v.label('A', 8, yB + 18, v.C.ink, 13, 'left');
+      v.label('B', v.W - 8, yB + 18, v.C.ink, 13, 'right');
+      v.label('媒質1', 10, 22, v.C.soft, 12, 'left');
+      v.label('媒質2(屈折波は省略)', 30, yB + 38, v.C.soft, 12, 'left');
+      if(showRay) rayDiagram(v);
+      if(isFinite(sf)) v.label('波が進んでいます…', v.W - 10, 20, v.C.soft, 12, 'right');
+    },
+
+    readout: function(v){
+      var a = rad();
+      return [
+        ['入射角 i', S.th + '°'],
+        ['反射角 i′', S.th + '°'],
+        ['節線の間隔 λ/(2cos i)', (1/(2*Math.cos(a))).toFixed(3) + ' λ'],
+        ['強め合う点の速さ v/sin i', S.th === 0 ? '∞(定常波)' : (1/Math.sin(a)).toFixed(2) + ' v'],
+        ['境界面', fixedEnd ? '節線(π ずれる)' : '腹線(位相変化なし)']
+      ];
+    },
+
+    down: function(v, p){
+      if(showRay && L.knob && Math.hypot(p.x - L.knob.x, p.y - L.knob.y) < 30) dragRay = true;
+    },
+    move: function(v, p){
+      if(!dragRay) return;
+      var dx = L.P - p.x, dz = L.yB - p.y;
+      if(dz < 5) dz = 5;
+      setTheta(Math.atan2(Math.max(0, dx), dz)*180/Math.PI);
+    },
+    up: function(){ dragRay = false; }
+  });
+})();
+</script>
+</body>
+</html>
