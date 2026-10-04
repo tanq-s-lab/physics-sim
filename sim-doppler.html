@@ -33,7 +33,7 @@
 
   <div class="sim-head">
     <h1>お寿司でわかるドップラー効果</h1>
-    <span class="eq">λ′ = (V − vs)T</span>
+    <span class="eq">T′ = T(V − vs) / (V − vo)</span>
   </div>
 
   <section class="stage">
@@ -41,29 +41,42 @@
     <ul class="readout" id="readout"></ul>
     <div class="controls">
       <div class="ctrl">
-        <label for="select-mode"><span>① 板さんの動き方</span></label>
+        <label for="select-mode"><span>① 板さん(音源)の動き方</span></label>
         <select id="select-mode">
           <option value="stop" selected>静止(動かない)</option>
-          <option value="right">右へ進む(流れと同じ向き)</option>
-          <option value="left">左へ進む(流れと逆向き)</option>
+          <option value="right">右へ進む(近づく)</option>
+          <option value="left">左へ進む(遠ざかる)</option>
           <option value="manual">自分で動かす(ドラッグ)</option>
         </select>
       </div>
       <div class="ctrl" id="row-chef-speed">
-        <label for="slider-chef-speed"><span>② 板さんの速さ vs(音源)</span><output id="value-chef-speed">1.0</output></label>
+        <label for="slider-chef-speed"><span>② 板さんの速さ vs [px/f]</span><output id="value-chef-speed">1.0</output></label>
         <input type="range" id="slider-chef-speed" min="0.2" max="2.0" step="0.1" value="1.0">
       </div>
       <div class="ctrl">
-        <label for="slider-speed"><span>③ コンベアの速さ V(音速)</span><output id="value-speed">2.5</output></label>
+        <label for="slider-speed"><span>③ コンベアの速さ V(音速)[px/f]</span><output id="value-speed">2.5</output></label>
         <input type="range" id="slider-speed" min="0.5" max="5.0" step="0.1" value="2.5">
       </div>
       <div class="ctrl">
-        <label for="slider-interval"><span>④ お寿司を置く周期 T</span><output id="value-interval">50</output></label>
+        <label for="slider-interval"><span>④ お寿司を置く周期 T [フレーム]</span><output id="value-interval">50</output></label>
         <input type="range" id="slider-interval" min="25" max="100" value="50">
+      </div>
+      <div class="ctrl">
+        <label for="select-cust-mode"><span>⑤ お客さん(観測者)の動き方</span></label>
+        <select id="select-cust-mode">
+          <option value="stop" selected>静止(動かない)</option>
+          <option value="left">左へ進む(近づく)</option>
+          <option value="right">右へ進む(遠ざかる)</option>
+          <option value="manual">自分で動かす(ドラッグ)</option>
+        </select>
+      </div>
+      <div class="ctrl" id="row-cust-speed">
+        <label for="slider-cust-speed"><span>⑥ お客さんの速さ vo [px/f]</span><output id="value-cust-speed">1.0</output></label>
+        <input type="range" id="slider-cust-speed" min="0.2" max="2.0" step="0.1" value="1.0">
       </div>
     </div>
     <div class="actions">
-      <span class="hint">板さんをドラッグして動かすこともできます。コンベアは右向きに流れます。</span>
+      <span class="hint">コンベアは右向きに流れます。板さんやお客さんをドラッグして動かすこともできます。1フレーム=1/60秒。</span>
       <span class="btns"><button class="btn" id="reset">リセット</button></span>
     </div>
   </section>
@@ -72,18 +85,20 @@
     <div class="note">
       <h2>ポイント</h2>
       <ul>
-        <li>お寿司を <strong>波の山</strong>、コンベアの速さを <strong>音速 V</strong>、お寿司を置く間隔を <strong>周期 T</strong> と考えます。</li>
-        <li>板さんが止まっていると、お寿司の間隔(波長)は <strong>λ = VT</strong>。</li>
-        <li>板さんが流れと同じ向き(右)に進むと間隔が詰まり、<strong>λ′ = (V − vs)T</strong>。反対向きに進むと広がります。</li>
-        <li>お寿司を受け取る人には、間隔が詰まるほど <strong>短い周期</strong>で届きます。音でいえば、<strong>高い音</strong>に聞こえます。</li>
+        <li>お寿司を <strong>波の山</strong>、コンベアの速さを <strong>音速 V</strong>、お寿司を置く間隔を <strong>周期 T</strong>、板さんを<strong>音源</strong>、お客さんを<strong>観測者</strong>と考えます。</li>
+        <li>板さんが止まっていると、お寿司の間隔(波長)は <strong>λ = VT</strong>。板さんが速さ vs で動くと <strong>λ′ = (V − vs)T</strong>(右向きを正)。</li>
+        <li>お客さんが速さ vo で動くと、お寿司が届く速さは <strong>V − vo</strong> に変わり、食べる周期は <strong>T′ = λ′/(V − vo) = T(V − vs)/(V − vo)</strong>。</li>
+        <li>波長が変わるのは<strong>音源</strong>が動いたときだけ。<strong>観測者</strong>が動いても波長は変わらず、届く速さが変わります。</li>
+        <li>周期が短い(振動数が大きい)ほど、音でいえば <strong>高い音</strong>に聞こえます。</li>
       </ul>
     </div>
     <div class="note q">
       <h2>考えてみよう</h2>
       <ol>
-        <li>板さんを右へ進ませると、お寿司の間隔はいくつになる? 表示の理論値と比べよう。</li>
-        <li>板さんの速さをコンベアの速さに近づけると、間隔はどうなる? 音でいうと何が起きている?</li>
-        <li>救急車が近づくときと遠ざかるときの音の違いを、このお寿司のモデルで説明してみよう。</li>
+        <li>板さんを右へ進ませると、お寿司の間隔と食べる周期はいくつになる? 理論値と比べよう。</li>
+        <li>お客さんだけを左へ(板さんに近づく向きに)動かすと、お寿司の間隔は変わる? 食べる周期は?</li>
+        <li>板さんもお客さんも動かして、T′ = T(V − vs)/(V − vo) が成り立つか確かめよう。</li>
+        <li>お客さんがコンベアより速く遠ざかると何が起きる? 音でいうとどんな状況?</li>
       </ol>
     </div>
   </section>
@@ -101,185 +116,664 @@
   </footer>
 
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
 <script>
-// お寿司でわかる!ドップラー効果(p5.js)
-// 寿司=波の山、コンベアの速さ=音速 V、寿司を置く周期=T、板さんの速さ=音源の速さ vs
-let sushiList = [];
-const defaultItasanX = 350;
-let itasanX = defaultItasanX;
-const itasanY = 110;
-let conveyorOffset = 0;
-let spawnTimer = 0;
-let isDragging = false;
+/* ミニ描画ライブラリ：このページで使う p5.js の機能だけを素のCanvasで再現（外部ライブラリ不要） */
+(function () {
+    const W = window;
+    W.PI = Math.PI; W.HALF_PI = Math.PI / 2; W.TWO_PI = Math.PI * 2;
+    W.CENTER = 'center'; W.LEFT = 'left'; W.RIGHT = 'right';
+    W.CLOSE = 'close'; W.CHORD = 'chord'; W.BOLD = 'bold'; W.NORMAL = 'normal';
+    W.width = 0; W.height = 0; W.mouseX = 0; W.mouseY = 0;
 
-function cssVar(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+    let cv = null, ctx = null, looping = true;
+    let st = { fill: true, stroke: true, tSize: 12, tAlignH: 'left', tAlignV: 'alphabetic', tStyle: 'normal' };
+    const stack = [];
+    let shape = [];
 
-function setup() {
-  const c = createCanvas(760, 320);
-  c.parent('sketch-holder');
-  c.elt.style.width = '100%';
-  c.elt.style.height = 'auto';
-  c.elt.setAttribute('aria-label', 'お寿司でドップラー効果を表すシミュレーション');
-  frameRate(60);
-  document.getElementById('reset').addEventListener('click', resetSimulation);
-}
-
-function resetSimulation() {
-  itasanX = defaultItasanX;
-  document.getElementById('select-mode').value = 'stop';
-  sushiList = [];
-  spawnTimer = 0;
-}
-
-function draw() {
-  const beltSpeed = parseFloat(document.getElementById('slider-speed').value);
-  const spawnInterval = parseInt(document.getElementById('slider-interval').value, 10);
-  const moveMode = document.getElementById('select-mode').value;
-  const chefSpeed = parseFloat(document.getElementById('slider-chef-speed').value);
-
-  document.getElementById('value-speed').textContent = beltSpeed.toFixed(1) + ' px/f';
-  document.getElementById('value-interval').textContent = spawnInterval + ' フレーム';
-  document.getElementById('value-chef-speed').textContent = chefSpeed.toFixed(1) + ' px/f';
-  document.getElementById('row-chef-speed').style.visibility = (moveMode === 'right' || moveMode === 'left') ? 'visible' : 'hidden';
-
-  background(cssVar('--paper-card-2') || '#FFF6E4');
-
-  // 1. ベルトコンベア
-  noStroke(); fill(100); rect(0, 213, width, 44);
-  conveyorOffset += beltSpeed;
-  const plateWidth = 80;
-  const scrollX = conveyorOffset % (plateWidth * 2);
-  for (let x = -plateWidth * 2; x < width + plateWidth * 2; x += plateWidth) {
-    const drawX = x + scrollX;
-    noStroke();
-    fill(Math.floor(x / plateWidth) % 2 === 0 ? 235 : 210);
-    rect(drawX, 215, plateWidth, 40);
-    fill(170); triangle(drawX + 30, 227, drawX + 30, 243, drawX + 50, 235);
-    stroke(160); strokeWeight(1.5); line(drawX, 215, drawX, 255);
-  }
-
-  // 2. 板さんの移動(端まで行くと反対側から現れる)
-  if (isDragging) {
-    itasanX = mouseX;
-  } else if (moveMode === 'right') {
-    itasanX += chefSpeed; if (itasanX >= width - 80) itasanX = 80;
-  } else if (moveMode === 'left') {
-    itasanX -= chefSpeed; if (itasanX <= 80) itasanX = width - 80;
-  }
-  itasanX = constrain(itasanX, 80, width - 80);
-  const handX = itasanX - 25;
-
-  // 3. お寿司を周期 T ごとに置く
-  spawnTimer++;
-  if (spawnTimer >= spawnInterval) { sushiList.push({ x: handX, y: 225 }); spawnTimer = 0; }
-
-  // 4. お寿司の移動と描画
-  for (let i = sushiList.length - 1; i >= 0; i--) {
-    const s = sushiList[i];
-    s.x += beltSpeed;
-    noStroke();
-    fill(255); rect(s.x - 16, s.y, 32, 16, 6);
-    fill(231, 76, 60); rect(s.x - 18, s.y - 4, 36, 8, 4);
-    if (s.x > width + 50) sushiList.splice(i, 1);
-  }
-
-  // 5. お寿司の間隔(波長)を測って表示
-  const gaps = [];
-  for (let i = 0; i < sushiList.length - 1; i++) {
-    const sNew = sushiList[i + 1], sOld = sushiList[i];
-    if (sNew.x > 0 && sOld.x < width) {
-      const distance = Math.round(sOld.x - sNew.x);
-      if (distance > 0 && distance < 350) {
-        gaps.push(distance);
-        stroke(52, 152, 219, 170); strokeWeight(1.5);
-        line(sNew.x, 280, sOld.x, 280);
-        line(sNew.x, 275, sNew.x, 285);
-        line(sOld.x, 275, sOld.x, 285);
-        noStroke(); fill(cssVar('--paper-card-2') || 250);
-        ellipse((sNew.x + sOld.x) / 2, 280, 34, 18);
-        fill(41, 128, 185); textSize(12); textAlign(CENTER, CENTER);
-        text(distance, (sNew.x + sOld.x) / 2, 280);
-      }
+    function col(args) {
+        if (typeof args[0] === 'string') return args[0];
+        let r, g, b, a = 255;
+        if (args.length === 1) { r = g = b = args[0]; }
+        else if (args.length === 2) { r = g = b = args[0]; a = args[1]; }
+        else { r = args[0]; g = args[1]; b = args[2]; if (args.length > 3) a = args[3]; }
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + (a / 255) + ')';
     }
-  }
+    function paint(close) {
+        if (st.fill) ctx.fill();
+        if (st.stroke) ctx.stroke();
+    }
 
-  // 6. 板さん
-  drawItasan();
+    W.createCanvas = function (w, h) {
+        cv = document.createElement('canvas');
+        const dpr = W.devicePixelRatio || 1;
+        cv.width = w * dpr; cv.height = h * dpr;
+        cv.style.width = '100%'; cv.style.height = 'auto';
+        cv.style.display = 'block'; cv.style.touchAction = 'none';
+        cv.setAttribute('aria-label', 'お寿司でドップラー効果を表すシミュレーション');
+        ctx = cv.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.lineWidth = 1; ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff';
+        W.width = w; W.height = h;
+        document.body.appendChild(cv);
 
-  // 7. 理論値と測定値
-  let vs = 0;
-  if (!isDragging && moveMode === 'right') vs = chefSpeed;
-  if (!isDragging && moveMode === 'left') vs = -chefSpeed;
-  const lam0 = beltSpeed * spawnInterval;
-  const lam = (beltSpeed - vs) * spawnInterval;
-  const recent = gaps.slice(-3);
-  const meas = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : null;
-  setReadout([
-    ['静止時の間隔 V·T', lam0.toFixed(0)],
-    ['理論値 (V − vs)·T', isDragging ? '—' : lam.toFixed(0)],
-    ['新しい3皿の平均', meas === null ? '—' : meas.toFixed(0)],
-    ['皿が届く周期 T′ = λ′/V', meas === null ? '—' : (meas / beltSpeed).toFixed(1) + ' フレーム']
-  ]);
-}
+        function pos(e) {
+            const r = cv.getBoundingClientRect();
+            W.mouseX = (e.clientX - r.left) * (w / r.width);
+            W.mouseY = (e.clientY - r.top) * (h / r.height);
+        }
+        cv.addEventListener('pointerdown', function (e) { pos(e); if (W.mousePressed) W.mousePressed(); });
+        W.addEventListener('pointermove', pos);
+        W.addEventListener('pointerup', function (e) { pos(e); if (W.mouseReleased) W.mouseReleased(); });
+        return { parent: function (id) { document.getElementById(id).appendChild(cv); } };
+    };
 
-function setReadout(rows) {
-  const ro = document.getElementById('readout');
-  if (ro.children.length !== rows.length) {
-    ro.innerHTML = '';
-    rows.forEach(() => { const li = document.createElement('li'); li.append(document.createElement('b'), document.createElement('span')); ro.appendChild(li); });
-  }
-  rows.forEach((r, i) => {
-    const li = ro.children[i];
-    if (li.children[0].textContent !== r[0]) li.children[0].textContent = r[0];
-    if (li.children[1].textContent !== r[1]) li.children[1].textContent = r[1];
-  });
-}
+    W.background = function () { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = col(arguments); ctx.fillRect(0, 0, cv.width, cv.height); ctx.restore(); };
+    W.fill = function () { st.fill = true; ctx.fillStyle = col(arguments); };
+    W.noFill = function () { st.fill = false; };
+    W.stroke = function () { st.stroke = true; ctx.strokeStyle = col(arguments); };
+    W.noStroke = function () { st.stroke = false; };
+    W.strokeWeight = function (w) { ctx.lineWidth = w; };
 
-function drawItasan() {
-  push();
-  translate(itasanX, itasanY);
-  // 体
-  fill(255); stroke(50); strokeWeight(1.5);
-  rect(-30, 30, 60, 65, 5);
-  fill(255, 224, 199); triangle(-12, 30, 12, 30, 0, 50);
-  fill(31, 78, 161); noStroke();
-  triangle(-4, 38, 4, 38, 0, 55); rect(-2, 35, 4, 5);
-  stroke(50); line(-12, 30, -3, 48); line(12, 30, 3, 48); line(-30, 75, 30, 75);
-  // 右腕
-  fill(255); rect(-42, 35, 16, 30, 3);
-  fill(255, 224, 199); rect(-38, 65, 12, 30); ellipse(-32, 95, 14, 14);
-  // 左腕
-  fill(255); rect(26, 35, 14, 35, 3);
-  // 顔
-  fill(255, 224, 199); ellipse(0, 0, 75, 65); ellipse(-38, 0, 10, 14); ellipse(38, 0, 10, 14);
-  // 髪
-  fill(115, 64, 34); noStroke();
-  arc(-30, -10, 16, 30, HALF_PI, PI + HALF_PI);
-  arc(30, -10, 16, 30, PI + HALF_PI, HALF_PI);
-  // 顔のパーツ
-  stroke(50); noFill(); strokeWeight(1.5);
-  arc(-18, -15, 12, 8, PI, TWO_PI); arc(18, -15, 12, 8, PI, TWO_PI);
-  fill(50); noStroke(); rect(-18, -8, 5, 8, 2); rect(14, -8, 5, 8, 2);
-  stroke(50); line(-2, -2, 2, -2);
-  noStroke(); fill(255, 182, 193, 180); ellipse(-24, 5, 12, 8); ellipse(24, 5, 12, 8);
-  stroke(50); strokeWeight(1.5); fill(235, 97, 0);
-  beginShape(); vertex(-10, 4); bezierVertex(-8, 18, 8, 18, 10, 4); endShape(CLOSE);
-  // 調理帽
-  fill(255); stroke(50);
-  beginShape(); vertex(-32, -26); vertex(-35, -75); vertex(-10, -95); vertex(10, -95); vertex(35, -75); vertex(32, -26); endShape(CLOSE);
-  strokeWeight(1); line(0, -95, 0, -40);
-  pop();
-}
+    W.rect = function (x, y, w, h, r) {
+        ctx.beginPath();
+        if (r && ctx.roundRect) ctx.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2));
+        else ctx.rect(x, y, w, h);
+        paint();
+    };
+    W.ellipse = function (x, y, w, h) {
+        if (h === undefined) h = w;
+        ctx.beginPath(); ctx.ellipse(x, y, w / 2, h / 2, 0, 0, TWO_PI); paint();
+    };
+    W.arc = function (x, y, w, h, a0, a1, mode) {
+        // p5 の既定：塗りは扇形、線は弧だけ ／ CHORD：弦で閉じる
+        if (st.fill) {
+            ctx.beginPath();
+            if (mode !== CHORD) ctx.moveTo(x, y);
+            ctx.ellipse(x, y, w / 2, h / 2, 0, a0, a1);
+            ctx.closePath(); ctx.fill();
+        }
+        if (st.stroke) {
+            ctx.beginPath(); ctx.ellipse(x, y, w / 2, h / 2, 0, a0, a1);
+            if (mode === CHORD) ctx.closePath();
+            ctx.stroke();
+        }
+    };
+    W.triangle = function (x1, y1, x2, y2, x3, y3) {
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3); ctx.closePath(); paint();
+    };
+    W.line = function (x1, y1, x2, y2) {
+        if (!st.stroke) return;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    };
+    W.beginShape = function () { shape = []; };
+    W.vertex = function (x, y) { shape.push(['v', x, y]); };
+    W.bezierVertex = function (a, b, c, d, e, f) { shape.push(['b', a, b, c, d, e, f]); };
+    W.endShape = function (mode) {
+        ctx.beginPath();
+        shape.forEach(function (p, i) {
+            if (p[0] === 'v') { if (i === 0) ctx.moveTo(p[1], p[2]); else ctx.lineTo(p[1], p[2]); }
+            else ctx.bezierCurveTo(p[1], p[2], p[3], p[4], p[5], p[6]);
+        });
+        if (mode === CLOSE) ctx.closePath();
+        paint();
+    };
 
-function mousePressed() {
-  if (dist(mouseX, mouseY, itasanX, itasanY + 20) < 60) {
-    isDragging = true;
-    document.getElementById('select-mode').value = 'manual';
-    return false;
-  }
-}
-function mouseReleased() { isDragging = false; }
+    function font() { ctx.font = (st.tStyle === 'bold' ? 'bold ' : '') + st.tSize + 'px "Helvetica Neue", Arial, sans-serif'; }
+    W.textSize = function (s) { st.tSize = s; };
+    W.textStyle = function (s) { st.tStyle = s; };
+    W.textAlign = function (h, v) { st.tAlignH = h; st.tAlignV = (v === CENTER) ? 'middle' : 'alphabetic'; };
+    W.text = function (s, x, y) {
+        font(); ctx.textAlign = st.tAlignH; ctx.textBaseline = st.tAlignV;
+        if (st.fill) ctx.fillText(String(s), x, y);
+    };
+
+    W.push = function () { stack.push(Object.assign({}, st)); ctx.save(); };
+    W.pop = function () { st = stack.pop() || st; ctx.restore(); };
+    W.translate = function (x, y) { ctx.translate(x, y); };
+
+    W.constrain = function (v, lo, hi) { return Math.max(lo, Math.min(hi, v)); };
+    W.dist = function (x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); };
+    W.round = Math.round;
+
+    W.noLoop = function () { looping = false; };
+    W.loop = function () { looping = true; };
+    W.redraw = function () { if (W.draw) W.draw(); };
+
+    function start() {
+        if (W.setup) W.setup();
+        let last = 0;
+        function frame(ts) {
+            // 画面のリフレッシュレートに関係なく、約60フレーム/秒で進める
+            if (looping && ts - last >= 1000 / 61) { last = ts; if (W.draw) W.draw(); }
+            requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+    else start();
+})();
+</script>
+<script>
+    let sushiList = [];
+    const defaultItasanX = 220;
+    let itasanX = defaultItasanX;
+    let itasanY = 110;
+
+    let conveyorOffset = 0;
+    let spawnTimer = 0;
+    let dragTarget = null;     // 'chef' / 'cust' / null
+
+    // 持ち場（ぶつからないよう左右で分ける）
+    const chefMinX = 80, chefMaxX = 360;
+    const custMinX = 470, custMaxX = 710;
+
+    // お客さん（観測者）
+    const defaultCustX = 640;
+    let custX = defaultCustX;
+    const custY = 110;
+    const eatOffset = 40;      // 顔の中心から左へ40pxの位置（お箸）に届いたら食べる
+    let frameNo = 0;
+    let eatCount = 0;
+
+    // 周期の測定用
+    // ワープ（端から反対側へ移動）をまたぐと「別の流れ」のお寿司が混ざるので、
+    // 板さん・お客さんそれぞれの「周回番号」が同じ2皿の間隔だけを T' として使う
+    let chefPass = 0, custPass = 0;
+    let lastEat = null;        // { t: 食べた時刻, cp: 板さん周回, up: お客さん周回 }
+    let gapList = [];          // 有効な食べる間隔（フレーム）
+    let prevEatX = defaultCustX - eatOffset;
+    let paramKey = '';
+    let lamGaps = [];          // 画面上のお寿司の間隔(波長)
+    let keyFrame = 0;          // 設定を変えた時刻
+    let munchTimer = 0;        // 「パクッ」表示の残りフレーム
+
+    function setup() {
+        let canvas = createCanvas(760, 310);
+        canvas.parent('sketch-holder');
+        document.getElementById('reset').addEventListener('click', resetSimulation);
+    }
+
+    function resetSimulation() {
+        itasanX = defaultItasanX;
+        custX = defaultCustX;
+        let selectMode = document.getElementById('select-mode');
+        if (selectMode) selectMode.value = 'stop';
+        let selectCust = document.getElementById('select-cust-mode');
+        if (selectCust) selectCust.value = 'stop';
+        sushiList = [];
+        spawnTimer = 0;
+        eatCount = 0;
+        munchTimer = 0;
+        chefPass++; custPass++;
+        lastEat = null;
+        gapList = [];
+        prevEatX = custX - eatOffset;
+    }
+
+    function cssVar(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+
+    function draw() {
+        background(cssVar('--paper-card-2') || '#FFF6E4');
+
+        let sliderSpeed = document.getElementById('slider-speed');
+        let valueSpeed = document.getElementById('value-speed');
+        let sliderInterval = document.getElementById('slider-interval');
+        let valueInterval = document.getElementById('value-interval');
+        let selectMode = document.getElementById('select-mode');
+        let sliderChefSpeed = document.getElementById('slider-chef-speed');
+        let valueChefSpeed = document.getElementById('value-chef-speed');
+        let rowChefSpeed = document.getElementById('row-chef-speed');
+
+        let selectCust = document.getElementById('select-cust-mode');
+        let sliderCustSpeed = document.getElementById('slider-cust-speed');
+        let valueCustSpeed = document.getElementById('value-cust-speed');
+        let rowCustSpeed = document.getElementById('row-cust-speed');
+
+        if (!sliderSpeed || !sliderInterval || !selectMode || !sliderChefSpeed || !rowChefSpeed ||
+            !selectCust || !sliderCustSpeed || !rowCustSpeed) {
+            return;
+        }
+
+        let beltSpeed = parseFloat(sliderSpeed.value);
+        let spawnInterval = parseInt(sliderInterval.value);
+        let moveMode = selectMode.value;
+        let chefSpeed = parseFloat(sliderChefSpeed.value);
+        let custMode = selectCust.value;
+        let custSpeed = parseFloat(sliderCustSpeed.value);
+
+        if (valueSpeed) valueSpeed.innerText = beltSpeed.toFixed(1);
+        if (valueInterval) valueInterval.innerText = spawnInterval;
+        if (valueChefSpeed) valueChefSpeed.innerText = chefSpeed.toFixed(1);
+        if (valueCustSpeed) valueCustSpeed.innerText = custSpeed.toFixed(1);
+
+        rowChefSpeed.style.visibility = (moveMode === 'right' || moveMode === 'left') ? 'visible' : 'hidden';
+        rowCustSpeed.style.visibility = (custMode === 'right' || custMode === 'left') ? 'visible' : 'hidden';
+
+        // 1. ベルトコンベアの描画
+        fill(100);
+        noStroke();
+        rect(0, 213, width, 44); 
+        
+        conveyorOffset += beltSpeed;
+        let plateWidth = 80; 
+        let scrollX = conveyorOffset % (plateWidth * 2); 
+        
+        for (let x = -plateWidth * 2; x < width + plateWidth * 2; x += plateWidth) {
+            let drawX = x + scrollX;
+            if (Math.floor(x / plateWidth) % 2 === 0) {
+                fill(235); 
+            } else {
+                fill(210); 
+            }
+            noStroke();
+            rect(drawX, 215, plateWidth, 40);
+            
+            fill(170);
+            triangle(drawX + 30, 227, drawX + 30, 243, drawX + 50, 235);
+            
+            stroke(160);
+            strokeWeight(1.5);
+            line(drawX, 215, drawX, 255);
+        }
+
+        // 設定が変わったら測定をやり直す
+        let key = [beltSpeed, spawnInterval, moveMode, chefSpeed, custMode, custSpeed].join(',');
+        if (key !== paramKey) {
+            paramKey = key;
+            chefPass++; custPass++;
+            lastEat = null;
+            gapList = [];
+            keyFrame = frameNo;
+        }
+
+        // 2. 板さんの移動処理（端に達したら反対側へワープしてループ）
+        let chefWarpedRight = false;
+        if (dragTarget === 'chef') {
+            itasanX = mouseX;
+        } else {
+            if (moveMode === 'right') {
+                itasanX += chefSpeed;
+                if (itasanX >= chefMaxX) {
+                    itasanX = chefMinX; // 右端に達したら左端へワープ
+                    chefPass++;
+                }
+            } else if (moveMode === 'left') {
+                itasanX -= chefSpeed;
+                if (itasanX <= chefMinX) {
+                    itasanX = chefMaxX; // 左端に達したら右端へワープ
+                    chefPass++;
+                    chefWarpedRight = true;
+                }
+            }
+        }
+        itasanX = constrain(itasanX, chefMinX, chefMaxX);
+
+        // 板さんが右側へワープすると、新しいお寿司が古いお寿司の「前」に割り込んでしまう。
+        // 新しい手の位置より後ろ（左）にある古いお寿司は、前の周回の分として薄く表示し、食べない。
+        if (chefWarpedRight) {
+            for (let s of sushiList) {
+                if (s.x < itasanX - 25) s.passed = true;
+            }
+        }
+
+        // 2b. お客さんの移動処理（持ち場の端で反対側へワープ）
+        let custWarped = false;
+        if (dragTarget === 'cust') {
+            custX = mouseX;
+        } else {
+            if (custMode === 'right') {
+                custX += custSpeed;
+                if (custX >= custMaxX) { custX = custMinX; custWarped = true; }
+            } else if (custMode === 'left') {
+                custX -= custSpeed;
+                if (custX <= custMinX) { custX = custMaxX; custWarped = true; }
+            }
+        }
+        if (custWarped) {
+            custPass++;
+            // ワープ後の位置から普通に歩いてきたとみなして、補間用の「1フレーム前の位置」を作り直す
+            let voNow = custMode === 'right' ? custSpeed : -custSpeed;
+            prevEatX = custX - eatOffset - voNow;
+        }
+        custX = constrain(custX, custMinX, custMaxX);
+        let eatX = custX - eatOffset;
+
+        // ワープでお客さんより右側に取り残されたお寿司は「通り過ぎた」扱い（食べない）
+        if (custWarped) {
+            for (let s of sushiList) {
+                if (s.x >= eatX) s.passed = true;
+            }
+        }
+        frameNo++;
+
+        let handX = itasanX - 25;
+
+        // 3. お寿司の自動生成
+        spawnTimer++;
+        if (spawnTimer >= spawnInterval) {
+            sushiList.push({ x: handX, y: 225, cp: chefPass });
+            spawnTimer = 0;
+        }
+
+        // 4. お寿司の移動と描画
+        for (let i = 0; i < sushiList.length; i++) {
+            let s = sushiList[i];
+            let oldX = s.x;
+            s.x += beltSpeed;
+
+            // お客さんに届いたら食べる
+            let newRel = s.x - eatX;
+            if (!s.passed && newRel >= 0) {
+                // フレームの途中で届いた正確な時刻を、直線で補間して求める
+                let prevRel = oldX - prevEatX;
+                let t = frameNo;
+                if (prevRel < 0 && dragTarget !== 'cust') {
+                    t = frameNo - newRel / (newRel - prevRel);
+                }
+                if (lastEat && lastEat.cp === s.cp && lastEat.up === custPass && t > lastEat.t) {
+                    gapList.push(t - lastEat.t);
+                    if (gapList.length > 6) gapList.shift();
+                }
+                lastEat = { t: t, cp: s.cp, up: custPass };
+                sushiList.splice(i, 1);
+                i--;
+                eatCount++;
+                munchTimer = 15;
+                continue;
+            }
+
+            noStroke();
+            let a = s.passed ? 90 : 255;   // 通り過ぎたお寿司は薄く表示
+            fill(255, a);
+            rect(s.x - 16, s.y, 32, 16, 6);
+            fill(231, 76, 60, a);
+            rect(s.x - 18, s.y - 4, 36, 8, 4);
+
+            if (s.x > width + 50) {
+                sushiList.splice(i, 1);
+                i--;
+            }
+        }
+        prevEatX = eatX;
+
+        // 5. お寿司の間隔（波長）を計測して表示
+        lamGaps = [];
+        stroke(52, 152, 219, 150);
+        strokeWeight(1.5);
+        for (let i = 0; i < sushiList.length - 1; i++) {
+            let sNew = sushiList[i+1];
+            let sOld = sushiList[i];
+            
+            if (sNew.x > 0 && sOld.x < width && !sNew.passed && !sOld.passed && sNew.cp === sOld.cp) {
+                let distance = round(sOld.x - sNew.x);
+                
+                // 板さんがワープした直後の、画面全体をまたぐ異常な長さの線を描画しないためのガード
+                if (distance > 0 && distance < width) {
+                    lamGaps.push(sOld.x - sNew.x);
+                    line(sNew.x, 280, sOld.x, 280);
+                    line(sNew.x, 275, sNew.x, 285);
+                    line(sOld.x, 275, sOld.x, 285);
+                    
+                    noStroke();
+                    fill(cssVar('--paper-card-2') || '#FFF6E4');
+                    ellipse((sNew.x + sOld.x) / 2, 280, 34, 18);
+                    
+                    fill(41, 128, 185);
+                    textSize(12);
+                    textAlign(CENTER, CENTER);
+                    text(distance, (sNew.x + sOld.x) / 2, 280);
+                    stroke(52, 152, 219, 150);
+                    strokeWeight(1.5);
+                }
+            }
+        }
+
+        // 6. 「かわいい板さん」の描画
+        push();
+        translate(itasanX, itasanY);
+
+        // 体
+        fill(255);
+        stroke(50);
+        strokeWeight(1.5);
+        rect(-30, 30, 60, 65, 5);
+        fill(255, 224, 199);
+        triangle(-12, 30, 12, 30, 0, 50);
+        fill(31, 78, 161);
+        noStroke();
+        triangle(-4, 38, 4, 38, 0, 55);
+        rect(-2, 35, 4, 5);
+        stroke(50);
+        line(-12, 30, -3, 48);
+        line(12, 30, 3, 48);
+        line(-30, 75, 30, 75);
+
+        // 右腕
+        fill(255);
+        rect(-42, 35, 16, 30, 3);
+        fill(255, 224, 199);
+        rect(-38, 65, 12, 30);
+        ellipse(-32, 95, 14, 14);
+
+        // 左腕
+        fill(255);
+        rect(26, 35, 14, 35, 3);
+
+        // 顔
+        fill(255, 224, 199);
+        ellipse(0, 0, 75, 65);
+        ellipse(-38, 0, 10, 14);
+        ellipse(38, 0, 10, 14);
+
+        // 髪
+        fill(115, 64, 34);
+        noStroke();
+        arc(-30, -10, 16, 30, HALF_PI, PI + HALF_PI);
+        arc(30, -10, 16, 30, PI + HALF_PI, HALF_PI);
+        stroke(50);
+
+        // 顔のパーツ
+        noFill();
+        strokeWeight(1.5);
+        arc(-18, -15, 12, 8, PI, TWO_PI);
+        arc(18, -15, 12, 8, PI, TWO_PI);
+        fill(50);
+        noStroke();
+        rect(-18, -8, 5, 8, 2);
+        rect(14, -8, 5, 8, 2);
+        stroke(50);
+        line(-2, -2, 2, -2);
+        noStroke();
+        fill(255, 182, 193, 180);
+        ellipse(-24, 5, 12, 8);
+        ellipse(24, 5, 12, 8);
+        stroke(50);
+        strokeWeight(1.5);
+        fill(235, 97, 0);
+        beginShape();
+        vertex(-10, 4);
+        bezierVertex(-8, 18, 8, 18, 10, 4);
+        endShape(CLOSE);
+
+        // 調理帽
+        fill(255);
+        stroke(50);
+        beginShape();
+        vertex(-32, -26);
+        vertex(-35, -75);
+        vertex(-10, -95);
+        vertex(10, -95);
+        vertex(35, -75);
+        vertex(32, -26);
+        endShape(CLOSE);
+        strokeWeight(1);
+        line(0, -95, 0, -40);
+
+        pop();
+
+        // 7. お客さん（観測者）の描画
+        drawCustomer();
+
+        // 8. 周期の表示（板さん T と お客さん T'）
+        drawReadout(spawnInterval, beltSpeed, chefSpeed, custSpeed, moveMode, custMode);
+    }
+
+    function drawCustomer() {
+        let eating = munchTimer > 0;
+        if (munchTimer > 0) munchTimer--;
+
+        push();
+        translate(custX, custY);
+
+        // 体（緑のパーカー）
+        fill(46, 160, 110);
+        stroke(50);
+        strokeWeight(1.5);
+        rect(-30, 30, 60, 70, 8);
+
+        // お寿司に伸ばす腕（左側＝コンベア側）＋お箸
+        fill(46, 160, 110);
+        rect(-44, 40, 16, 30, 4);
+        fill(255, 224, 199);
+        ellipse(-40, 76, 14, 14);
+        stroke(140, 90, 40);
+        strokeWeight(2.5);
+        line(-42, 74, -58, 104);
+        line(-38, 74, -52, 106);
+        stroke(50);
+        strokeWeight(1.5);
+
+        // 顔
+        fill(255, 224, 199);
+        ellipse(0, 0, 72, 64);
+        ellipse(-36, 2, 10, 14);
+        ellipse(36, 2, 10, 14);
+
+        // 髪（前髪）
+        fill(40, 40, 50);
+        arc(0, -6, 76, 62, PI + 0.15, TWO_PI - 0.15, CHORD);
+
+        // 目（お寿司の来る左を見る）
+        fill(50);
+        noStroke();
+        if (eating) {
+            // 幸せそうな目
+            stroke(50);
+            strokeWeight(2);
+            noFill();
+            arc(-16, -4, 12, 8, PI, TWO_PI);
+            arc(12, -4, 12, 8, PI, TWO_PI);
+        } else {
+            ellipse(-19, -4, 7, 9);
+            ellipse(9, -4, 7, 9);
+            fill(255);
+            ellipse(-20, -6, 2.5, 2.5);
+            ellipse(8, -6, 2.5, 2.5);
+        }
+
+        // ほっぺ
+        noStroke();
+        fill(255, 182, 193, 180);
+        ellipse(-22, 8, 12, 8);
+        ellipse(22, 8, 12, 8);
+
+        // 口
+        stroke(50);
+        strokeWeight(1.5);
+        if (eating) {
+            fill(200, 60, 60);
+            ellipse(-3, 15, 16, 14);
+        } else {
+            noFill();
+            arc(-3, 12, 12, 8, 0, PI);
+        }
+        pop();
+
+        // 「パクッ！」の吹き出し
+        if (eating) {
+            push();
+            fill(255);
+            stroke(231, 76, 60);
+            strokeWeight(2);
+            rect(custX - 52, custY - 70, 70, 26, 10);
+            noStroke();
+            fill(231, 76, 60);
+            textSize(15);
+            textStyle(BOLD);
+            textAlign(CENTER, CENTER);
+            text('パクッ！', custX - 17, custY - 57);
+            pop();
+        }
+
+        // 食べた皿の数
+        push();
+        noStroke();
+        fill(cssVar('--ink') || '#1B2A41');
+        textSize(13);
+        textAlign(CENTER, CENTER);
+        text('食べた数：' + eatCount + ' 皿', custX - 10, custY - 88);
+        pop();
+    }
+
+    // 符号付きの数値を式の中で見やすく書く（負なら括弧つき）
+    function sgn(v) {
+        return v < 0 ? '(−' + Math.abs(v).toFixed(1) + ')' : v.toFixed(1);
+    }
+
+    function drawReadout(T, V, chefSpeed, custSpeed, chefMode, custMode) {
+        // 速度(右向きを正)
+        let vs = chefMode === 'right' ? chefSpeed : chefMode === 'left' ? -chefSpeed : 0;
+        let vo = custMode === 'right' ? custSpeed : custMode === 'left' ? -custSpeed : 0;
+        let dragging = (chefMode === 'manual' || custMode === 'manual');
+
+        // 実測:波長は画面上の間隔の平均、T' は同じ周回の中で続けて食べた間隔の平均
+        let lamMeas = lamGaps.length ? lamGaps.slice(-3).reduce((a, b) => a + b, 0) / Math.min(3, lamGaps.length) : null;
+        let tMeas = '—(測定中…)';
+        if (gapList.length === 0 && frameNo - keyFrame > 900) tMeas = '—(同じ周回で2皿続けて食べられず測定できません)';
+        if (gapList.length > 0) tMeas = (gapList.reduce((a, b) => a + b, 0) / gapList.length).toFixed(1) + ' フレーム';
+
+        let lamTh = '—', tTh = '—';
+        if (!dragging) {
+            if (V - vs > 0) lamTh = ((V - vs) * T).toFixed(1);
+            if (V - vs > 0 && V - vo > 0) tTh = (T * (V - vs) / (V - vo)).toFixed(1) + ' フレーム';
+            else if (V - vo <= 0) tTh = 'お寿司が追いつけない';
+        }
+        setReadout([
+            ['速度(右向き正)', 'vs = ' + vs.toFixed(1) + ',vo = ' + vo.toFixed(1)],
+            ['間隔 λ′ 実測', lamMeas === null ? '—' : lamMeas.toFixed(1)],
+            ['理論値 (V − vs)T', lamTh],
+            ['置く周期 T', T + ' フレーム'],
+            ["食べる周期 T′ 実測", tMeas],
+            ["理論値 T(V − vs)/(V − vo)", tTh]
+        ]);
+    }
+
+    function setReadout(rows) {
+        const ro = document.getElementById('readout');
+        if (ro.children.length !== rows.length) {
+            ro.innerHTML = '';
+            rows.forEach(() => { const li = document.createElement('li'); li.append(document.createElement('b'), document.createElement('span')); ro.appendChild(li); });
+        }
+        rows.forEach((r, k) => {
+            const li = ro.children[k];
+            if (li.children[0].textContent !== r[0]) li.children[0].textContent = r[0];
+            if (li.children[1].textContent !== r[1]) li.children[1].textContent = r[1];
+        });
+    }
+
+    function mousePressed() {
+        if (dist(mouseX, mouseY, itasanX, itasanY + 20) < 50) {
+            dragTarget = 'chef';
+            document.getElementById('select-mode').value = 'manual';
+        } else if (dist(mouseX, mouseY, custX, custY + 20) < 50) {
+            dragTarget = 'cust';
+            document.getElementById('select-cust-mode').value = 'manual';
+        }
+    }
+
+    function mouseReleased() {
+        dragTarget = null;
+    }
 </script>
 </body>
 </html>
