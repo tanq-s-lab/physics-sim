@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>電気振動(LC 回路) — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* このページ専用: 図を見ながら操作できるよう横並び(スマホでは図を上に固定) */
+  .lc-stage{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:start;}
+  .lc-stage canvas.sim{height:clamp(380px,40vw,470px);}
+  .lc-left{position:sticky;top:8px;}
+  .row{display:flex;gap:6px;align-items:center;}
+  .row + .row{margin-top:10px;}
+  .row .lbl{font-size:0.86rem;color:var(--ink-soft);margin-right:2px;white-space:nowrap;}
+  .row .btn{flex:1;padding:5px 4px;min-width:0;}
+  .go{width:100%;margin-bottom:12px;}
+  .lc-right .controls{grid-template-columns:1fr;gap:10px;margin-top:14px;}
+  .lc-right .ctrl label{margin-bottom:0;}
+  .lc-btns{margin-top:14px;}
+  .spring{width:100%;height:150px;display:block;margin-bottom:12px;border-radius:10px;background:var(--paper-card-2);border:1px solid var(--line);}
+  .lc-right .hint{margin:10px 0 0;line-height:1.6;}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:10px 2px 0;padding:0;list-style:none;font-size:0.82rem;color:var(--ink-soft);}
+  .legend li{display:flex;align-items:center;gap:6px;}
+  .legend b{font-family:"JetBrains Mono",ui-monospace,monospace;font-style:italic;color:var(--ink);}
+  .legend .sw{width:14px;height:10px;border-radius:3px;flex:none;}
+  .pair{width:100%;border-collapse:collapse;font-size:0.9rem;margin-top:6px;}
+  .pair th,.pair td{border-bottom:1px dashed var(--line);padding:5px 6px;text-align:left;}
+  .pair th{color:var(--ink-soft);font-weight:500;}
+  @media (max-width:860px){
+    .lc-stage{grid-template-columns:1fr;gap:10px;}
+    .lc-left{display:contents;}
+    .lc-fig{position:sticky;top:0;z-index:5;background:var(--paper-card);padding:6px 0 4px;box-shadow:0 8px 10px -10px var(--shadow);}
+    .lc-stage canvas.sim{height:clamp(330px,92vw,440px);}
+    .lc-stage .readout{margin-top:0;}
+    .lc-stage .readout li{font-size:0.74rem;padding:2px 7px;}
+    .legend{font-size:0.76rem;gap:2px 12px;margin-top:6px;}
+    .lc-right .controls{grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:10px;}
+    .spring{height:140px;max-width:420px;}
+  }
+</style>
+</head>
+<body class="u-em">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html" class="on">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./electromagnetism.html">電磁気</a> / 電気振動(LC 回路)</p>
+
+  <div class="sim-head">
+    <h1>電気振動(LC 回路)</h1>
+    <span class="eq">T = 2π√LC</span>
+  </div>
+
+  <section class="stage lc-stage">
+    <div class="lc-left">
+      <div class="lc-fig"><canvas class="sim" id="sim" aria-label="LC回路の電荷・電流・エネルギーの移り変わりと、電荷と電流の時間変化のグラフ"></canvas></div>
+      <ul class="legend" aria-label="図の見方">
+        <li><span class="sw" style="background:var(--brand)"></span><b>q</b><span>コンデンサーの上の極板の電荷(電場のエネルギー U<sub>C</sub> = q²/2C)</span></li>
+        <li><span class="sw" style="background:var(--accent-2)"></span><b>i</b><span>コイルを流れる電流。放電の向き(上の極板 → コイル)を正(磁場のエネルギー U<sub>L</sub> = Li²/2)</span></li>
+        <li><span class="sw" style="background:var(--ink-faint)"></span><span>抵抗 R で熱になったエネルギー</span></li>
+      </ul>
+      <ul class="readout" id="readout"></ul>
+    </div>
+    <div class="lc-right">
+      <button class="btn primary go" id="go">スイッチをコイル側に入れる</button>
+      <canvas class="spring" id="spring" aria-label="同じ動きをするばね振り子"></canvas>
+      <div class="row">
+        <span class="lbl">速さ</span>
+        <button class="btn small" data-sp="0.02">1/50</button>
+        <button class="btn small" data-sp="0.005">1/200</button>
+        <button class="btn small" id="pause">停止</button>
+      </div>
+      <div class="controls" id="controls"></div>
+      <div class="btns lc-btns">
+        <button class="btn" id="reset">はじめから(充電し直す)</button>
+      </div>
+      <p class="hint">はじめにコンデンサーを電池で電圧 V<sub>0</sub> まで充電してあります。スイッチをコイル側に入れると、電荷が行ったり来たりする電気振動が始まります。実際の振動は速いので、1/50 や 1/200 のスローで見せています(グラフの時間は実際の値)。値を変えると、はじめの状態から振動し直します。</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>充電したコンデンサーをコイルにつなぐと、電荷が<strong>行ったり来たり</strong>して、電流の向きが周期的に入れかわる。これが<strong>電気振動</strong>。</li>
+        <li>周期は <strong>T = 2π√LC</strong>(固有周期)、振動数は f = 1/(2π√LC)。前の「共振回路」の f<sub>0</sub> と同じ式。</li>
+        <li>電荷 q が最大のとき電流 i = 0、q = 0 のとき |i| が最大。q と i は<strong>位相が π/2 ずれている</strong>。</li>
+        <li>エネルギーは<strong>電場(U<sub>C</sub> = q²/2C)</strong>と<strong>磁場(U<sub>L</sub> = Li²/2)</strong>の間を行き来し、R = 0 なら和は一定: Q<sub>0</sub>²/2C = LI<sub>0</sub>²/2。ここから <strong>I<sub>0</sub> = Q<sub>0</sub>/√LC</strong>。</li>
+        <li>q = 0 になっても電流がすぐ止まらないのは、コイルが電流の変化を妨げる(自己誘導)から。ばね振り子でおもりが慣性でつり合いの位置を通りすぎるのと同じ。</li>
+        <li>抵抗があるとエネルギーがジュール熱として失われ、振動は<strong>減衰</strong>する。</li>
+      </ul>
+      <table class="pair" aria-label="電気振動とばね振り子の対応">
+        <tr><th>電気振動</th><th>ばね振り子</th></tr>
+        <tr><td>電荷 q</td><td>変位 x</td></tr>
+        <tr><td>電流 i</td><td>速さ v</td></tr>
+        <tr><td>自己インダクタンス L</td><td>質量 m(変化しにくさ)</td></tr>
+        <tr><td>1/C</td><td>ばね定数 k</td></tr>
+        <tr><td>U<sub>C</sub> = q²/2C,  U<sub>L</sub> = Li²/2</td><td>kx²/2,  mv²/2</td></tr>
+        <tr><td>T = 2π√LC</td><td>T = 2π√(m/k)</td></tr>
+      </table>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>C を 4 倍にすると周期 T は何倍? グラフの目盛りで確かめよう。</li>
+        <li>スイッチを入れてから、電流が初めて最大になるのは何周期後? そのときコンデンサーの電荷はいくら?</li>
+        <li>L = 500 mH、C = 200 μF、V<sub>0</sub> = 6 V のとき、電流の最大値 I<sub>0</sub> を計算しよう(エネルギー保存を使う)。</li>
+        <li>電荷 q が 0 の瞬間に、エネルギーはどこにある? 棒グラフで確かめよう。</li>
+        <li>R を大きくしていくと振動はどう変わる? 失われたエネルギーはどこへ行った?</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-resonance.html">← 共振回路(RLC 直列)</a>
+    <a href="./electromagnetism.html">電磁気の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  // 単位: L [mH], C [μF], V0 [V], R [Ω]。内部は SI。時間は「実際の時間」で、表示だけスロー。
+  var S = { L: 500, C: 200, V0: 6, R: 0 };
+  var TWO = Math.PI * 2;
+  var mode = 'ready';            // ready: 充電済み・スイッチは電池側 / osc: コイル側で振動中
+  var q = 0, i = 0, t = 0, slow = 0.02, paused = false;
+  var samples = [], heat = 0;
+  var col = {}, G = {}, P = {};   // P: 回路の点
+
+  function cssv(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+  function readCol(){
+    col.ink = cssv('--ink'); col.soft = cssv('--ink-soft'); col.faint = cssv('--ink-faint');
+    col.line = cssv('--line'); col.C = cssv('--brand'); col.L = cssv('--accent-2'); col.R = cssv('--thermo');   // コンデンサー(電場)=だいだい、コイル(磁場)=青で、はっきり区別
+    col.em = cssv('--em'); col.card = cssv('--paper-card-2'); col.paper = cssv('--paper-card');
+  }
+
+  // ---------- 物理 ----------
+  function Lsi(){ return S.L / 1000; }
+  function Csi(){ return S.C * 1e-6; }
+  function per(){ return TWO * Math.sqrt(Lsi() * Csi()); }
+  function Q0(){ return Csi() * S.V0; }
+  function I0(){ return Q0() / Math.sqrt(Lsi() * Csi()); }
+  function E0(){ return Csi() * S.V0 * S.V0 / 2; }
+  // dq/dt = −i(i は放電の向きを正)、L di/dt = q/C − R i
+  function deriv(qq, ii){ return [-ii, (qq / Csi() - S.R * ii) / Lsi()]; }
+  function rk4(dt){
+    var a = deriv(q, i), b = deriv(q + a[0] * dt / 2, i + a[1] * dt / 2),
+        c = deriv(q + b[0] * dt / 2, i + b[1] * dt / 2), d = deriv(q + c[0] * dt, i + c[1] * dt);
+    var i1 = i;
+    q += dt / 6 * (a[0] + 2 * b[0] + 2 * c[0] + d[0]);
+    i += dt / 6 * (a[1] + 2 * b[1] + 2 * c[1] + d[1]);
+    heat += S.R * (i1 * i1 + i * i) / 2 * dt;
+  }
+  function Uc(){ return q * q / (2 * Csi()); }
+  function Ul(){ return Lsi() * i * i / 2; }
+
+  // ---------- 目盛り ----------
+  function niceUp(x, lad){
+    lad = lad || [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+    if(!(x > 0)) return 1;
+    var e = Math.pow(10, Math.floor(Math.log10(x))), m = x / e;
+    for(var k = 0; k < lad.length; k++) if(m <= lad[k] + 1e-9) return lad[k] * e;
+    return 10 * e;
+  }
+  function sig(x){ var a = Math.abs(x); return a >= 100 ? x.toFixed(0) : a >= 10 ? x.toFixed(1) : x.toFixed(2); }
+  function fQ(x){ return Math.abs(x) >= 1e-3 ? sig(x * 1e3) + ' mC' : sig(x * 1e6) + ' μC'; }
+  function fI(x){ return Math.abs(x) >= 1 ? sig(x) + ' A' : sig(x * 1e3) + ' mA'; }
+  function fE(x){ return Math.abs(x) >= 1 ? sig(x) + ' J' : sig(x * 1e3) + ' mJ'; }
+  function fT(x){ return x >= 1 ? sig(x) + ' s' : sig(x * 1e3) + ' ms'; }
+
+  var SC = {};   // グラフの目盛り(はじめからのたびに決める)
+  function setScales(){
+    SC.q = niceUp(Q0() * 1.05); SC.i = niceUp(I0() * 1.05);
+    SC.tw = niceUp(per() * 2.4, [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]);
+    SC.tstep = niceUp(SC.tw / 5, [1, 2, 2.5, 5, 10]);
+  }
+  function restart(keepMode){
+    q = Q0(); i = 0; t = 0; heat = 0; samples = [[0, q, i]];
+    if(!keepMode) mode = 'ready';
+    setScales(); syncUI();
+  }
+
+  // ---------- レイアウト ----------
+  function layout(v){
+    var W = v.W, H = v.H, narrow = W < 600;
+    G.narrow = narrow;
+    if(!narrow){
+      G.cir = { x: 6, y: 6, w: Math.min(W * 0.42, 330), h: H - 12 };
+      var gx0 = G.cir.x + G.cir.w + 58, gx1 = W - 16;
+      G.en = { x: gx0 - 44, y: 30, w: gx1 - gx0 + 44, h: 26, vertical: false };
+      var top = 122, bot = H - 26, gap = 50, hh = (bot - top - gap) / 2;
+      G.gq = { x0: gx0, x1: gx1, t: top, b: top + hh };
+      G.gi = { x0: gx0, x1: gx1, t: top + hh + gap, b: bot };
+    } else {
+      var ch = Math.round(H * 0.44);
+      G.cir = { x: 2, y: 2, w: W * 0.66, h: ch };
+      G.en = { x: G.cir.x + G.cir.w + 10, y: 34, w: W - (G.cir.x + G.cir.w + 10) - 8, h: ch - 50, vertical: true };
+      var gx0n = 40, gx1n = W - 10, topn = ch + 34, botn = H - 24, gapn = 42, hhn = (botn - topn - gapn) / 2;
+      G.gq = { x0: gx0n, x1: gx1n, t: topn, b: topn + hhn };
+      G.gi = { x0: gx0n, x1: gx1n, t: topn + hhn + gapn, b: botn };
+    }
+    // 回路の点
+    var c = G.cir, s = Math.min(c.w / 300, c.h / 300);
+    P.s = s;
+    P.yT = c.y + c.h * 0.17 + 6; P.yB = c.y + c.h * 0.88;
+    P.xB = c.x + c.w * 0.13; P.xC = c.x + c.w * 0.47; P.xK = c.x + c.w * 0.84;
+    P.yM = (P.yT + P.yB) / 2; P.gap = Math.max(9, 14 * s); P.pw = Math.max(28, 52 * s);
+    P.sw = Math.min(P.xC - P.xB, P.xK - P.xC) * 0.42;   // スイッチの刃の長さ
+    buildPath();
+  }
+  // 電流の通り道(上の極板 → スイッチ → コイル → 下の導線 → 下の極板)。
+  var path = [], pathLen = 0, dotS = 0;
+  function buildPath(){
+    path = [[P.xC, P.yM - P.gap / 2], [P.xC, P.yT], [P.xK, P.yT], [P.xK, P.yB], [P.xC, P.yB], [P.xC, P.yM + P.gap / 2]];
+    pathLen = 0; for(var k = 1; k < path.length; k++) pathLen += Math.hypot(path[k][0] - path[k - 1][0], path[k][1] - path[k - 1][1]);
+  }
+  function pointAt(sx){
+    for(var k = 1; k < path.length; k++){
+      var a = path[k - 1], b = path[k], l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if(sx <= l) return [a[0] + (b[0] - a[0]) * sx / l, a[1] + (b[1] - a[1]) * sx / l];
+      sx -= l;
+    }
+    return null;
+  }
+
+  // ---------- 描画部品 ----------
+  function arrow(ctx, x1, y1, x2, y2, color, w, hmax){
+    var len = Math.hypot(x2 - x1, y2 - y1); if(len < 3) return;
+    var a = Math.atan2(y2 - y1, x2 - x1), h = Math.min(hmax || 10, len * 0.5);
+    ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - h * 0.7 * Math.cos(a), y2 - h * 0.7 * Math.sin(a)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - h * Math.cos(a - 0.42), y2 - h * Math.sin(a - 0.42));
+    ctx.lineTo(x2 - h * Math.cos(a + 0.42), y2 - h * Math.sin(a + 0.42));
+    ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+  function sym(ctx, s, sub, x, y, color, size, align){
+    size = size || 14;
+    ctx.save(); ctx.fillStyle = color; ctx.textBaseline = 'middle';
+    var f1 = 'italic 700 ' + size + 'px "JetBrains Mono", ui-monospace, monospace';
+    var f2 = '700 ' + Math.round(size * 0.72) + 'px "JetBrains Mono", ui-monospace, monospace';
+    ctx.font = f1; var w1 = ctx.measureText(s).width;
+    ctx.font = f2; var w2 = sub ? ctx.measureText(sub).width + 1 : 0;
+    var x0 = align === 'center' ? x - (w1 + w2) / 2 : align === 'right' ? x - w1 - w2 : x;
+    ctx.font = f1; ctx.textAlign = 'left'; ctx.fillText(s, x0, y);
+    if(sub){ ctx.font = f2; ctx.fillText(sub, x0 + w1 + 1, y + size * 0.3); }
+    ctx.restore();
+  }
+  function jp(ctx, s, x, y, color, size, weight, align){
+    ctx.save(); ctx.font = (weight || 500) + ' ' + (size || 12) + 'px "Noto Sans JP", sans-serif';
+    ctx.fillStyle = color; ctx.textAlign = align || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y); ctx.restore();
+  }
+  function line(ctx, x1, y1, x2, y2, color, w, dash){
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w || 1.5; ctx.setLineDash(dash || []); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+  }
+
+  // ---------- 回路 ----------
+  function drawCircuit(v){
+    var ctx = v.ctx, s = P.s, qr = q / Q0(), ir = i / I0();
+    var wireC = col.soft;
+    jp(ctx, '回路', G.cir.x + 6, G.cir.y + 16, col.soft, 12, 700);
+    // 導線
+    line(ctx, P.xB, P.yB, P.xK, P.yB, wireC, 1.8);
+    line(ctx, P.xB, P.yB, P.xB, P.yM + 10, wireC, 1.8); line(ctx, P.xB, P.yM - 10, P.xB, P.yT, wireC, 1.8);
+    line(ctx, P.xC, P.yB, P.xC, P.yM + P.gap / 2, wireC, 1.8); line(ctx, P.xC, P.yM - P.gap / 2, P.xC, P.yT - 2, wireC, 1.8);
+    line(ctx, P.xK, P.yB, P.xK, P.yM + 52 * s + 6, wireC, 1.8); line(ctx, P.xK, P.yM - 52 * s - 6, P.xK, P.yT, wireC, 1.8);
+    // スイッチの接点と刃(支点はコンデンサーの上)
+    var aX = P.xC - P.sw, bX = P.xC + P.sw;
+    line(ctx, P.xB, P.yT, aX, P.yT, wireC, 1.8); line(ctx, bX, P.yT, P.xK, P.yT, wireC, 1.8);
+    [aX, bX, P.xC].forEach(function(x){ ctx.save(); ctx.fillStyle = col.paper; ctx.strokeStyle = col.ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x, P.yT, 3.6, 0, TWO); ctx.fill(); ctx.stroke(); ctx.restore(); });
+    var to = mode === 'ready' ? aX : bX;
+    line(ctx, P.xC, P.yT, to + (to < P.xC ? 3 : -3), P.yT - 9, col.ink, 3);
+    jp(ctx, 'S', P.xC, P.yT - 16, col.ink, 12, 700, 'center');
+    jp(ctx, mode === 'ready' ? '電池側' : 'コイル側', P.xC, P.yT - 30 * Math.max(0.8, s), col.faint, 10.5, 500, 'center');
+    // 電池
+    ctx.save(); ctx.strokeStyle = col.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(P.xB - 14, P.yM - 5); ctx.lineTo(P.xB + 14, P.yM - 5); ctx.stroke();
+    ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(P.xB - 7, P.yM + 5); ctx.lineTo(P.xB + 7, P.yM + 5); ctx.stroke(); ctx.restore();
+    line(ctx, P.xB, P.yM - 10, P.xB, P.yM - 5, wireC, 1.8); line(ctx, P.xB, P.yM + 5, P.xB, P.yM + 10, wireC, 1.8);
+    sym(ctx, 'V', '0', P.xB - 20, P.yM - 18, col.ink, 12, 'center');
+    // コンデンサー: 極板・電荷・電場
+    var pw = P.pw, y1 = P.yM - P.gap / 2, y2 = P.yM + P.gap / 2;
+    var ea = Math.min(1, Math.abs(qr));
+    if(ea > 0.02){   // 電場(極板の間)
+      var nE = 5, dir = qr > 0 ? 1 : -1;
+      for(var k = 0; k < nE; k++){
+        var ex = P.xC - pw / 2 + pw * (k + 0.5) / nE;
+        ctx.save(); ctx.globalAlpha = 0.25 + 0.75 * ea;
+        arrow(ctx, ex, dir > 0 ? y1 + 2 : y2 - 2, ex, dir > 0 ? y2 - 1 : y1 + 1, col.C, 1.4, 5); ctx.restore();
+      }
+    }
+    line(ctx, P.xC - pw / 2, y1, P.xC + pw / 2, y1, col.C, 3.4);
+    line(ctx, P.xC - pw / 2, y2, P.xC + pw / 2, y2, col.C, 3.4);
+    var nq = Math.round(Math.abs(qr) * 6);
+    for(var m = 0; m < nq; m++){
+      var cxp = P.xC - pw / 2 + pw * (m + 0.5) / 6;
+      jp(ctx, qr > 0 ? '+' : '−', cxp, y1 - 5, col.R, 11, 700, 'center');
+      jp(ctx, qr > 0 ? '−' : '+', cxp, y2 + 13, col.L, 11, 700, 'center');
+    }
+    sym(ctx, 'C', '', P.xC - pw / 2 - 12, P.yM, col.C, 13, 'center');
+    // コイル(縦のソレノイド)。電流が流れると巻き線が青く光る
+    var ch = 52 * s, cw = Math.max(16, 22 * s), turns = 6, ba = Math.min(1, Math.abs(ir));
+    function coilPath(){
+      ctx.beginPath(); ctx.moveTo(P.xK, P.yM - ch - 6); ctx.lineTo(P.xK, P.yM - ch);
+      for(var k2 = 0; k2 < turns; k2++){
+        var yy = P.yM - ch + (2 * ch) * (k2 + 0.5) / turns;
+        ctx.ellipse(P.xK, yy, cw, (ch / turns) * 0.62, 0, -Math.PI / 2, Math.PI / 2, false);
+      }
+      ctx.lineTo(P.xK, P.yM + ch + 6);
+    }
+    if(mode === 'osc' && ba > 0.02){
+      ctx.save(); ctx.globalAlpha = 0.18 + 0.5 * ba; ctx.strokeStyle = col.L; ctx.lineWidth = 2 + 7 * ba; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      coilPath(); ctx.stroke(); ctx.restore();
+    }
+    ctx.save(); ctx.strokeStyle = mode === 'osc' && ba > 0.02 ? col.L : col.ink; ctx.lineWidth = 2; coilPath(); ctx.stroke(); ctx.restore();
+    sym(ctx, 'L', '', P.xK - cw - 12, P.yM + ch * 0.85, col.L, 13, 'center');
+    // 抵抗(下の導線)
+    if(S.R > 0){
+      var rx = (P.xC + P.xK) / 2, rw = 14;
+      ctx.save(); ctx.fillStyle = col.paper; ctx.fillRect(rx - rw - 2, P.yB - 7, 2 * rw + 4, 14); ctx.strokeStyle = col.R; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(rx - rw, P.yB);
+      for(var z = 0; z < 6; z++) ctx.lineTo(rx - rw + (z + 0.5) * (2 * rw / 6), P.yB + (z % 2 ? 6 : -6));
+      ctx.lineTo(rx + rw, P.yB); ctx.stroke(); ctx.restore();
+      sym(ctx, 'R', '', rx, P.yB + 16, col.R, 12, 'center');
+    }
+    // コイルを流れる電流の矢印(長さ ∝ 電流、下向き = 放電の向き = 正)
+    if(mode === 'osc'){
+      var ax = P.xK + cw + Math.max(14, 18 * s), al = ch * 1.7 * Math.max(-1, Math.min(1, ir));
+      if(Math.abs(al) > 6) arrow(ctx, ax, P.yM - al / 2, ax, P.yM + al / 2, col.L, 4.5, 14);
+      else { ctx.save(); ctx.fillStyle = col.L; ctx.beginPath(); ctx.arc(ax, P.yM, 3.5, 0, TWO); ctx.fill(); ctx.restore(); }
+      sym(ctx, 'i', '', ax + 12, P.yM - ch * 0.95, col.L, 13, 'center');
+    }
+  }
+
+  // ---------- エネルギー ----------
+  function drawEnergy(v){
+    var ctx = v.ctx, r = G.en, e0 = E0(), uc = Uc(), ul = Ul(), hh = Math.min(heat, e0);
+    jp(ctx, r.vertical ? 'エネルギー' : 'エネルギーの内訳(合計 = はじめの ' + fE(e0) + ')', r.x, r.vertical ? r.y - 16 : r.y - 10, col.ink, r.vertical ? 11 : 12.5, 700);
+    var parts = [[uc, col.C, '電場'], [ul, col.L, '磁場'], [hh, col.faint, '熱']];
+    ctx.save(); ctx.strokeStyle = col.line; ctx.lineWidth = 1;
+    if(!r.vertical){
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+      var x = r.x;
+      parts.forEach(function(p){
+        var w = r.w * p[0] / e0; ctx.fillStyle = p[1]; ctx.fillRect(x, r.y, w, r.h);
+        if(w > 1){ ctx.fillStyle = col.paper; ctx.fillRect(x + w - 1, r.y, 2, r.h); }   // 区切り線
+        if(w > 44) jp(ctx, p[2], x + w / 2, r.y + r.h / 2 + 4.5, col.paper, 12, 700, 'center');
+        x += w;
+      });
+      ctx.restore();
+      var lx = r.x;
+      [['U', 'C', uc, col.C, '(電場)'], ['U', 'L', ul, col.L, '(磁場)']].forEach(function(p){
+        sym(ctx, p[0], p[1], lx, r.y + r.h + 16, p[3], 12.5, 'left');
+        jp(ctx, p[4] + ' ' + Math.round(p[2] / e0 * 100) + '%', lx + 24, r.y + r.h + 20, col.soft, 11.5);
+        lx += 128;
+      });
+      if(S.R > 0) jp(ctx, '熱 ' + Math.round(hh / e0 * 100) + '%', lx, r.y + r.h + 20, col.soft, 11.5);
+    } else {
+      var bw = Math.min(46, r.w * 0.5), bx = r.x + 4;
+      ctx.strokeRect(bx, r.y, bw, r.h);
+      var y = r.y + r.h;
+      parts.forEach(function(p){
+        var h = r.h * p[0] / e0; ctx.fillStyle = p[1]; ctx.fillRect(bx, y - h, bw, h);
+        if(h > 1){ ctx.fillStyle = col.paper; ctx.fillRect(bx, y - h - 1, bw, 2); }
+        if(h > 22) jp(ctx, p[2], bx + bw / 2, y - h / 2 + 4.5, col.paper, 11, 700, 'center');
+        y -= h;
+      });
+      ctx.restore();
+      // 名前は各区切りのまん中の高さに(重ならないようにずらす)
+      var tx = bx + bw + 6, bottom = r.y + r.h, hc = r.h * uc / e0, hl = r.h * ul / e0;
+      var yc = Math.min(bottom - 12, bottom - hc / 2 - 6), yl = bottom - hc - hl / 2 - 6;
+      if(yc - yl < 30) yl = yc - 30;
+      yl = Math.max(r.y + 6, yl); if(yc - yl < 30) yc = yl + 30;
+      sym(ctx, 'U', 'C', tx, yc, col.C, 12, 'left'); jp(ctx, Math.round(uc / e0 * 100) + '%', tx, yc + 15, col.soft, 10.5);
+      sym(ctx, 'U', 'L', tx, yl, col.L, 12, 'left'); jp(ctx, Math.round(ul / e0 * 100) + '%', tx, yl + 15, col.soft, 10.5);
+      if(S.R > 0) jp(ctx, '熱 ' + Math.round(hh / e0 * 100) + '%', bx, r.y + r.h + 16, col.soft, 10.5);
+    }
+  }
+
+  // ---------- グラフ ----------
+  function drawGraph(v, g, idx, scale, color, title, unit, fmtTick){
+    var ctx = v.ctx, t0 = Math.max(0, t - SC.tw), cy = (g.t + g.b) / 2, hh = (g.b - g.t) / 2;
+    function gx(tt){ return g.x0 + (tt - t0) / SC.tw * (g.x1 - g.x0); }
+    function gy(val){ return cy - val / scale * hh; }
+    jp(ctx, title, g.x0 - (G.narrow ? 32 : 46), g.t - 14, col.ink, G.narrow ? 11.5 : 13, 700);
+    var tw = 0; ctx.save(); ctx.font = '700 ' + (G.narrow ? 11.5 : 13) + 'px "Noto Sans JP", sans-serif'; tw = ctx.measureText(title).width; ctx.restore();
+    jp(ctx, unit, g.x0 - (G.narrow ? 32 : 46) + tw + 6, g.t - 14, col.faint, 11);
+    // 方眼
+    var k0 = Math.ceil(t0 / SC.tstep - 1e-9);
+    for(var k = k0; k * SC.tstep <= t0 + SC.tw + 1e-12; k++){
+      var x = gx(k * SC.tstep);
+      line(ctx, x, g.t, x, g.b, col.line, 1, [2, 4]);
+      if(idx === 1) v.text(String(+(k * SC.tstep * 1000).toPrecision(4)), x, g.b + 15, col.faint, 10.5, 'center');
+    }
+    [-1, -0.5, 0.5, 1].forEach(function(f){ line(ctx, g.x0, gy(f * scale), g.x1, gy(f * scale), col.line, 1, [2, 4]); });
+    [1, -1].forEach(function(f){ v.text(fmtTick(f * scale), g.x0 - 4, gy(f * scale) + 4, col.faint, G.narrow ? 9.5 : 10.5, 'right'); });
+    v.text('0', g.x0 - 4, cy + 4, col.faint, 10.5, 'right');
+    line(ctx, g.x0, cy, g.x1 + 4, cy, col.soft, 1.3); line(ctx, g.x0, g.t - 2, g.x0, g.b, col.soft, 1.3);
+    if(idx === 1) v.text('t [ms]', g.x1, g.b - 6, col.soft, 11, 'right');
+    // 周期 T の目印(q のグラフ、R = 0 のときの山と山の間)
+    if(idx === 0){
+      var T = per(), n = Math.ceil(t0 / T - 1e-9);
+      if((n + 1) * T <= Math.max(t, t0 + 1e-9) + 1e-12 && gx((n + 1) * T) <= g.x1){
+        var xa = gx(n * T), xb = gx((n + 1) * T), ya = g.t + 8;
+        line(ctx, xa, g.t, xa, cy, col.em, 1, [3, 3]); line(ctx, xb, g.t, xb, cy, col.em, 1, [3, 3]);
+        arrow(ctx, (xa + xb) / 2, ya, xa + 1, ya, col.em, 1.4, 6); arrow(ctx, (xa + xb) / 2, ya, xb - 1, ya, col.em, 1.4, 6);
+        ctx.save(); ctx.fillStyle = col.paper; ctx.fillRect((xa + xb) / 2 - 34, ya - 8, 68, 16); ctx.restore();
+        jp(ctx, '周期 T', (xa + xb) / 2, ya + 4, col.em, 11, 700, 'center');
+      }
+    }
+    // 曲線
+    ctx.save(); ctx.beginPath(); ctx.rect(g.x0, g.t - 4, g.x1 - g.x0 + 2, g.b - g.t + 8); ctx.clip();
+    ctx.strokeStyle = color; ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.beginPath();
+    var started = false, lastX = -1e9;
+    for(var s2 = 0; s2 < samples.length; s2++){
+      var sm = samples[s2]; if(sm[0] < t0 - SC.tw * 0.01) continue;
+      var px = gx(sm[0]); if(started && px - lastX < 0.7 && s2 < samples.length - 1) continue;
+      var py = gy(sm[idx + 1]);
+      if(started) ctx.lineTo(px, py); else { ctx.moveTo(px, py); started = true; }
+      lastX = px;
+    }
+    ctx.stroke(); ctx.restore();
+    var last = samples[samples.length - 1];
+    v.circle(gx(last[0]), gy(last[idx + 1]), 4.2, color, color);
+  }
+
+  function draw(v){
+    v.clear();
+    drawCircuit(v);
+    drawEnergy(v);
+    drawGraph(v, G.gq, 0, SC.q, col.C, '縦軸: コンデンサーの電荷 q', SC.q >= 1e-3 ? '[mC]' : '[μC]', function(x){ return SC.q >= 1e-3 ? sig(x * 1e3) : sig(x * 1e6); });
+    drawGraph(v, G.gi, 1, SC.i, col.L, '縦軸: コイルの電流 i', SC.i >= 1 ? '[A]' : '[mA]', function(x){ return SC.i >= 1 ? sig(x) : sig(x * 1e3); });
+    if(mode === 'ready'){
+      var g = G.gq;
+      jp(v.ctx, 'スイッチを入れると記録が始まります', (g.x0 + g.x1) / 2, (g.t + g.b) / 2 - 12, col.soft, 12, 500, 'center');
+    }
+    drawSpring();
+  }
+
+  // ---------- ばね振り子(同じ式で動く) ----------
+  var sv = document.getElementById('spring'), sc = sv.getContext('2d'), SW = 0, SH = 0;
+  function fitSpring(){
+    var r = sv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+    SW = r.width; SH = r.height; if(!SW) return;
+    sv.width = Math.round(SW * d); sv.height = Math.round(SH * d); sc.setTransform(d, 0, 0, d, 0, 0);
+  }
+  function drawSpring(){
+    if(!SW) fitSpring(); if(!SW) return;
+    var c = sc; c.clearRect(0, 0, SW, SH);
+    jp(c, '同じ動きをするばね振り子', 10, 17, col.soft, 11.5, 700);
+    var wall = 18, y = SH * 0.55, x0 = SW * 0.56, A = Math.min(SW * 0.26, 90), m = 30;
+    var x = x0 + (q / Q0()) * A;   // 伸び x ↔ 電荷 q
+    // 床と壁
+    line(c, wall, y + m / 2 + 1, SW - 10, y + m / 2 + 1, col.soft, 1.4);
+    c.save(); c.strokeStyle = col.soft; c.lineWidth = 1.2;
+    for(var k = 0; k < 6; k++){ c.beginPath(); c.moveTo(wall, y - m / 2 - 6 + k * 8); c.lineTo(wall - 7, y - m / 2 + k * 8); c.stroke(); }
+    c.restore(); line(c, wall, y - m / 2 - 8, wall, y + m / 2 + 1, col.soft, 2);
+    // つり合いの位置
+    line(c, x0, y - m / 2 - 14, x0, y + m / 2 + 8, col.faint, 1, [3, 3]);
+    jp(c, 'つり合い', x0, y + m / 2 + 20, col.faint, 10, 500, 'center');
+    // ばね
+    c.save(); c.strokeStyle = col.C; c.lineWidth = 2; c.lineJoin = 'round'; c.beginPath();
+    var sx0 = wall, sx1 = x - m / 2, nz = 12; c.moveTo(sx0, y); c.lineTo(sx0 + 8, y);
+    for(var z = 0; z < nz; z++) c.lineTo(sx0 + 8 + (sx1 - sx0 - 16) * (z + 0.5) / nz, y + (z % 2 ? 8 : -8));
+    c.lineTo(sx1 - 8, y); c.lineTo(sx1, y); c.stroke(); c.restore();
+    // おもり
+    c.save(); c.fillStyle = col.L; c.globalAlpha = 0.9; c.fillRect(x - m / 2, y - m / 2, m, m); c.restore();
+    sym(c, 'm', '', x, y, col.paper, 13, 'center');
+    // 速度の矢印(電流 i に対応。i > 0 は x が減る向き)
+    var vr = Math.max(-1, Math.min(1, i / I0())), al = -vr * 50;
+    if(mode === 'osc' && Math.abs(al) > 4) arrow(c, x, y - m / 2 - 10, x + al, y - m / 2 - 10, col.L, 2.6, 9);
+    jp(c, '伸び x ↔ 電荷 q   速さ v ↔ 電流 i', SW - 10, SH - 8, col.faint, 10.5, 500, 'right');
+  }
+
+  // ---------- UI ----------
+  var spBtns = Array.prototype.slice.call(document.querySelectorAll('[data-sp]'));
+  var pauseBtn = document.getElementById('pause'), goBtn = document.getElementById('go');
+  function syncUI(){
+    spBtns.forEach(function(b){ b.classList.toggle('primary', !paused && parseFloat(b.dataset.sp) === slow); });
+    pauseBtn.textContent = paused ? '再開' : '停止';
+    pauseBtn.classList.toggle('primary', paused);
+    goBtn.disabled = mode !== 'ready';
+    goBtn.textContent = mode === 'ready' ? 'スイッチをコイル側に入れる' : '振動中(スイッチはコイル側)';
+  }
+  function start(){ if(mode !== 'ready') return; mode = 'osc'; paused = false; restart(true); }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key: 'L', label: 'コイル L', min: 100, max: 1000, step: 10, fmt: function(x){ return x.toFixed(0) + ' mH'; }, onChange: function(){ restart(true); } },
+      { key: 'C', label: 'コンデンサー C', min: 10, max: 1000, step: 10, fmt: function(x){ return x.toFixed(0) + ' μF'; }, onChange: function(){ restart(true); } },
+      { key: 'V0', label: '充電の電圧 V₀', min: 1, max: 10, step: 0.5, fmt: function(x){ return x.toFixed(1) + ' V'; }, onChange: function(){ restart(true); } },
+      { key: 'R', label: '抵抗 R', min: 0, max: 100, step: 1, fmt: function(x){ return x.toFixed(0) + ' Ω'; }, onChange: function(){ restart(true); } }
+    ],
+    init: function(v){
+      readCol(); layout(v); fitSpring(); restart(false);
+      if(window.matchMedia){ var mq = window.matchMedia('(prefers-color-scheme: dark)'); if(mq.addEventListener) mq.addEventListener('change', readCol); }
+      spBtns.forEach(function(b){ b.addEventListener('click', function(){ slow = parseFloat(b.dataset.sp); paused = false; syncUI(); }); });
+      pauseBtn.addEventListener('click', function(){ paused = !paused; syncUI(); });
+      goBtn.addEventListener('click', start);
+      syncUI();
+    },
+    step: function(v, h){
+      if(mode !== 'osc' || paused) return;
+      var dt = h * slow, n = Math.max(1, Math.ceil(dt / (per() / 400)));
+      for(var k = 0; k < n; k++) rk4(dt / n);
+      t += dt;
+      samples.push([t, q, i]);
+      var cut = t - SC.tw * 1.05, j = 0; while(j < samples.length - 2 && samples[j][0] < cut) j++;
+      if(j > 0) samples.splice(0, j);
+    },
+    draw: draw,
+    readout: function(){
+      var T = per();
+      return [
+        ['周期 T = 2π√LC', fT(T)], ['f = 1/T', sig(1 / T) + ' Hz'],
+        ['Q₀ = CV₀', fQ(Q0())], ['I₀ = Q₀/√LC', fI(I0())],
+        ['t', fT(t)], ['q', fQ(q)], ['i', fI(i)],
+        ['UC', fE(Uc())], ['UL', fE(Ul())], ['UC+UL', fE(Uc() + Ul())]
+      ];
+    },
+    down: function(v, p){
+      var c = G.cir;
+      if(mode === 'ready' && p.x >= c.x && p.x <= c.x + c.w && p.y >= c.y && p.y <= c.y + c.h) start();
+    },
+    reset: function(){ paused = false; restart(false); },
+    resize: function(v){ layout(v); fitSpring(); }
+  });
+})();
+</script>
+</body>
+</html>
