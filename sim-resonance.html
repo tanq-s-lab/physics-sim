@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>共振回路(RLC 直列) — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* このページ専用: 図を見ながら操作できるよう横並び(スマホでは図を上に固定) */
+  .rs-stage{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:start;}
+  .rs-stage canvas.sim{height:clamp(360px,40vw,460px);}
+  .rs-left{position:sticky;top:8px;}
+  .row{display:flex;gap:6px;align-items:center;}
+  .row + .row{margin-top:10px;}
+  .row .lbl{font-size:0.86rem;color:var(--ink-soft);margin-right:2px;white-space:nowrap;}
+  .row .btn{flex:1;padding:5px 4px;min-width:0;}
+  .opt{display:flex;align-items:center;gap:6px;font-size:0.84rem;color:var(--ink-soft);margin-top:10px;cursor:pointer;line-height:1.4;}
+  .opt input{accent-color:var(--accent);width:16px;height:16px;margin:0;flex:none;}
+  .rs-right .controls{grid-template-columns:1fr;gap:10px;margin-top:14px;}
+  .rs-right .ctrl label{margin-bottom:0;}
+  .rs-btns{margin-top:14px;}
+  .circuit{width:100%;height:180px;display:block;margin-bottom:12px;border-radius:10px;background:var(--paper-card-2);border:1px solid var(--line);}
+  .pha{display:none;width:100%;height:210px;margin-bottom:12px;border-radius:10px;background:var(--paper-card-2);border:1px solid var(--line);}
+  .rs-right .hint{margin:10px 0 0;line-height:1.6;}
+  .tune{display:flex;align-items:center;gap:8px;margin:10px 2px 0;font-size:0.84rem;color:var(--ink-soft);}
+  .tune .bar{flex:1;height:10px;border-radius:999px;background:var(--paper-card-2);border:1px solid var(--line);overflow:hidden;}
+  .tune .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .08s linear;}
+  .tune b{font-family:"JetBrains Mono",ui-monospace,monospace;color:var(--ink);min-width:3.6em;text-align:right;}
+  .tune.hit b{color:var(--accent);}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:10px 2px 0;padding:0;list-style:none;font-size:0.82rem;color:var(--ink-soft);}
+  .legend li{display:flex;align-items:center;gap:6px;}
+  .legend b{font-family:"JetBrains Mono",ui-monospace,monospace;font-style:italic;color:var(--ink);}
+  .legend svg{flex:none;}
+  @media (max-width:860px){
+    .rs-stage{grid-template-columns:1fr;gap:10px;}
+    .rs-left{display:contents;}
+    .rs-fig{position:sticky;top:0;z-index:5;background:var(--paper-card);padding:6px 0 4px;box-shadow:0 8px 10px -10px var(--shadow);}
+    .rs-stage canvas.sim{height:clamp(280px,76vw,380px);}
+    .rs-stage .readout{margin-top:0;}
+    .legend{font-size:0.76rem;gap:2px 12px;margin-top:6px;}
+    .rs-stage .readout li{font-size:0.74rem;padding:2px 7px;}
+    .rs-right .controls{grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:10px;}
+    .circuit{height:160px;max-width:420px;}
+    .pha{display:block;max-width:420px;}
+  }
+</style>
+</head>
+<body class="u-em">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html" class="on">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./electromagnetism.html">電磁気</a> / 共振回路(RLC 直列)</p>
+
+  <div class="sim-head">
+    <h1>共振回路(RLC 直列)</h1>
+    <span class="eq">f<sub>0</sub> = 1 / (2π√LC)</span>
+  </div>
+
+  <section class="stage rs-stage">
+    <div class="rs-left">
+      <div class="rs-fig">
+        <canvas class="sim" id="sim" aria-label="RLC直列回路の回転ベクトル図、リアクタンスと周波数のグラフ、電流と周波数の共振曲線"></canvas>
+        <div class="tune" id="tune"><span>共振との近さ</span><span class="bar"><i id="tune-bar"></i></span><b id="tune-val">—</b></div>
+      </div>
+      <ul class="legend" aria-label="グラフの見方">
+        <li><svg width="24" height="10" aria-hidden="true"><line x1="1" y1="5" x2="23" y2="5" stroke="var(--accent-2)" stroke-width="2.6" stroke-linecap="round"/></svg><b>X<sub>L</sub></b>コイルの流れにくさ ωL(f が高いほど大)</li>
+        <li><svg width="24" height="10" aria-hidden="true"><line x1="1" y1="5" x2="23" y2="5" stroke="var(--wave)" stroke-width="2.6" stroke-linecap="round"/></svg><b>X<sub>C</sub></b>コンデンサーの流れにくさ 1/(ωC)(f が高いほど小)</li>
+        <li><svg width="24" height="10" aria-hidden="true"><line x1="1" y1="5" x2="23" y2="5" stroke="var(--em)" stroke-width="3.2" stroke-linecap="round"/></svg><b>Z</b>回路全体の流れにくさ(インピーダンス)</li>
+        <li><svg width="24" height="10" aria-hidden="true"><line x1="1" y1="5" x2="23" y2="5" stroke="var(--thermo)" stroke-width="1.6" stroke-dasharray="5 3"/></svg><b>R</b>電球の抵抗(Z はこれより小さくならない)</li>
+        <li><svg width="24" height="10" aria-hidden="true"><line x1="1" y1="5" x2="23" y2="5" stroke="var(--ink)" stroke-width="2.6" stroke-linecap="round"/></svg><b>I<sub>0</sub></b>流れる電流の振幅 = V₀/Z(Z が最小のとき最大)</li>
+      </ul>
+      <ul class="readout" id="readout"></ul>
+    </div>
+    <div class="rs-right">
+      <canvas class="pha" id="pha" aria-label="回転ベクトル図と各電圧の振幅"></canvas>
+      <canvas class="circuit" id="circ" aria-label="回路図と、いまの瞬間の電流。電球の明るさは消費電力を表す"></canvas>
+      <div class="row">
+        <span class="lbl">ゆっくり動かす</span>
+        <button class="btn small" data-sw="L" title="コイル L を自動で増減">L</button>
+        <button class="btn small" data-sw="C" title="コンデンサー C を自動で増減">C</button>
+        <button class="btn small" data-sw="f" title="電源の周波数 f を自動で増減">f</button>
+      </div>
+      <div class="row">
+        <span class="lbl">回転の速さ</span>
+        <button class="btn small" data-sp="1">×1</button>
+        <button class="btn small" data-sp="0.25">1/4</button>
+        <button class="btn small" id="pause">停止</button>
+      </div>
+      <label class="opt"><input type="checkbox" id="lock"> 縦の目盛りを固定(大きさの変化を見る)</label>
+      <div class="controls" id="controls"></div>
+      <div class="btns rs-btns">
+        <button class="btn" id="reset">はじめから</button>
+      </div>
+      <p class="hint">電源(電圧の振幅 V<sub>0</sub> = 10 V)の周波数 f は一定のまま、L・C を動かして共振させてみよう。グラフの縦線は電源の f(ドラッグで変更)、紫の点線は回路の f<sub>0</sub>。2本が重なると共振です。電球の明るさは消費電力(共振のとき最大)。</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>コイルのリアクタンス <strong>X<sub>L</sub> = ωL</strong> は周波数とともに増え、コンデンサーの <strong>X<sub>C</sub> = 1/(ωC)</strong> は減る。2本のグラフの<strong>交点</strong>が共振周波数 f<sub>0</sub>。</li>
+        <li>X<sub>L</sub> = X<sub>C</sub> から <strong>f<sub>0</sub> = 1/(2π√LC)</strong>。f<sub>0</sub> を決めるのは <strong>L と C だけ</strong>(R は関係しない)。</li>
+        <li>インピーダンス Z = √(R² + (X<sub>L</sub> − X<sub>C</sub>)²) は共振で<strong>最小(Z = R)</strong>、電流 I<sub>0</sub> = V<sub>0</sub>/Z は<strong>最大(V<sub>0</sub>/R)</strong>。</li>
+        <li>共振では V<sub>L</sub> と V<sub>C</sub> が<strong>大きさが等しく逆向き</strong>で打ち消し合い、電源の電圧はすべて R にかかる。電流と電圧は<strong>同位相(φ = 0)</strong>。</li>
+        <li>打ち消し合っているだけなので、V<sub>L</sub>・V<sub>C</sub> の一つ一つは電源の V<sub>0</sub> より<strong>ずっと大きくなる</strong>ことがある。</li>
+        <li>R が小さいほど共振曲線のピークは<strong>高く鋭い</strong>。ラジオの選局(同調)は、可変コンデンサーで f<sub>0</sub> を放送局の周波数に合わせる共振の利用。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>f = 50 Hz、L = 200 mH のとき、共振させるには C を何 μF にすればよい? 計算してから C のスライダーで確かめよう。</li>
+        <li>L を 4 倍にすると f<sub>0</sub> は何倍? グラフの交点はどう動く?</li>
+        <li>R を小さくすると共振曲線はどう変わる? f<sub>0</sub> は変わる? 「目盛りを固定」にして比べよう。</li>
+        <li>共振しているときの V<sub>L0</sub> を読み取ろう。電源は 10 V なのに、それより大きいのはなぜ矛盾しない?</li>
+        <li>f が f<sub>0</sub> より低いとき、電圧は電流より進む? 遅れる? X<sub>L</sub> と X<sub>C</sub> のどちらが大きい?</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-ac.html">← 交流の位相と回転ベクトル</a>
+    <a href="./electromagnetism.html">電磁気の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  // 単位: f [Hz], R [Ω], L [mH], C [μF], 電圧 [V], 電流 [A]
+  // ベクトルの回転は見やすい速さにしている(位相・振幅は正確)
+  var MOB = window.matchMedia('(max-width:860px)');
+  var V0 = 10, FMAX = 300, TWO = Math.PI * 2, REV = 0.25;
+  var S = { f: 50, R: 20, L: 200, C: 20 };
+  var RANGE = { f: [10, 300], R: [5, 200], L: [10, 500], C: [10, 500] };
+  var theta = 0, speed = 0.25, paused = false, drag = null;
+  var lock = false, refit = true;
+  var full = { X: 200, I: 0.5, V: 20 };
+  var sweep = null, sweepU = 0, sweepDir = 1, SWEEP_T = 10;   // 片道 10 秒(対数目盛りで一定の速さ)
+  var col = {}, G = {};
+
+  function cssv(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+  function readCol(){
+    col.ink = cssv('--ink'); col.soft = cssv('--ink-soft'); col.faint = cssv('--ink-faint');
+    col.line = cssv('--line'); col.R = cssv('--thermo'); col.L = cssv('--accent-2');
+    col.C = cssv('--wave'); col.em = cssv('--em'); col.card = cssv('--paper-card-2'); col.paper = cssv('--paper-card');
+  }
+
+  // ---------- 物理量 ----------
+  function XL(f){ return TWO * f * S.L / 1000; }
+  function XC(f){ return 1 / (TWO * f * S.C * 1e-6); }
+  function Zf(f){ return Math.hypot(S.R, XL(f) - XC(f)); }
+  function calc(){
+    var o = { w: TWO * S.f, XL: XL(S.f), XC: XC(S.f) };
+    o.Z = Math.hypot(S.R, o.XL - o.XC); o.I0 = V0 / o.Z; o.phi = Math.atan2(o.XL - o.XC, S.R);
+    o.VR = S.R * o.I0; o.VL = o.XL * o.I0; o.VC = o.XC * o.I0;
+    o.f0 = 1 / (TWO * Math.sqrt(S.L / 1000 * S.C * 1e-6));
+    o.X0 = Math.sqrt(S.L / 1000 / (S.C * 1e-6));   // 共振のときの X_L = X_C
+    o.Ires = V0 / S.R; o.ratio = o.I0 / o.Ires;
+    return o;
+  }
+
+  // ---------- 目盛り ----------
+  var LAD = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+  function niceUp(x){
+    if(!(x > 0)) return 1;
+    var e = Math.pow(10, Math.floor(Math.log10(x))), m = x / e;
+    for(var i = 0; i < LAD.length; i++) if(m <= LAD[i] + 1e-9) return LAD[i] * e;
+    return 10 * e;
+  }
+  function fitScale(o){
+    var tgt = { X: 2 * Math.max(o.X0, S.R), I: o.Ires * 1.08, V: Math.max(V0, o.VL, o.VC) };
+    ['X', 'I', 'V'].forEach(function(k){
+      if(refit || !lock && (tgt[k] > full[k] * 1.0001 || tgt[k] < full[k] * 0.45)) full[k] = niceUp(tgt[k]);
+    });
+    refit = false;
+  }
+  function sig(x){ return x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2); }
+  function fV(x){ return sig(x) + ' V'; }
+  function fA(x){ return x >= 1 ? sig(x) + ' A' : sig(x * 1000) + ' mA'; }
+  function fOhm(x){ return sig(x) + ' Ω'; }
+  function fHz(x){ return (x >= 100 ? x.toFixed(0) : x.toFixed(1)) + ' Hz'; }
+
+  // ---------- レイアウト ----------
+  function layout(v){
+    var W = v.W, H = v.H, narrow = W < 520;
+    G.mob = MOB.matches;   // スマホ・タブレット縦: 回転ベクトル図は別の図(#pha)に出し、グラフを全幅に
+    var pw = G.mob ? 0 : Math.min(H - 16, W * 0.36);
+    G.pr = pw / 2 - 10; G.pcx = 4 + pw / 2; G.pcy = H / 2 + 4;
+    G.gx0 = G.mob ? (narrow ? 40 : 52) : 4 + pw + 50; G.gx1 = W - (narrow ? 12 : 22);
+    var top = 44, bot = H - 26, gap = 46, hh = (bot - top - gap) / 2;
+    G.xT = top; G.xB = top + hh; G.iT = top + hh + gap; G.iB = bot;
+    G.narrow = narrow;
+  }
+  function fx(f){ return G.gx0 + f / FMAX * (G.gx1 - G.gx0); }
+  function xf(x){ return (x - G.gx0) / (G.gx1 - G.gx0) * FMAX; }
+  function yX(X){ return G.xB - X / full.X * (G.xB - G.xT); }
+  function yI(I){ return G.iB - I / full.I * (G.iB - G.iT); }
+
+  // ---------- 描画部品 ----------
+  function arrow(ctx, x1, y1, x2, y2, color, w, dash, hmax){
+    var len = Math.hypot(x2 - x1, y2 - y1); if(len < 3) return;
+    var a = Math.atan2(y2 - y1, x2 - x1), h = Math.min(hmax || 11, len * 0.45);
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round';
+    ctx.setLineDash(dash ? [6, 4] : []);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - h * 0.7 * Math.cos(a), y2 - h * 0.7 * Math.sin(a)); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - h * Math.cos(a - 0.42), y2 - h * Math.sin(a - 0.42));
+    ctx.lineTo(x2 - h * Math.cos(a + 0.42), y2 - h * Math.sin(a + 0.42));
+    ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+  function sym(ctx, s, sub, x, y, color, size, align){
+    size = size || 14;
+    ctx.save(); ctx.fillStyle = color; ctx.textBaseline = 'middle';
+    var f1 = 'italic 700 ' + size + 'px "JetBrains Mono", ui-monospace, monospace';
+    var f2 = '700 ' + Math.round(size * 0.72) + 'px "JetBrains Mono", ui-monospace, monospace';
+    ctx.font = f1; var w1 = ctx.measureText(s).width;
+    ctx.font = f2; var w2 = sub ? ctx.measureText(sub).width + 1 : 0;
+    var x0 = align === 'center' ? x - (w1 + w2) / 2 : align === 'right' ? x - w1 - w2 : x;
+    ctx.font = f1; ctx.textAlign = 'left'; ctx.fillText(s, x0, y);
+    if(sub){ ctx.font = f2; ctx.fillText(sub, x0 + w1 + 1, y + size * 0.3); }
+    ctx.restore();
+  }
+  function curve(ctx, fn, yfn, color, w, dash, alpha){
+    var n = Math.ceil((G.gx1 - G.gx0) / 2);
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineJoin = 'round';
+    ctx.globalAlpha = alpha || 1; ctx.setLineDash(dash || []);
+    ctx.beginPath();
+    for(var i = 0; i <= n; i++){
+      var f = Math.max(0.5, FMAX * i / n), y = yfn(fn(f));
+      y = Math.max(-2000, Math.min(4000, y));
+      if(i) ctx.lineTo(fx(f), y); else ctx.moveTo(fx(f), y);
+    }
+    ctx.stroke(); ctx.restore();
+  }
+  function clipBox(ctx, t, b){ ctx.save(); ctx.beginPath(); ctx.rect(G.gx0 - 1, t - 1, G.gx1 - G.gx0 + 2, b - t + 2); ctx.clip(); }
+  function axes(v, t, b, max, fmt, title, unit){
+    var ctx = v.ctx;
+    for(var k = 0; k <= 6; k++){ var x = fx(k * 50); v.line(x, t, x, b, col.line, 1, k % 2 ? [2, 4] : []); }
+    [0.5, 1].forEach(function(r){ var y = b - r * (b - t); v.line(G.gx0, y, G.gx1, y, col.line, 1, [2, 4]); v.text(fmt(max * r), G.gx0 - 4, y + 4, col.faint, G.narrow ? 9.5 : 11, 'right'); });
+    v.line(G.gx0, b, G.gx1 + 4, b, col.soft, 1.3); v.line(G.gx0, t - 4, G.gx0, b, col.soft, 1.3);
+    ctx.save(); ctx.font = '700 ' + (G.narrow ? 11.5 : 13) + 'px "Noto Sans JP", sans-serif'; ctx.fillStyle = col.ink;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(title, G.gx0 - (G.narrow ? 30 : 44), t - 24);
+    var tw = ctx.measureText(title).width; ctx.font = '500 11px "Noto Sans JP", sans-serif'; ctx.fillStyle = col.faint;
+    ctx.fillText(unit, G.gx0 - (G.narrow ? 30 : 44) + tw + 6, t - 24); ctx.restore();
+  }
+
+  // ---------- 描画 ----------
+  function draw(v){
+    var ctx = v.ctx, o = calc();
+    fitScale(o);
+    v.clear();
+    var xF = fx(S.f), xF0 = fx(o.f0), f0in = o.f0 <= FMAX, hit = o.ratio > 0.995;
+
+    // === 上: リアクタンスとインピーダンス ===
+    var fmtO = function(x){ return x >= 1000 ? (x / 1000) + 'k' : String(+x.toPrecision(3)); };
+    axes(v, G.xT, G.xB, full.X, fmtO, '縦軸: 交流の流れにくさ', '[Ω]');
+    clipBox(ctx, G.xT, G.xB);
+    v.line(G.gx0, yX(S.R), G.gx1, yX(S.R), col.R, 1.4, [5, 4]);
+    curve(ctx, XL, yX, col.L, 2.4);
+    curve(ctx, XC, yX, col.C, 2.4);
+    curve(ctx, Zf, yX, col.em, 3.2, [], 0.9);
+    ctx.restore();
+    // 曲線の名前
+    var fl = Math.min(FMAX, full.X * 0.9 / (TWO * S.L / 1000)) * 0.94;
+    sym(ctx, 'X', 'L', fx(fl) - 4, yX(XL(fl)) - 10, col.L, 13, 'right');
+    var fc = 1 / (TWO * S.C * 1e-6 * full.X * 0.82);
+    if(fc < FMAX * 0.9) sym(ctx, 'X', 'C', fx(Math.max(fc, 4)) + 8, yX(full.X * 0.82), col.C, 13, 'left');
+    else sym(ctx, 'X', 'C', fx(FMAX * 0.9), yX(XC(FMAX * 0.9)) - 10, col.C, 13, 'center');
+    if(yX(Zf(FMAX)) > G.xT + 10) sym(ctx, 'Z', '', G.gx1 - 4, yX(Zf(FMAX)) - 10, col.em, 13, 'right');
+    else sym(ctx, 'Z', '', fx(Math.min(FMAX, o.f0 * 1.9)), G.xT + 10, col.em, 13, 'center');
+    v.label('R', G.gx1 - 4, yX(S.R) + 14, col.R, 12, 'right');
+    // 交点(共振点)
+    if(f0in && o.X0 < full.X){
+      ctx.save(); ctx.strokeStyle = col.em; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(xF0, yX(o.X0), 6, 0, TWO); ctx.stroke(); ctx.restore();
+    }
+
+    // === 下: 共振曲線 I0–f ===
+    axes(v, G.iT, G.iB, full.I, function(x){ return x >= 1 ? sig(x) : sig(x * 1000); }, '縦軸: 電流の振幅 I₀', full.I >= 1 ? '[A]' : '[mA]');
+    clipBox(ctx, G.iT, G.iB);
+    // 塗り
+    ctx.save(); ctx.globalAlpha = 0.12; ctx.fillStyle = col.em; ctx.beginPath(); ctx.moveTo(G.gx0, G.iB);
+    var n = Math.ceil((G.gx1 - G.gx0) / 2);
+    for(var i = 0; i <= n; i++){ var f = Math.max(0.5, FMAX * i / n); ctx.lineTo(fx(f), yI(V0 / Zf(f))); }
+    ctx.lineTo(G.gx1, G.iB); ctx.closePath(); ctx.fill(); ctx.restore();
+    curve(ctx, function(f){ return V0 / Zf(f); }, yI, col.ink, 2.6);
+    ctx.restore();
+    // 周波数の目盛り
+    for(var k = 1; k <= 5; k++){ if(G.narrow && k % 2) continue; v.text(String(k * 50), fx(k * 50), G.iB + 15, col.faint, 11, 'center'); }
+    v.text('0', G.gx0, G.iB + 15, col.faint, 11, 'center');
+    v.text('300 Hz', G.gx1 + 6, G.iB + 15, col.faint, 11, 'right');
+
+    // === f0(回路で決まる)と f(電源)の縦線 ===
+    if(f0in){
+      v.line(xF0, G.xT - 4, xF0, G.iB, col.em, 1.4, [3, 4]);
+      sym(ctx, 'f', '0', xF0 + (xF0 > xF ? 12 : -12), G.iT - 12, col.em, 12, 'center');
+    } else {
+      v.label('f₀ = ' + fHz(o.f0) + ' →', G.gx1, G.iT - 8, col.em, 11, 'right');
+    }
+    v.line(xF, G.xT - 8, xF, G.iB + 2, col.ink, 1.8);
+    // つまみ
+    ctx.save(); ctx.fillStyle = col.ink; ctx.beginPath();
+    ctx.moveTo(xF - 7, G.xT - 16); ctx.lineTo(xF + 7, G.xT - 16); ctx.lineTo(xF, G.xT - 7); ctx.closePath(); ctx.fill(); ctx.restore();
+    var lft = f0in ? xF0 > xF : xF > G.gx0 + (G.gx1 - G.gx0) * 0.55;
+    v.label('電源 f', xF + (lft ? -8 : 8), G.iT - 8, col.ink, 11, lft ? 'right' : 'left');
+    // いまの f での値
+    [[XL(S.f), col.L], [XC(S.f), col.C], [o.Z, col.em]].forEach(function(p){
+      var y = yX(p[0]); if(y >= G.xT && y <= G.xB) v.circle(xF, y, 3.6, p[1], p[1]);
+    });
+    if(Math.abs(o.XL - o.XC) > 1 && G.gx1 - G.gx0 > 120){   // X_L − X_C の差を縦の帯で
+      var y1 = Math.max(G.xT, yX(o.XL)), y2 = Math.max(G.xT, yX(o.XC));
+      ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = col.em; ctx.fillRect(xF - 4, Math.min(y1, y2), 8, Math.abs(y1 - y2)); ctx.restore();
+    }
+    var yi = yI(o.I0);
+    v.line(G.gx0, yi, xF, yi, col.ink, 1, [3, 3]);
+    v.circle(xF, yi, 5, hit ? col.em : col.paper, col.ink);
+    if(hit) v.label('共振!', xF + 9, Math.max(G.iT + 12, yi - 4), col.em, 13);
+
+    if(!G.mob) drawPhasor({ ctx: v.ctx, H: v.H, cx: G.pcx, cy: G.pcy, R: G.pr, xmax: G.gx0 - 40, small: false }, o);
+    else drawPha(o);
+    drawCircuit(o);
+    updateTune(o);
+  }
+
+  // ---------- 回転ベクトル(電流 i が基準) ----------
+  function hp(ctx){   // 描画の小道具(sim-core と同じもの)を任意の canvas で使う
+    return {
+      line: function(x1, y1, x2, y2, c, w, d){ ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w || 1.5; ctx.setLineDash(d || []); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); },
+      circle: function(x, y, r, f, st){ ctx.beginPath(); ctx.arc(x, y, r, 0, TWO); ctx.fillStyle = f; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = st || col.ink; ctx.stroke(); },
+      text: function(t, x, y, c, sz, al){ ctx.font = (sz || 12) + 'px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = c; ctx.textAlign = al || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(t, x, y); },
+      label: function(t, x, y, c, sz, al){ ctx.font = '500 ' + (sz || 12) + 'px "Noto Sans JP", sans-serif'; ctx.fillStyle = c; ctx.textAlign = al || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(t, x, y); }
+    };
+  }
+  function drawPhasor(P, o){
+    var ctx = P.ctx, cx = P.cx, cy = P.cy, R = P.R, v = hp(ctx);
+    v.line(cx - R - 4, cy, cx + R + 4, cy, col.line, 1.2);
+    v.line(cx, cy - R - 4, cx, cy + R + 4, col.line, 1.2);
+    ctx.save(); ctx.strokeStyle = col.line; ctx.setLineDash([2, 4]); ctx.beginPath(); ctx.arc(cx, cy, R, 0, TWO); ctx.stroke(); ctx.restore();
+    if(!P.small){
+      v.label('回転ベクトル(電流 i が基準)', cx - R, 16, col.soft, 11.5);
+      v.text('外枠 ' + fV(full.V), cx - R, cy + R + 14, col.faint, 10.5);
+    }
+
+    function tip(amp, ph, kind){ var a = amp / full[kind] * R, an = theta + ph; return { x: cx + a * Math.cos(an), y: cy - a * Math.sin(an), a: a, an: an }; }
+    var pI = tip(o.I0, 0, 'I'), pR = tip(o.VR, 0, 'V'), pL = tip(o.VL, Math.PI / 2, 'V'),
+        pC = tip(o.VC, -Math.PI / 2, 'V'), pV = tip(V0, o.phi, 'V');
+    var nx = pL.x + pC.x - cx, ny = pL.y + pC.y - cy;
+
+    // φ の弧
+    if(Math.abs(o.phi) > 0.03 && R > 50){
+      var rb = Math.min(40, R * 0.4);
+      ctx.save(); ctx.strokeStyle = col.em; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(cx, cy, rb, -theta, -(theta + o.phi), o.phi > 0); ctx.stroke(); ctx.restore();
+      var mid = theta + o.phi / 2;
+      sym(ctx, 'φ', '', cx + (rb + 10) * Math.cos(mid), cy - (rb + 10) * Math.sin(mid), col.em, 12, 'center');
+    }
+    // V_L + V_C(差)と長方形の作図
+    ctx.save(); ctx.globalAlpha = 0.45; arrow(ctx, cx, cy, nx, ny, col.em, 6, false); ctx.restore();
+    v.line(pR.x, pR.y, pV.x, pV.y, col.em, 1.2, [4, 4]);
+    v.line(nx, ny, pV.x, pV.y, col.em, 1.2, [4, 4]);
+    arrow(ctx, cx, cy, pL.x, pL.y, col.L, 2.6);
+    arrow(ctx, cx, cy, pC.x, pC.y, col.C, 2.6);
+    arrow(ctx, cx, cy, pR.x, pR.y, col.R, 2.6);
+    arrow(ctx, cx, cy, pV.x, pV.y, col.em, 3.4);
+    arrow(ctx, cx, cy, pI.x, pI.y, col.ink, 2.2, true);
+    // ラベル
+    var placed = [];
+    [[pL, 'V', 'L', col.L], [pC, 'V', 'C', col.C], [pV, 'V', '', col.em], [pR, 'V', 'R', col.R], [pI, 'I', '', col.ink]].forEach(function(q){
+      var p = q[0], ux = Math.cos(p.an), uy = -Math.sin(p.an), r = Math.max(p.a + 13, 14), lx, ly, t = 0;
+      var side = (q[2] === 'R' || q[1] === 'I') ? (q[1] === 'I' ? -12 : 12) : 0;
+      do { lx = cx + r * ux + side * uy; ly = cy + r * uy - side * ux; r += 13; t++; }
+      while(t < 6 && placed.some(function(s){ return Math.hypot(s[0] - lx, s[1] - ly) < 17; }));
+      lx = Math.max(10, Math.min(P.xmax, lx)); ly = Math.max(P.small ? 10 : 26, Math.min(P.H - 10, ly));
+      placed.push([lx, ly]);
+      sym(ctx, q[1], q[2], lx, ly, q[3], 12.5, 'center');
+    });
+    v.circle(cx, cy, 2.6, col.ink, col.ink);
+  }
+
+  // ---------- スマホ用の回転ベクトル図(数値つき) ----------
+  var pv = document.getElementById('pha'), pc = pv.getContext('2d'), PW = 0, PH = 0;
+  function fitPha(){
+    var r = pv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+    PW = r.width; PH = r.height; if(!PW) return;
+    pv.width = Math.round(PW * d); pv.height = Math.round(PH * d); pc.setTransform(d, 0, 0, d, 0, 0);
+  }
+  function drawPha(o){
+    if(!PW) fitPha(); if(!PW) return;
+    pc.clearRect(0, 0, PW, PH);
+    var R = Math.min(PH / 2 - 14, PW * 0.3), cx = 12 + R, cy = PH / 2 + 6, h = hp(pc);
+    h.label('回転ベクトル(電流 i が基準)', 10, 16, col.soft, 11);
+    drawPhasor({ ctx: pc, H: PH, cx: cx, cy: cy, R: R, xmax: cx + R + 6, small: true }, o);
+    var x = cx + R + 30, y = cy - 50;
+    [['V', 'L', o.VL, col.L], ['V', 'C', o.VC, col.C], ['V', 'R', o.VR, col.R], ['V', '', V0, col.em]].forEach(function(q, i){
+      sym(pc, q[0], q[1], x, y + i * 22, q[3], 13, 'left');
+      h.text(fV(q[2]), x + 30, y + i * 22 + 5, col.ink, 12.5);
+    });
+    h.text('外枠 ' + fV(full.V), x, y + 4 * 22 + 4, col.faint, 10.5);
+  }
+
+  // ---------- 回路図(電球の明るさ = 消費電力) ----------
+  var cv = document.getElementById('circ'), cc = cv.getContext('2d'), CW = 0, CH = 0;
+  function fitCirc(){
+    var r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+    CW = r.width; CH = r.height; cv.width = Math.round(CW * d); cv.height = Math.round(CH * d);
+    cc.setTransform(d, 0, 0, d, 0, 0);
+  }
+  function elem(type, x, y, rot, len, color, glow){
+    var c = cc; c.save(); c.translate(x, y); c.rotate(rot);
+    c.strokeStyle = color; c.lineWidth = 2; c.lineJoin = 'round'; c.lineCap = 'round';
+    var h = len / 2, b = 15;
+    c.beginPath(); c.moveTo(-h, 0); c.lineTo(-b, 0); c.moveTo(b, 0); c.lineTo(h, 0); c.stroke();
+    c.beginPath();
+    if(type === 'B'){   // 電球(抵抗 R)
+      if(glow > 0.003){
+        var g = c.createRadialGradient(0, 0, 4, 0, 0, 13 + 34 * Math.sqrt(glow));
+        g.addColorStop(0, 'rgba(255,205,70,' + (0.95 * Math.min(1, glow * 1.3)) + ')');
+        g.addColorStop(1, 'rgba(255,190,60,0)');
+        c.fillStyle = g; c.beginPath(); c.arc(0, 0, 13 + 34 * Math.sqrt(glow), 0, TWO); c.fill();
+        c.fillStyle = 'rgba(255,214,90,' + Math.min(1, glow) + ')'; c.beginPath(); c.arc(0, 0, 12, 0, TWO); c.fill();
+      }
+      c.beginPath(); c.moveTo(-b, 0); c.lineTo(-12, 0); c.moveTo(12, 0); c.lineTo(b, 0);
+      c.moveTo(12, 0); c.arc(0, 0, 12, 0, TWO);
+      c.moveTo(-8.5, -8.5); c.lineTo(8.5, 8.5); c.moveTo(8.5, -8.5); c.lineTo(-8.5, 8.5);
+    } else if(type === 'L'){
+      c.moveTo(-b, 0);
+      for(var k = 0; k < 4; k++) c.arc(-b + (k + 0.5) * (2 * b / 4), 0, b / 4, Math.PI, 0, false);
+    } else if(type === 'C'){
+      c.moveTo(-b, 0); c.lineTo(-3, 0); c.moveTo(3, 0); c.lineTo(b, 0); c.stroke();
+      c.lineWidth = 2.6; c.beginPath(); c.moveTo(-3, -10); c.lineTo(-3, 10); c.moveTo(3, -10); c.lineTo(3, 10);
+    } else if(type === 'S'){
+      c.moveTo(-b, 0); c.lineTo(-12, 0); c.moveTo(12, 0); c.lineTo(b, 0); c.stroke();
+      c.beginPath(); c.arc(0, 0, 12, 0, TWO);
+      c.moveTo(-7, 0); c.bezierCurveTo(-4, -8, -1, -8, 0, 0); c.bezierCurveTo(1, 8, 4, 8, 7, 0);
+    }
+    c.stroke(); c.restore();
+  }
+  function wire(pts){
+    cc.save(); cc.strokeStyle = col.soft; cc.lineWidth = 1.6; cc.lineJoin = 'round'; cc.beginPath();
+    pts.forEach(function(p, i){ if(i) cc.lineTo(p[0], p[1]); else cc.moveTo(p[0], p[1]); });
+    cc.stroke(); cc.restore();
+  }
+  function drawCircuit(o){
+    if(!CW) return;
+    cc.clearRect(0, 0, CW, CH);
+    var T = 40, B = CH - 26, M = (T + B) / 2, xs = 34, xR = CW - 22;
+    var ks = ['B', 'L', 'C'], seg = (xR - xs - 20) / 3, cl = { B: col.R, L: col.L, C: col.C }, nm = { B: 'R', L: 'L', C: 'C' };
+    wire([[xs, M - 20], [xs, T]]); wire([[xs, M + 20], [xs, B], [xR, B], [xR, T]]);
+    elem('S', xs, M, Math.PI / 2, 40, col.ink);
+    ks.forEach(function(k, i){
+      var a = xs + 10 + seg * i, bb = a + seg, c = (a + bb) / 2;
+      wire([[i ? a : xs, T], [c - 20, T]]); wire([[c + 20, T], [bb + (i === 2 ? 10 : 0), T]]);
+      elem(k, c, T, 0, 40, cl[k], k === 'B' ? o.ratio * o.ratio : 0);
+      sym(cc, nm[k], '', c, T + 24, cl[k], 13, 'center');
+    });
+    sym(cc, 'V', '0', xs - 20, M, col.em, 12, 'center');
+    // いまの瞬間の電流(長さ ∝ 瞬時値、共振時の最大を基準)
+    var val = o.I0 / full.I * Math.sin(theta), L = 70 * Math.max(-1, Math.min(1, val)), x = (xs + xR) / 2;
+    if(Math.abs(L) < 5){ cc.save(); cc.fillStyle = col.ink; cc.beginPath(); cc.arc(x, B, 3.5, 0, TWO); cc.fill(); cc.restore(); }
+    else arrow(cc, x + L / 2, B, x - L / 2, B, col.ink, 4, false, 15);
+    sym(cc, 'i', '', x + 50, B - 13, col.ink, 13, 'center');
+    cc.save(); cc.font = '500 11px "Noto Sans JP", sans-serif'; cc.fillStyle = col.faint; cc.textAlign = 'left';
+    cc.fillText('電球の明るさ = 消費電力', 8, 15); cc.restore();
+  }
+
+  // ---------- 共振との近さ ----------
+  var tuneEl = document.getElementById('tune'), tuneBar = document.getElementById('tune-bar'), tuneVal = document.getElementById('tune-val');
+  function updateTune(o){
+    var p = Math.round(o.ratio * 100);
+    tuneBar.style.width = (o.ratio * 100).toFixed(1) + '%';
+    tuneVal.textContent = p + '%';
+    tuneEl.classList.toggle('hit', o.ratio > 0.995);
+    tuneEl.title = '電流の振幅 I₀ が、共振したときの最大値 V₀/R の何%か';
+  }
+
+  // ---------- UI ----------
+  var spBtns = Array.prototype.slice.call(document.querySelectorAll('[data-sp]'));
+  var swBtns = Array.prototype.slice.call(document.querySelectorAll('[data-sw]'));
+  var pauseBtn = document.getElementById('pause');
+  var FMT = {
+    f: fHz,
+    R: function(x){ return x.toFixed(0) + ' Ω'; },
+    L: function(x){ return x.toFixed(0) + ' mH'; },
+    C: function(x){ return (x < 100 ? x.toFixed(1) : x.toFixed(0)) + ' μF'; }
+  };
+  function setVal(k, x){
+    S[k] = x;
+    var inp = document.getElementById('c-' + k); if(!inp) return;
+    inp.value = x; inp.parentElement.querySelector('output').textContent = FMT[k](x);
+  }
+  function startSweep(k){
+    if(sweep === k){ sweep = null; syncUI(); return; }
+    sweep = k;
+    var r = RANGE[k]; sweepU = Math.log(S[k] / r[0]) / Math.log(r[1] / r[0]);
+    sweepU = Math.max(0, Math.min(1, sweepU)); sweepDir = sweepU > 0.98 ? -1 : 1;
+    syncUI();
+  }
+  function syncUI(){
+    spBtns.forEach(function(b){ b.classList.toggle('primary', !paused && parseFloat(b.dataset.sp) === speed); });
+    swBtns.forEach(function(b){ b.classList.toggle('primary', sweep === b.dataset.sw); });
+    pauseBtn.textContent = paused ? '再開' : '停止';
+    pauseBtn.classList.toggle('primary', paused);
+  }
+  function pick(v, p){
+    if(drag === 'ph'){
+      var a = Math.atan2(G.pcy - p.y, p.x - G.pcx);
+      theta = ((a % TWO) + TWO) % TWO;
+    } else if(drag === 'f'){
+      setVal('f', Math.round(Math.max(RANGE.f[0], Math.min(RANGE.f[1], xf(p.x)))));
+    }
+  }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key: 'L', label: 'コイル L', min: 10, max: 500, step: 1, fmt: FMT.L, onChange: function(){ if(sweep === 'L') startSweep('L'); } },
+      { key: 'C', label: 'コンデンサー C', min: 10, max: 500, step: 0.5, fmt: FMT.C, onChange: function(){ if(sweep === 'C') startSweep('C'); } },
+      { key: 'f', label: '電源の周波数 f', min: 10, max: 300, step: 1, fmt: FMT.f, onChange: function(){ if(sweep === 'f') startSweep('f'); } },
+      { key: 'R', label: '電球(抵抗)R', min: 5, max: 200, step: 1, fmt: FMT.R }
+    ],
+    init: function(v){
+      readCol(); layout(v); fitCirc(); fitPha();
+      if(window.matchMedia){ var mq = window.matchMedia('(prefers-color-scheme: dark)'); if(mq.addEventListener) mq.addEventListener('change', readCol); }
+      spBtns.forEach(function(b){ b.addEventListener('click', function(){ speed = parseFloat(b.dataset.sp); paused = false; syncUI(); }); });
+      swBtns.forEach(function(b){ b.addEventListener('click', function(){ startSweep(b.dataset.sw); }); });
+      pauseBtn.addEventListener('click', function(){ paused = !paused; syncUI(); });
+      document.getElementById('lock').addEventListener('change', function(e){ lock = e.target.checked; if(!lock) refit = true; });
+      syncUI();
+    },
+    step: function(v, h){
+      if(!paused && drag !== 'ph') theta = (theta + speed * REV * TWO * h) % TWO;
+      if(sweep && !(drag === 'f' && sweep === 'f')){
+        sweepU += sweepDir * h / SWEEP_T;
+        if(sweepU >= 1){ sweepU = 1; sweepDir = -1; } else if(sweepU <= 0){ sweepU = 0; sweepDir = 1; }
+        var r = RANGE[sweep], x = r[0] * Math.pow(r[1] / r[0], sweepU);
+        S[sweep] = x;
+      }
+    },
+    draw: function(v){
+      if(sweep){ var inp = document.getElementById('c-' + sweep); inp.value = S[sweep]; inp.parentElement.querySelector('output').textContent = FMT[sweep](S[sweep]); }
+      draw(v);
+    },
+    readout: function(){
+      var o = calc(), deg = o.phi * 180 / Math.PI;
+      return [
+        ['電源 f', fHz(S.f)], ['共振 f₀', fHz(o.f0)],
+        ['XL = ωL', fOhm(o.XL)], ['XC = 1/ωC', fOhm(o.XC)], ['Z', fOhm(o.Z)],
+        ['I₀ = V₀/Z', fA(o.I0)], ['VR₀', fV(o.VR)], ['VL₀', fV(o.VL)], ['VC₀', fV(o.VC)],
+        ['φ', Math.abs(deg) < 0.5 ? '0°(同位相)' : (deg > 0 ? 'v が ' + deg.toFixed(0) + '° 進み' : 'v が ' + (-deg).toFixed(0) + '° 遅れ')]
+      ];
+    },
+    down: function(v, p){
+      if(!G.mob && p.x < G.gx0 - 20){ drag = 'ph'; paused = true; syncUI(); }
+      else { drag = 'f'; if(sweep === 'f'){ sweep = null; syncUI(); } }
+      pick(v, p);
+    },
+    move: function(v, p){ pick(v, p); },
+    up: function(){ drag = null; },
+    reset: function(){
+      sweep = null; theta = 0; paused = false; speed = 0.25;
+      setVal('f', 50); setVal('R', 20); setVal('L', 200); setVal('C', 20);
+      refit = true; syncUI();
+    },
+    resize: function(v){ layout(v); fitCirc(); fitPha(); }
+  });
+})();
+</script>
+</body>
+</html>
