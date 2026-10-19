@@ -86,7 +86,7 @@
     <div class="ac-left">
       <div class="ac-fig"><canvas class="sim" id="sim" aria-label="抵抗・コイル・コンデンサーの電圧と電流の位相のずれを、回転ベクトルとグラフで示すシミュレーション"></canvas></div>
       <ul class="legend" id="legend"></ul>
-      <p class="legend-note">凡例をタップしても、その曲線をグラフに表示/非表示できます。</p>
+      <p class="legend-note">ベクトル図の矢印:合成(紫)がいちばん太く、抵抗(赤)が次に太い線です。同じ向きに重なったときは、紫の上に赤を重ねて描きます。オレンジの矢印は、青(コイル)と緑(コンデンサー)の矢印を足したものです。電圧は塗りつぶしの矢じり、電流は白抜きの矢じり。凡例をタップすると、その曲線をグラフに表示/非表示できます。</p>
       <ul class="readout" id="readout"></ul>
     </div>
     <div class="ac-right">
@@ -183,7 +183,7 @@
   function readCol(){
     col.ink = cssv('--ink'); col.soft = cssv('--ink-soft'); col.faint = cssv('--ink-faint');
     col.line = cssv('--line'); col.R = cssv('--thermo'); col.L = cssv('--accent-2');
-    col.C = cssv('--wave'); col.em = cssv('--em'); col.card = cssv('--paper-card-2');
+    col.C = cssv('--wave'); col.em = cssv('--em'); col.card = cssv('--paper-card-2'); col.O = cssv('--brand');
   }
 
   // ---------- 物理量 ----------
@@ -202,21 +202,21 @@
     }
     return o;
   }
-  // 表示する量: 電圧=実線、電流=破線
+  // 表示する量(線はすべて実線。vw はベクトル図の太さ:合成 > 抵抗 > L・C > 基準)
   function quantities(o){
     var q = [];
     if(mode === 'cmp'){
-      q.push({ s: 'v', sub: '', kind: 'V', amp: V0, ph: 0, color: col.ink, dash: false, w: 2.4, ref: true });
-      if(on.R) q.push({ s: 'i', sub: 'R', kind: 'I', amp: o.IR, ph: 0, color: col.R, dash: true, w: 2.4 });
-      if(on.L) q.push({ s: 'i', sub: 'L', kind: 'I', amp: o.IL, ph: -Math.PI / 2, color: col.L, dash: true, w: 2.4 });
-      if(on.C) q.push({ s: 'i', sub: 'C', kind: 'I', amp: o.IC, ph: Math.PI / 2, color: col.C, dash: true, w: 2.4 });
-      if(sumOn && (on.R + on.L + on.C) > 1) q.push({ s: 'i', sub: '', kind: 'I', amp: o.Isum, ph: o.phSum, color: col.em, dash: true, w: 3.2 });
+      q.push({ s: 'v', sub: '', kind: 'V', amp: V0, ph: 0, color: col.ink, dash: false, w: 2.2, vw: 2, ref: true });
+      if(on.R) q.push({ s: 'i', sub: 'R', kind: 'I', amp: o.IR, ph: 0, color: col.R, dash: false, w: 3, vw: 5.5 });
+      if(on.L) q.push({ s: 'i', sub: 'L', kind: 'I', amp: o.IL, ph: -Math.PI / 2, color: col.L, dash: false, w: 2.6, vw: 3.2 });
+      if(on.C) q.push({ s: 'i', sub: 'C', kind: 'I', amp: o.IC, ph: Math.PI / 2, color: col.C, dash: false, w: 2.6, vw: 3.2 });
+      if(sumOn && (on.R + on.L + on.C) > 1) q.push({ s: 'i', sub: '', kind: 'I', amp: o.Isum, ph: o.phSum, color: col.em, dash: false, w: 3.4, vw: 9 });
     } else {
-      q.push({ s: 'i', sub: '', kind: 'I', amp: o.I0, ph: 0, color: col.ink, dash: true, w: 2.4, ref: true });
-      q.push({ s: 'v', sub: 'R', kind: 'V', amp: o.VR, ph: 0, color: col.R, dash: false, w: 2.2 });
-      if(on.L) q.push({ s: 'v', sub: 'L', kind: 'V', amp: o.VL, ph: Math.PI / 2, color: col.L, dash: false, w: 2.2 });
-      if(on.C) q.push({ s: 'v', sub: 'C', kind: 'V', amp: o.VC, ph: -Math.PI / 2, color: col.C, dash: false, w: 2.2 });
-      q.push({ s: 'v', sub: '', kind: 'V', amp: V0, ph: o.phi, color: col.em, dash: false, w: 3.2, total: true });
+      q.push({ s: 'i', sub: '', kind: 'I', amp: o.I0, ph: 0, color: col.ink, dash: false, w: 2.2, vw: 2, ref: true });
+      q.push({ s: 'v', sub: 'R', kind: 'V', amp: o.VR, ph: 0, color: col.R, dash: false, w: 3, vw: 5.5 });
+      if(on.L) q.push({ s: 'v', sub: 'L', kind: 'V', amp: o.VL, ph: Math.PI / 2, color: col.L, dash: false, w: 2.6, vw: 3.2 });
+      if(on.C) q.push({ s: 'v', sub: 'C', kind: 'V', amp: o.VC, ph: -Math.PI / 2, color: col.C, dash: false, w: 2.6, vw: 3.2 });
+      q.push({ s: 'v', sub: '', kind: 'V', amp: V0, ph: o.phi, color: col.em, dash: false, w: 3.4, vw: 9, total: true });
     }
     return q;
   }
@@ -256,6 +256,30 @@
   function gx(th){ return G.gx0 + th / MAXT * (G.gx1 - G.gx0); }
 
   // ---------- 描画部品 ----------
+  // 回転ベクトル1本。part='body' で線、'head' で矢じり(線をすべて描いてから矢じりを重ねる)
+  // 電圧=塗りつぶしの矢じり、電流=白抜きの矢じり。矢じりは背景色で縁取り
+  function vec(ctx, q, part){
+    var x1 = G.cx, y1 = G.cy, x2 = q.tx, y2 = q.ty, len = Math.hypot(x2 - x1, y2 - y1);
+    if(len < 3) return;
+    var a = Math.atan2(y2 - y1, x2 - x1), w = q.vw, h = Math.min(9 + w * 0.8, len * 0.5), sp = 0.4 + Math.min(0.12, w * 0.012);
+    var bx = x2 - h * 0.8 * Math.cos(a), by = y2 - h * 0.8 * Math.sin(a);
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if(part === 'body'){
+      ctx.strokeStyle = q.color; ctx.lineWidth = w;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(bx, by); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - h * Math.cos(a - sp), y2 - h * Math.sin(a - sp));
+      ctx.lineTo(x2 - h * Math.cos(a + sp), y2 - h * Math.sin(a + sp));
+      ctx.closePath();
+      ctx.strokeStyle = col.card; ctx.lineWidth = 4; ctx.stroke();
+      if(q.kind === 'I'){ ctx.fillStyle = col.card; ctx.fill(); ctx.strokeStyle = q.color; ctx.lineWidth = Math.max(2, w * 0.6); ctx.stroke(); }
+      else { ctx.fillStyle = q.color; ctx.fill(); }
+    }
+    ctx.restore();
+  }
+  // 描く順(下→上): 合成(紫・太) → 基準(黒・細) → L・C → 抵抗(赤)。赤が黒の下に隠れないように
+  function vrank(q){ return q.lc ? 2.5 : q.total || (!q.ref && !q.sub) ? 0 : q.ref ? 1 : q.sub === 'R' ? 3 : 2; }
   function arrow(ctx, x1, y1, x2, y2, color, w, dash, hmax){
     var len = Math.hypot(x2 - x1, y2 - y1); if(len < 3) return;
     var a = Math.atan2(y2 - y1, x2 - x1), h = Math.min(hmax || 11, len * 0.45);
@@ -307,10 +331,10 @@
     ctx.save();
     for(var k = 0; k <= Math.round(MAXT / (Math.PI / 2)); k++){
       var x = gx(k * Math.PI / 2);
-      v.line(x, top, x, bot, col.line, k % 4 === 0 ? 1.2 : 1, k % 2 ? [2, 4] : []);
+      ctx.save(); ctx.globalAlpha = k % 2 ? 0.5 : 1; v.line(x, top, x, bot, col.line, k % 4 === 0 ? 1.2 : 1); ctx.restore();
       if(k > 0 && (k % 2 === 0 || G.gx1 - G.gx0 > 200)) v.text(piLabel(k), x, bot + 16, col.faint, 11, 'center');
     }
-    [-1, -0.5, 0.5, 1].forEach(function(f){ v.line(G.gx0, G.cy - f * G.R, G.gx1, G.cy - f * G.R, col.line, 1, [2, 4]); });
+    [-1, -0.5, 0.5, 1].forEach(function(f){ ctx.save(); ctx.globalAlpha = 0.6; v.line(G.gx0, G.cy - f * G.R, G.gx1, G.cy - f * G.R, col.line, 1); ctx.restore(); });
     v.line(G.gx0 - 6, G.cy, G.gx1 + 4, G.cy, col.soft, 1.3);
     v.text('ωt', G.gx1, G.cy - 6, col.soft, 12, 'right');
     // 縦の目盛り
@@ -322,7 +346,7 @@
     // ベクトル図の軸
     v.line(G.cx - G.R - 6, G.cy, G.cx + G.R + 6, G.cy, col.line, 1.2);
     v.line(G.cx, G.cy - G.R - 6, G.cx, G.cy + G.R + 6, col.line, 1.2);
-    ctx.save(); ctx.strokeStyle = col.line; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
+    ctx.save(); ctx.strokeStyle = col.line; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(G.cx, G.cy, G.R, 0, TWO); ctx.stroke(); ctx.restore();
 
     // 各量のピクセル振幅と先端
@@ -357,7 +381,7 @@
     }
 
     // 合成の作図(長方形): 抵抗の成分 + (L と C の成分の和) = 合成ベクトル
-    var tot = null, base = null, reac = [];
+    var tot = null, base = null, reac = [], lcq = null;
     Q.forEach(function(q){
       if(mode === 'ser' ? q.total : (!q.ref && !q.sub)) tot = q;
       else if(q.sub === 'R') base = q;
@@ -367,14 +391,13 @@
       var nx = G.cx, ny = G.cy;
       reac.forEach(function(q){ nx += q.tx - G.cx; ny += q.ty - G.cy; });
       if(reac.length > 1){   // L と C の和(向きが逆なので差になる)
-        ctx.save(); ctx.globalAlpha = 0.5;
-        arrow(ctx, G.cx, G.cy, nx, ny, col.em, 5, false); ctx.restore();
-        var nl = Math.hypot(nx - G.cx, ny - G.cy);
-        if(nl > 24) sym(ctx, reac[0].s.toUpperCase(), 'L+C', G.cx + (nx - G.cx) * (1 + 18 / nl) , G.cy + (ny - G.cy) * (1 + 18 / nl), col.em, 11, 'center');
+        // 青(L)と緑(C)の合力 = オレンジの矢印。ベクトルと一緒に描く
+        lcq = { tx: nx, ty: ny, vw: 3.6, color: col.O, kind: reac[0].kind, lc: true, s: reac[0].s, sub: 'L+C' };
       }
       if(base){
-        v.line(base.tx, base.ty, tot.tx, tot.ty, col.em, 1.2, [4, 4]);
-        v.line(nx, ny, tot.tx, tot.ty, col.em, 1.2, [4, 4]);
+        ctx.save(); ctx.globalAlpha = 0.55;
+        v.line(base.tx, base.ty, tot.tx, tot.ty, col.em, 1.5);
+        v.line(nx, ny, tot.tx, tot.ty, col.em, 1.5); ctx.restore();
       }
     }
 
@@ -397,15 +420,20 @@
     // 射影の線(ベクトルの先端 → グラフ)
     Q.forEach(function(q){
       if(hidden[qkey(q)]) return;
-      ctx.save(); ctx.globalAlpha = 0.6;
-      v.line(q.tx, q.ty, cur, q.ty, q.color, 1, [3, 3]); ctx.restore();
+      ctx.save(); ctx.globalAlpha = 0.35;
+      v.line(q.tx, q.ty, cur, q.ty, q.color, 1); ctx.restore();
       v.circle(cur, q.ty, 3.6, q.color, q.color);
     });
 
-    // ベクトル(基準は最後に重ねる)
+    // ベクトル: 紫(合成)→黒(基準)→L・C→赤(抵抗)の順に線を描き、最後に矢じりを全部重ねる
     var placed = [];
+    var ord = Q.slice();
+    if(lcq) ord.push(lcq);
+    ord.sort(function(a, b){ return vrank(a) - vrank(b); });
+    ord.forEach(function(q){ vec(ctx, q, 'body'); });
+    ord.slice().sort(function(a, b){ return (a.ref ? 9 : vrank(a)) - (b.ref ? 9 : vrank(b)); })   // 矢じりは基準(黒)を最後に
+      .forEach(function(q){ vec(ctx, q, 'head'); });
     Q.slice().reverse().forEach(function(q){
-      arrow(ctx, G.cx, G.cy, q.tx, q.ty, q.color, q.w + 0.4, q.dash);
       var d = q.a < 3 ? 0 : 1, ux = Math.cos(q.ang), uy = -Math.sin(q.ang);
       // 基準と同じ向きの矢印は、ラベルを横にずらして重なりを避ける
       var side = (!q.ref && Math.abs(q.ph) < 0.02 && q.a < Q[0].a + 20) ? 13 : 0;
@@ -416,6 +444,15 @@
       placed.push([lx, ly]);
       sym(ctx, q.s.toUpperCase(), q.sub, lx, ly, q.color, 13, 'center');
     });
+    if(lcq){
+      var nl = Math.hypot(lcq.tx - G.cx, lcq.ty - G.cy);
+      if(nl > 20){
+        var lx = G.cx + (lcq.tx - G.cx) * (1 + 16 / nl), ly = G.cy + (lcq.ty - G.cy) * (1 + 16 / nl);
+        // 青・緑の矢印と同じ線上なので、ラベルは少し横にずらす
+        lx += -(lcq.ty - G.cy) / nl * 16; ly += (lcq.tx - G.cx) / nl * 16;
+        sym(ctx, lcq.s.toUpperCase(), 'L+C', lx, ly, col.O, 12, 'center');
+      }
+    }
     v.circle(G.cx, G.cy, 3, col.ink, col.ink);
     drawCircuit(Q);
   }
