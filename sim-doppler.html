@@ -230,6 +230,7 @@
     W.push = function () { stack.push(Object.assign({}, st)); ctx.save(); };
     W.pop = function () { st = stack.pop() || st; ctx.restore(); };
     W.translate = function (x, y) { ctx.translate(x, y); };
+    W.scale = function (x, y) { ctx.scale(x, y === undefined ? x : y); };
 
     W.constrain = function (v, lo, hi) { return Math.max(lo, Math.min(hi, v)); };
     W.dist = function (x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); };
@@ -257,7 +258,9 @@
     let sushiList = [];
     const defaultItasanX = 220;
     let itasanX = defaultItasanX;
-    let itasanY = 110;
+    const SC = 0.65;           // 人の大きさ(元の絵に対する倍率)
+    const OFF = 50;            // 上の余白を詰める量(px)
+    let itasanY = 205 - 95 * SC;   // 手の先がコンベアの上に来る高さ
 
     let conveyorOffset = 0;
     let spawnTimer = 0;
@@ -270,8 +273,8 @@
     // お客さん（観測者）
     const defaultCustX = 640;
     let custX = defaultCustX;
-    const custY = 110;
-    const eatOffset = 40;      // 顔の中心から左へ40pxの位置（お箸）に届いたら食べる
+    const custY = 205 - 100 * SC;
+    const eatOffset = 40 * SC; // お箸の位置に届いたら食べる
     let frameNo = 0;
     let eatCount = 0;
 
@@ -288,7 +291,7 @@
     let munchTimer = 0;        // 「パクッ」表示の残りフレーム
 
     function setup() {
-        let canvas = createCanvas(760, 310);
+        let canvas = createCanvas(760, 310 - OFF);
         canvas.parent('sketch-holder');
         document.getElementById('reset').addEventListener('click', resetSimulation);
     }
@@ -314,6 +317,8 @@
 
     function draw() {
         background(cssVar('--paper-card-2') || '#FFF6E4');
+        push();
+        translate(0, -OFF);        // 上の余白を詰める
 
         let sliderSpeed = document.getElementById('slider-speed');
         let valueSpeed = document.getElementById('value-speed');
@@ -331,7 +336,7 @@
 
         if (!sliderSpeed || !sliderInterval || !selectMode || !sliderChefSpeed || !rowChefSpeed ||
             !selectCust || !sliderCustSpeed || !rowCustSpeed) {
-            return;
+            pop(); return;
         }
 
         let beltSpeed = parseFloat(sliderSpeed.value);
@@ -446,7 +451,7 @@
         }
         frameNo++;
 
-        let handX = itasanX - 25;
+        let handX = itasanX - 25 * SC;
 
         // 3. お寿司の自動生成
         spawnTimer++;
@@ -485,9 +490,9 @@
             noStroke();
             let a = s.passed ? 90 : 255;   // 通り過ぎたお寿司は薄く表示
             fill(255, a);
-            rect(s.x - 16, s.y, 32, 16, 6);
+            rect(s.x - 11, s.y + 3, 22, 11, 4);
             fill(231, 76, 60, a);
-            rect(s.x - 18, s.y - 4, 36, 8, 4);
+            rect(s.x - 13, s.y, 26, 6, 3);
 
             if (s.x > width + 50) {
                 sushiList.splice(i, 1);
@@ -531,6 +536,7 @@
         // 6. 「かわいい板さん」の描画
         push();
         translate(itasanX, itasanY);
+        scale(SC);
 
         // 体
         fill(255);
@@ -613,6 +619,7 @@
 
         // 7. お客さん（観測者）の描画
         drawCustomer();
+        pop();
 
         // 8. 周期の表示（板さん T と お客さん T'）
         drawReadout(spawnInterval, beltSpeed, chefSpeed, custSpeed, moveMode, custMode);
@@ -624,6 +631,7 @@
 
         push();
         translate(custX, custY);
+        scale(SC);
 
         // 体（緑のパーカー）
         fill(46, 160, 110);
@@ -695,13 +703,13 @@
             fill(255);
             stroke(231, 76, 60);
             strokeWeight(2);
-            rect(custX - 52, custY - 70, 70, 26, 10);
+            rect(custX - 42, custY - 62, 70, 26, 10);
             noStroke();
             fill(231, 76, 60);
             textSize(15);
             textStyle(BOLD);
             textAlign(CENTER, CENTER);
-            text('パクッ！', custX - 17, custY - 57);
+            text('パクッ！', custX - 7, custY - 49);
             pop();
         }
 
@@ -711,7 +719,7 @@
         fill(cssVar('--ink') || '#1B2A41');
         textSize(13);
         textAlign(CENTER, CENTER);
-        text('食べた数：' + eatCount + ' 皿', custX - 10, custY - 88);
+        text('食べた数：' + eatCount + ' 皿', custX, custY - 72);
         pop();
     }
 
@@ -762,10 +770,10 @@
     }
 
     function mousePressed() {
-        if (dist(mouseX, mouseY, itasanX, itasanY + 20) < 50) {
+        if (dist(mouseX, mouseY + OFF, itasanX, itasanY + 20 * SC) < 40) {
             dragTarget = 'chef';
             document.getElementById('select-mode').value = 'manual';
-        } else if (dist(mouseX, mouseY, custX, custY + 20) < 50) {
+        } else if (dist(mouseX, mouseY + OFF, custX, custY + 20 * SC) < 40) {
             dragTarget = 'cust';
             document.getElementById('select-cust-mode').value = 'manual';
         }
