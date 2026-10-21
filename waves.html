@@ -3,13 +3,341 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>波動 — 動く物理ノート</title>
+<title>静止摩擦力と動摩擦力 — 動く物理ノート</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./style.css">
+<style>
+/* 動く物理ノート — 共通スタイル */
+:root{
+  --paper:#F5EFDD;
+  --paper-card:#FFFBF2;
+  --paper-card-2:#FFF6E4;
+  --ink:#1B2A41;
+  --ink-soft:#57647A;
+  --ink-faint:#8B94A3;
+  --grid:rgba(27,42,65,0.07);
+  --line:rgba(27,42,65,0.16);
+  --brand:#C97A1A;
+  --brand-ink:#2A1A05;
+  --shadow:rgba(27,42,65,0.20);
+  --mech:#C97A1A;
+  --wave:#187F76;
+  --em:#6C4FBE;
+  --thermo:#C4432A;
+  --accent:var(--brand);
+  --accent-2:#2F6FB0;
+  --radius:16px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12161F;
+    --paper-card:#1A2029;
+    --paper-card-2:#1E2530;
+    --ink:#ECE7D8;
+    --ink-soft:#A7AFBE;
+    --ink-faint:#727C8C;
+    --grid:rgba(236,231,216,0.055);
+    --line:rgba(236,231,216,0.14);
+    --brand:#E8A33D;
+    --brand-ink:#1B1002;
+    --shadow:rgba(0,0,0,0.45);
+    --mech:#E8A33D;
+    --wave:#2FB9AE;
+    --em:#9C86EA;
+    --thermo:#E2684A;
+    --accent-2:#6FA8E0;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12161F;
+  --paper-card:#1A2029;
+  --paper-card-2:#1E2530;
+  --ink:#ECE7D8;
+  --ink-soft:#A7AFBE;
+  --ink-faint:#727C8C;
+  --grid:rgba(236,231,216,0.055);
+  --line:rgba(236,231,216,0.14);
+  --brand:#E8A33D;
+  --brand-ink:#1B1002;
+  --shadow:rgba(0,0,0,0.45);
+  --mech:#E8A33D;
+  --wave:#2FB9AE;
+  --em:#9C86EA;
+  --thermo:#E2684A;
+  --accent-2:#6FA8E0;
+  color-scheme:dark;
+}
+.u-mech{--accent:var(--mech);}
+.u-wave{--accent:var(--wave);}
+.u-em{--accent:var(--em);}
+.u-thermo{--accent:var(--thermo);}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    linear-gradient(var(--grid),var(--grid)) 0 0/100% 32px,
+    linear-gradient(90deg,var(--grid),var(--grid)) 0 0/32px 100%,
+    var(--paper);
+  color:var(--ink);
+  font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.brand-name{
+  font-family:"Zen Maru Gothic","Noto Sans JP",sans-serif;
+  text-wrap:balance;
+  letter-spacing:0.01em;
+}
+a{color:inherit;}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px;}
+
+.page{max-width:1080px;margin:0 auto;padding:20px 20px 64px;}
+
+/* ---------- header ---------- */
+.site-header{
+  display:flex;flex-wrap:wrap;gap:12px 16px;
+  align-items:center;justify-content:space-between;
+  padding:14px 4px 20px;
+  border-bottom:1px solid var(--line);
+  margin-bottom:32px;
+}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.brand-name{font-size:1.15rem;font-weight:700;color:var(--ink);}
+.brand svg{display:block;}
+.top-nav{display:flex;gap:4px;flex-wrap:wrap;font-size:0.92rem;}
+.top-nav a{
+  padding:7px 14px;border-radius:999px;text-decoration:none;
+  color:var(--ink-soft);font-weight:500;transition:background .15s,color .15s;
+}
+.top-nav a:hover{background:var(--paper-card-2);color:var(--ink);}
+.top-nav a.on{background:var(--ink);color:var(--paper);}
+
+/* ---------- top page ---------- */
+.hero{
+  display:grid;grid-template-columns:1.15fr 0.85fr;gap:48px;
+  align-items:center;padding:16px 0 48px;
+}
+.eyebrow{
+  display:inline-block;font-size:0.82rem;font-weight:700;color:var(--brand-ink);
+  background:var(--brand);padding:5px 12px;border-radius:999px;
+  letter-spacing:0.04em;margin:0 0 18px;transform:rotate(-1deg);
+}
+.hero h1{font-size:clamp(1.7rem,3.4vw,2.5rem);line-height:1.4;margin:0 0 18px;font-weight:900;}
+.hero .lead{color:var(--ink-soft);font-size:1.02rem;max-width:52ch;margin:0;}
+.hero-demo{
+  background:var(--paper-card);border:1px solid var(--line);
+  border-radius:var(--radius);padding:18px 18px 14px;
+  box-shadow:0 10px 24px -12px var(--shadow);
+}
+.hero-demo canvas{width:100%;aspect-ratio:3/2;display:block;border-radius:10px;}
+.hero-caption{margin:10px 2px 0;font-size:0.82rem;color:var(--ink-faint);text-align:center;}
+
+.section-label{
+  font-size:0.86rem;font-weight:700;color:var(--ink-soft);
+  letter-spacing:0.08em;margin:0 0 22px;
+  display:flex;align-items:center;gap:10px;
+}
+.section-label::after{content:"";flex:1;height:1px;background:var(--line);}
+
+.unit-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:26px 22px;
+  margin-bottom:56px;
+}
+.unit-card{
+  position:relative;background:var(--paper-card);
+  border:1px solid var(--line);border-radius:14px;
+  padding:26px 24px 22px;
+  box-shadow:0 8px 18px -14px var(--shadow);
+  display:flex;flex-direction:column;gap:12px;
+  text-decoration:none;color:inherit;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.unit-card:hover{transform:translateY(-3px);box-shadow:0 14px 26px -14px var(--shadow);}
+.unit-tab{
+  position:absolute;top:-11px;left:22px;
+  padding:4px 14px;border-radius:6px;font-size:0.78rem;font-weight:700;
+  color:var(--brand-ink);background:var(--accent);transform:rotate(-2deg);
+  box-shadow:0 2px 6px var(--shadow);
+}
+.unit-card h2{font-size:1.25rem;margin:6px 0 0;font-weight:700;}
+.unit-card p{margin:0;color:var(--ink-soft);font-size:0.94rem;}
+.chips{margin:2px 0 4px;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px;}
+.chips li{
+  font-size:0.76rem;color:var(--ink-soft);background:var(--paper-card-2);
+  border:1px solid var(--line);padding:3px 9px;border-radius:999px;
+}
+.chips li.soon{border-style:dashed;color:var(--ink-faint);}
+.count{font-size:0.8rem;color:var(--ink-faint);}
+.go{
+  margin-top:auto;font-weight:700;font-size:0.9rem;
+  display:inline-flex;align-items:center;gap:6px;color:var(--accent);
+}
+.go svg{transition:transform .15s;}
+.unit-card:hover .go svg,.sim-card:hover .go svg{transform:translateX(3px);}
+.unit-card .icon{width:40px;height:40px;}
+
+/* ---------- breadcrumb ---------- */
+.crumbs{font-size:0.85rem;color:var(--ink-faint);margin:0 0 14px;}
+.crumbs a{color:var(--ink-soft);text-decoration:none;}
+.crumbs a:hover{text-decoration:underline;}
+
+/* ---------- unit page ---------- */
+.unit-head{margin:0 0 32px;}
+.unit-head .tag{
+  display:inline-block;font-size:0.8rem;font-weight:700;color:var(--brand-ink);
+  background:var(--accent);padding:4px 12px;border-radius:6px;transform:rotate(-2deg);
+}
+.unit-head h1{font-size:clamp(1.6rem,3vw,2.2rem);margin:10px 0 8px;font-weight:900;}
+.unit-head p{margin:0;color:var(--ink-soft);max-width:60ch;}
+
+.sim-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;
+  margin-bottom:56px;
+}
+.sim-card{
+  background:var(--paper-card);border:1px solid var(--line);border-left:5px solid var(--accent);
+  border-radius:12px;padding:18px 18px 16px;
+  box-shadow:0 8px 18px -14px var(--shadow);
+  display:flex;flex-direction:column;gap:8px;
+  text-decoration:none;color:inherit;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+a.sim-card:hover{transform:translateY(-3px);box-shadow:0 14px 26px -14px var(--shadow);}
+.sim-card .num{font-size:0.76rem;color:var(--ink-faint);font-weight:700;letter-spacing:0.06em;}
+.sim-card h2{font-size:1.1rem;margin:0;font-weight:700;}
+.sim-card p{margin:0;color:var(--ink-soft);font-size:0.9rem;}
+.sim-card .mono{font-size:0.8rem;color:var(--ink-soft);}
+.sim-card.soon{background:transparent;border:1.5px dashed var(--line);border-left:5px dashed var(--line);box-shadow:none;}
+.sim-card.soon h2{color:var(--ink-soft);}
+.badge{
+  align-self:flex-start;font-size:0.72rem;font-weight:700;
+  padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--ink-faint);
+}
+
+/* ---------- simulation page ---------- */
+.sim-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px;margin:0 0 16px;}
+.sim-head h1{font-size:clamp(1.5rem,3vw,2rem);margin:0;font-weight:900;}
+.eq{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:0.9rem;color:var(--ink-soft);
+  background:var(--paper-card);border:1px solid var(--line);border-radius:8px;padding:4px 12px;}
+.stage{
+  background:var(--paper-card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;box-shadow:0 10px 24px -14px var(--shadow);
+}
+canvas.sim{
+  width:100%;height:clamp(260px,56vw,440px);display:block;
+  border-radius:10px;background:var(--paper-card-2);
+  border:1px solid var(--line);
+  touch-action:none;cursor:grab;
+}
+canvas.sim:active{cursor:grabbing;}
+.readout{display:flex;flex-wrap:wrap;gap:6px 10px;margin:12px 0 0;padding:0;list-style:none;}
+.readout li{
+  font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;
+  font-size:0.82rem;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:3px 10px;
+}
+.readout li b{color:var(--ink-soft);font-weight:500;margin-right:6px;}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 24px;margin-top:16px;}
+.ctrl label{display:flex;justify-content:space-between;gap:8px;font-size:0.86rem;color:var(--ink-soft);margin-bottom:4px;}
+.ctrl label output{font-family:"JetBrains Mono",ui-monospace,monospace;color:var(--ink);font-weight:700;}
+.ctrl input[type=range]{width:100%;accent-color:var(--accent);height:24px;margin:0;}
+.actions{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-top:16px;}
+.hint{font-size:0.85rem;color:var(--ink-faint);}
+.btn{
+  font:inherit;font-size:0.9rem;font-weight:700;cursor:pointer;
+  padding:8px 18px;border-radius:999px;border:1.5px solid var(--ink);
+  background:transparent;color:var(--ink);transition:background .15s,color .15s;
+}
+.btn:hover{background:var(--ink);color:var(--paper);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--brand-ink);}
+.btn.primary:hover{filter:brightness(1.08);}
+.btns{display:flex;gap:8px;flex-wrap:wrap;}
+
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:24px 0 48px;}
+.note{background:var(--paper-card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;}
+.note h2{font-size:1.05rem;margin:0 0 8px;display:flex;align-items:center;gap:8px;}
+.note h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--accent);}
+.note.q h2::before{background:var(--accent-2);}
+.note ul,.note ol{margin:0;padding-left:1.3em;color:var(--ink-soft);font-size:0.94rem;}
+.note li{margin:4px 0;}
+.note li strong{color:var(--ink);}
+
+.pager{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:40px;font-size:0.9rem;}
+.pager a{text-decoration:none;color:var(--ink-soft);}
+.pager a:hover{color:var(--ink);text-decoration:underline;}
+
+footer{
+  border-top:1px solid var(--line);padding-top:24px;
+  display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;
+  color:var(--ink-faint);font-size:0.85rem;
+}
+
+@media (max-width:760px){
+  .page{padding:12px 16px 48px;}
+  .hero{grid-template-columns:1fr;gap:28px;}
+  .unit-grid{grid-template-columns:1fr;}
+  .notes{grid-template-columns:1fr;}
+  .stage{padding:10px;}
+}
+@media (prefers-reduced-motion: reduce){
+  .unit-card,.sim-card{transition:none;}
+}
+
+/* ---------- 追加部品 ---------- */
+canvas.sim.wide{height:auto;aspect-ratio:16/9;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn:disabled:hover{background:transparent;color:var(--ink);}
+.btn.small{padding:5px 12px;font-size:0.85rem;}
+.angle-set{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.angle-set .lbl{font-size:0.86rem;color:var(--ink-soft);margin-right:4px;}
+.sketch{border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--paper-card-2);}
+.sketch canvas{display:block;touch-action:pan-y;}
+.ctrl select{
+  width:100%;font:inherit;font-size:0.92rem;padding:6px 10px;border-radius:8px;
+  border:1px solid var(--line);background:var(--paper);color:var(--ink);
+}
+footer .copy{flex-basis:100%;text-align:center;padding-top:12px;border-top:1px dashed var(--line);font-size:0.8rem;}
+
+</style>
+<style>
+  /* このページ専用: 図とグラフを見ながら操作できるように */
+  .fr-stage{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start;}
+  .fr-stage canvas.sim{height:clamp(240px,26vw,290px);}
+  .fr-graphs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
+  .gbox{background:var(--paper-card-2);border:1px solid var(--line);border-radius:10px;padding:8px 8px 6px;}
+  .gbox h3{font-size:0.88rem;margin:0 0 2px 4px;font-weight:700;}
+  .gbox canvas{width:100%;height:230px;display:block;touch-action:pan-y;}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 4px 0;padding:0;list-style:none;font-size:0.78rem;color:var(--ink-soft);}
+  .legend li{display:flex;align-items:center;gap:6px;}
+  .legend i{display:inline-block;width:20px;height:0;border-top:3px solid;}
+  .legend i.dash{border-top-style:dashed;border-top-width:2px;}
+  .speed-row{display:flex;align-items:center;gap:5px;}
+  .speed-row .lbl{font-size:0.86rem;color:var(--ink-soft);margin-right:2px;white-space:nowrap;}
+  .speed-row .btn{flex:1;padding:5px 4px;min-width:0;}
+  .fr-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+  .fr-btns .wide{grid-column:1 / -1;}
+  .fr-right .controls{grid-template-columns:1fr;gap:10px;margin-top:14px;}
+  .fr-right .ctrl label{margin-bottom:0;}
+  .fr-right .hint{margin:10px 0 0;line-height:1.6;}
+  @media (max-width:860px){
+    .fr-stage{grid-template-columns:1fr;gap:10px;}
+    .fr-left{display:contents;}
+    .fr-fig{order:0;position:sticky;top:0;z-index:5;background:var(--paper-card);padding:6px 0 4px;box-shadow:0 8px 10px -10px var(--shadow);}
+    .fr-right{order:1;}
+    .fr-graphs{order:2;grid-template-columns:1fr;margin-top:0;}
+    .fr-stage canvas.sim{height:clamp(200px,56vw,260px);}
+    .fr-fig .readout{margin-top:6px;}
+    .fr-fig .readout li{font-size:0.74rem;padding:2px 7px;}
+    .fr-right .controls{grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:10px;}
+    .gbox canvas{height:210px;}
+  }
+</style>
 </head>
-<body class="u-wave">
+<body class="u-mech">
 <div class="page">
 
   <header class="site-header">
@@ -22,62 +350,92 @@
       <span class="brand-name">動く物理ノート</span>
     </a>
     <nav class="top-nav">
-      <a href="./mechanics.html">力学</a>
-      <a href="./waves.html" class="on">波動</a>
+      <a href="./mechanics.html" class="on">力学</a>
+      <a href="./waves.html">波動</a>
       <a href="./electromagnetism.html">電磁気</a>
       <a href="./thermo.html">熱と気体</a>
     </nav>
   </header>
 
-  <p class="crumbs"><a href="./index.html">トップ</a> / 波動</p>
-  <section class="unit-head">
-    <span class="tag">2 章</span>
-    <h1>波動</h1>
-    <p>波の速さ・重ね合わせ・定在波・反射と干渉、そして音源が動くと音が変わるドップラー効果まで。</p>
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./mechanics.html">力学</a> / 静止摩擦力と動摩擦力</p>
+
+  <div class="sim-head">
+    <h1>静止摩擦力と動摩擦力</h1>
+    <span class="eq">静止: f = F ≦ μN   すべる: f = μ'N</span>
+  </div>
+
+  <section class="stage fr-stage">
+    <div class="fr-left">
+      <div class="fr-fig">
+        <canvas class="sim" id="sim" aria-label="床の上の箱をばねばかりで引き、摩擦力の変化を調べるシミュレーション"></canvas>
+        <ul class="readout" id="readout"></ul>
+      </div>
+      <div class="fr-graphs">
+        <div class="gbox">
+          <h3>引く力 F と 摩擦力 f の関係</h3>
+          <canvas id="gff" aria-label="横軸が引く力、縦軸が摩擦力のグラフ"></canvas>
+          <ul class="legend">
+            <li><i style="border-color:var(--accent-2)"></i>摩擦力 f(これまでの記録)</li>
+            <li><i class="dash" style="border-color:var(--ink-soft)"></i>最大摩擦力 μN・動摩擦力 μ'N</li>
+          </ul>
+        </div>
+        <div class="gbox">
+          <h3>力の時間変化</h3>
+          <canvas id="gft" aria-label="横軸が時間、縦軸が力の大きさのグラフ"></canvas>
+          <ul class="legend">
+            <li><i style="border-color:var(--accent)"></i>引く力 F(ばねばかりの読み)</li>
+            <li><i style="border-color:var(--accent-2)"></i>摩擦力 f</li>
+            <li><i class="dash" style="border-color:var(--ink-faint)"></i>動き出した瞬間</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="fr-right">
+      <div class="speed-row">
+        <span class="lbl">速さ</span>
+        <button class="btn small" data-sp="1">×1</button>
+        <button class="btn small" data-sp="0.25">1/4</button>
+        <button class="btn small" id="pause">停止</button>
+      </div>
+      <div class="fr-btns">
+        <button class="btn primary wide" id="ramp">ゆっくり引く</button>
+        <button class="btn" id="steady">等速で引く</button>
+        <button class="btn" id="reset">リセット</button>
+      </div>
+      <div class="controls" id="controls"></div>
+      <p class="hint">「ゆっくり引く」で F が毎秒 1 N ずつ増えます。ばねばかり(右の手)をドラッグして自分で引くこともできます。すべり出したあと「等速で引く」を押すと、F = μ'N にして一定の速さで引きます。</p>
+    </div>
   </section>
 
-  <p class="section-label">シミュレーション</p>
-  <div class="sim-grid">
-
-    <a class="sim-card" href="./sim-doppler.html">
-      <span class="num">No.01</span>
-      <h2>お寿司でわかるドップラー効果</h2>
-      <p>板さんが動きながらお寿司を置くと、間隔(波長)はどう変わる?</p>
-      <span class="mono">λ′ = (V − vs)T</span>
-      <span class="go">動かしてみる <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-    </a>
-
-    <a class="sim-card" href="./sim-reflection.html">
-      <span class="num">No.02</span>
-      <h2>平面波の反射と干渉</h2>
-      <p>境界面で反射する平面波。入射波と反射波が重なると、節線・腹線ができる。</p>
-      <span class="mono">節線の間隔 = λ/(2cos i)</span>
-      <span class="go">動かしてみる <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-    </a>
-
-    <a class="sim-card" href="./sim-interference.html">
-      <span class="num">No.03</span>
-      <h2>水面波の干渉</h2>
-      <p>2つの波源から広がる水面波。節線・腹線の双曲線と、S₁S₂ 上の定常波を断面で見る。</p>
-      <span class="mono">|S₁P − S₂P| = mλ, (m+½)λ</span>
-      <span class="go">動かしてみる <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-    </a>
-
-    <div class="sim-card soon">
-      <span class="badge">準備中</span>
-      <h2>横波の基本</h2>
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>止まっている間は、<strong>静止摩擦力 f は引く力 F と同じ大きさ</strong>(つりあい)。F を大きくすると f も大きくなります。グラフでは傾き 1 の直線。</li>
+        <li>静止摩擦力には限界があり、これが<strong>最大摩擦力 μN</strong>。F が μN を超えた瞬間に箱はすべり出します。</li>
+        <li>すべっている間は<strong>動摩擦力 μ'N</strong>。F をさらに大きくしても<strong>一定</strong>で、速さによりません。</li>
+        <li>ふつう <strong>μ' &lt; μ</strong> なので、動き出した瞬間に摩擦力がガクッと下がります。「動かし始めが一番重い」のはこのため。</li>
+        <li>F &gt; μ'N の間は加速度 a = (F − μ'N)/m で速くなり、F = μ'N にすると等速、F &lt; μ'N にすると減速して止まります。</li>
+        <li>水平な床では N = mg。μN も μ'N も、<strong>質量 m に比例</strong>します。</li>
+      </ul>
     </div>
-
-    <div class="sim-card soon">
-      <span class="badge">準備中</span>
-      <h2>重ね合わせと定在波</h2>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>m = 2.0 kg、μ = 0.50 のとき、何 N で引くと動き出す? 計算してから「ゆっくり引く」で確かめよう。</li>
+        <li>F を 4 N にして止めたとき、摩擦力はいくら? 「最大摩擦力 9.8 N」と答えるのはなぜまちがい?</li>
+        <li>すべっている箱を、F = μ'N で引き続けると箱はどうなる? 「等速で引く」で確かめ、つりあいで説明しよう。</li>
+        <li>すべっている途中で F を 0 にすると、箱は何秒で止まる? μ' と g だけで表してみよう。</li>
+        <li>質量を 2 倍にすると、「F と f の関係」のグラフの形はどう変わる?</li>
+      </ol>
     </div>
+  </section>
 
-    <div class="sim-card soon">
-      <span class="badge">準備中</span>
-      <h2>ヤングの干渉</h2>
-    </div>
-  </div>
+  <nav class="pager">
+    <a href="./sim-tipping.html">← 箱が倒れる条件</a>
+    <a href="./mechanics.html">力学の一覧へ</a>
+    <span></span>
+  </nav>
 
   <footer>
     <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
@@ -86,5 +444,498 @@
   </footer>
 
 </div>
+<script>
+/* 動く物理ノート — シミュレーション共通部品
+ * 使い方: PhysSim({ controls, state, init, step, draw, readout, down, move, up, reset, resize })
+ * ページ側に #sim(canvas), #controls, #readout, #reset が必要。
+ */
+(function(){
+  "use strict";
+  function css(name){ return getComputedStyle(document.body).getPropertyValue(name).trim(); }
+
+  window.PhysSim = function(opt){
+    var canvas = document.getElementById('sim');
+    var ctx = canvas.getContext('2d');
+    var v = { ctx:ctx, W:0, H:0, C:{}, t:0 };
+
+    function readColors(){
+      v.C = {
+        ink:css('--ink'), soft:css('--ink-soft'), faint:css('--ink-faint'),
+        line:css('--line'), grid:css('--grid'), card:css('--paper-card-2'),
+        accent:css('--accent'), accent2:css('--accent-2'), paper:css('--paper')
+      };
+    }
+    function fit(){
+      var r = canvas.getBoundingClientRect();
+      var d = window.devicePixelRatio || 1;
+      v.W = r.width; v.H = r.height;
+      canvas.width = Math.round(r.width*d); canvas.height = Math.round(r.height*d);
+      ctx.setTransform(d,0,0,d,0,0);
+    }
+
+    // ---- drawing helpers ----
+    v.clear = function(){ ctx.clearRect(0,0,v.W,v.H); };
+    v.circle = function(x,y,r,fill,stroke){
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle = fill; ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = stroke || v.C.ink; ctx.stroke();
+    };
+    v.line = function(x1,y1,x2,y2,color,width,dash){
+      ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width || 1.5;
+      ctx.setLineDash(dash || []);
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore();
+    };
+    v.arrow = function(x1,y1,x2,y2,color,width){
+      var len = Math.hypot(x2-x1,y2-y1); if(len < 2) return;
+      var a = Math.atan2(y2-y1,x2-x1), h = Math.min(10, len*0.5);
+      v.line(x1,y1,x2,y2,color,width||2.2);
+      ctx.beginPath(); ctx.moveTo(x2,y2);
+      ctx.lineTo(x2-h*Math.cos(a-0.45), y2-h*Math.sin(a-0.45));
+      ctx.lineTo(x2-h*Math.cos(a+0.45), y2-h*Math.sin(a+0.45));
+      ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+    };
+    v.text = function(s,x,y,color,size,align,base){
+      ctx.font = (size||12)+'px "JetBrains Mono", ui-monospace, monospace';
+      ctx.fillStyle = color || v.C.soft; ctx.textAlign = align || 'left';
+      ctx.textBaseline = base || 'alphabetic';
+      ctx.fillText(s,x,y);
+    };
+    v.label = function(s,x,y,color,size,align){
+      ctx.font = '500 '+(size||12)+'px "Noto Sans JP", sans-serif';
+      ctx.fillStyle = color || v.C.soft; ctx.textAlign = align || 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(s,x,y);
+    };
+
+    // ---- controls ----
+    var box = document.getElementById('controls');
+    (opt.controls||[]).forEach(function(c){
+      var wrap = document.createElement('div'); wrap.className = 'ctrl';
+      var id = 'c-'+c.key;
+      var lab = document.createElement('label'); lab.htmlFor = id;
+      var name = document.createElement('span'); name.textContent = c.label;
+      var out = document.createElement('output');
+      var input = document.createElement('input');
+      input.type='range'; input.id=id; input.min=c.min; input.max=c.max; input.step=c.step;
+      input.value = opt.state[c.key];
+      function show(){ out.textContent = c.fmt ? c.fmt(opt.state[c.key]) : opt.state[c.key]; }
+      input.addEventListener('input', function(){
+        opt.state[c.key] = parseFloat(input.value); show();
+        if(c.onChange) c.onChange(v); else if(opt.onChange) opt.onChange(v, c.key);
+      });
+      show();
+      lab.appendChild(name); lab.appendChild(out);
+      wrap.appendChild(lab); wrap.appendChild(input); box.appendChild(wrap);
+    });
+
+    // ---- readout ----
+    var ro = document.getElementById('readout');
+    var roItems = [];
+    function updateReadout(){
+      if(!opt.readout || !ro) return;
+      var rows = opt.readout(v);
+      if(roItems.length !== rows.length){
+        ro.innerHTML = ''; roItems = [];
+        rows.forEach(function(){
+          var li = document.createElement('li'); var b = document.createElement('b'); var s = document.createElement('span');
+          li.appendChild(b); li.appendChild(s); ro.appendChild(li); roItems.push([b,s]);
+        });
+      }
+      rows.forEach(function(r,i){
+        if(roItems[i][0].textContent !== r[0]) roItems[i][0].textContent = r[0];
+        if(roItems[i][1].textContent !== r[1]) roItems[i][1].textContent = r[1];
+      });
+    }
+
+    // ---- pointer ----
+    function pos(e){ var r = canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+    var active = false;
+    canvas.addEventListener('pointerdown', function(e){
+      active = true; try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+      opt.down && opt.down(v, pos(e)); e.preventDefault();
+    });
+    canvas.addEventListener('pointermove', function(e){ if(active && opt.move) opt.move(v, pos(e)); });
+    function end(e){ if(!active) return; active = false; opt.up && opt.up(v, pos(e)); }
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
+
+    // ---- buttons ----
+    var rb = document.getElementById('reset');
+    if(rb) rb.addEventListener('click', function(){ v.t = 0; opt.reset && opt.reset(v); });
+    v.extraButton = function(id, fn){ var b = document.getElementById(id); if(b) b.addEventListener('click', function(){ fn(v); }); };
+
+    // ---- lifecycle ----
+    var ro2 = null;
+    window.addEventListener('resize', function(){ fit(); opt.resize && opt.resize(v); });
+    if(window.matchMedia){
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      if(mq.addEventListener) mq.addEventListener('change', readColors);
+    }
+    readColors(); fit();
+    opt.init && opt.init(v);
+
+    var last = null, acc = 0;
+    function loop(ts){
+      if(last === null) last = ts;
+      var dt = Math.min((ts-last)/1000, 0.05); last = ts;
+      // 固定刻みで計算(精度と再現性のため)
+      acc += dt; var h = 1/240;
+      while(acc >= h){ opt.step && opt.step(v, h); v.t += h; acc -= h; }
+      opt.draw && opt.draw(v);
+      updateReadout();
+      requestAnimationFrame(loop);
+    }
+    document.addEventListener('visibilitychange', function(){ last = null; acc = 0; });
+    requestAnimationFrame(loop);
+    return v;
+  };
+})();
+
+</script>
+<script>
+(function(){
+  "use strict";
+  var G = 9.8, FMAX = 30, RATE = 1;          // 重力加速度、F の上限 [N]、ゆっくり引くときの増え方 [N/s]
+  var S = { F: 0, m: 2, mu: 0.5, mu2: 0.3 };
+
+  // 状態
+  var x, u, st, f, tt, ramp, steady, slipT, peak, flash, hist, sampT, dragging = false;
+  var speed = 1, paused = false;
+  var geo = {};
+
+  function N(){ return S.m*G; }
+  function resetAll(){
+    x = 0; u = 0; st = 'rest'; f = S.F; tt = 0; ramp = false; steady = false;
+    slipT = []; peak = null; flash = 0; hist = []; sampT = 0;
+    record(); showBtns();
+  }
+  function record(){
+    hist.push({ t: tt, F: S.F, f: f, st: st });
+    if(hist.length > 8000) hist.shift();
+  }
+
+  // ---------- 計算 ----------
+  function step(h){
+    if(ramp){
+      S.F = Math.min(FMAX, S.F + RATE*h);
+      // すべり出してから F が μN の 1.3 倍になったら自動で止める
+      if(S.F >= FMAX || (st === 'slide' && S.F >= 1.3*S.mu*N())){ ramp = false; showBtns(); }
+      setF(S.F, true);
+    }
+    if(steady && st === 'slide') setF(S.mu2*N(), true);
+    var Nn = N(), fmax = S.mu*Nn, fk = S.mu2*Nn;
+    if(st === 'rest'){
+      if(S.F > fmax + 1e-9){
+        st = 'slide'; peak = { F: fmax, f: fmax, t: tt };
+        // 動き出す瞬間: 静止摩擦力がちょうど μN に達した点を記録しておく
+        f = fmax; record();
+        slipT.push(tt); flash = 1.6; showBtns();
+      } else f = S.F;
+    }
+    if(st === 'slide'){
+      f = fk;
+      var nu = u + (S.F - fk)/S.m*h;
+      if(nu <= 0){
+        nu = 0;
+        if(S.F <= fmax){ st = 'rest'; f = S.F; steady = false; showBtns(); }
+      }
+      u = nu; x += u*h;
+    }
+    tt += h;
+    sampT += h;
+    if(sampT >= 1/60){ sampT = 0; record(); }
+  }
+
+  // ---------- F の操作 ----------
+  var fIn, fOut;
+  function setF(val, quiet){
+    S.F = Math.max(0, Math.min(FMAX, val));
+    if(!fIn){ fIn = document.getElementById('c-F'); fOut = fIn.parentNode.querySelector('output'); }
+    fIn.value = S.F; fOut.textContent = S.F.toFixed(1)+' N';
+    if(!quiet){ ramp = false; steady = false; showBtns(); }
+  }
+  var rampBtn = document.getElementById('ramp'), steadyBtn = document.getElementById('steady');
+  function showBtns(){
+    rampBtn.textContent = ramp ? '止める(F をそのまま)' : 'ゆっくり引く';
+    steadyBtn.disabled = st !== 'slide';
+    steadyBtn.classList.toggle('primary', steady);
+  }
+  rampBtn.addEventListener('click', function(){
+    if(ramp){ ramp = false; showBtns(); return; }
+    if(st === 'slide' || S.F >= FMAX){ setF(0); resetAll(); }
+    steady = false; ramp = true; paused = false; showSpeed(); showBtns();
+  });
+  steadyBtn.addEventListener('click', function(){
+    if(st !== 'slide') return;
+    ramp = false; steady = true; setF(S.mu2*N(), true); showBtns();
+  });
+
+  // ---------- 速さ・一時停止 ----------
+  var spBtns = Array.prototype.slice.call(document.querySelectorAll('[data-sp]'));
+  var pauseBtn = document.getElementById('pause');
+  function showSpeed(){
+    spBtns.forEach(function(b){ b.classList.toggle('primary', !paused && parseFloat(b.dataset.sp) === speed); });
+    pauseBtn.textContent = paused ? '再開' : '停止';
+    pauseBtn.classList.toggle('primary', paused);
+  }
+  spBtns.forEach(function(b){ b.addEventListener('click', function(){ speed = parseFloat(b.dataset.sp); paused = false; showSpeed(); }); });
+  pauseBtn.addEventListener('click', function(){ paused = !paused; showSpeed(); });
+  showSpeed();
+
+  // ---------- グラフ用 canvas ----------
+  var gc = ['gff','gft'].map(function(id){ var c = document.getElementById(id); return { c: c, ctx: c.getContext('2d'), W: 0, H: 0 }; });
+  function fitG(){
+    var d = window.devicePixelRatio || 1;
+    gc.forEach(function(g){
+      var r = g.c.getBoundingClientRect(); g.W = r.width; g.H = r.height;
+      g.c.width = Math.round(r.width*d); g.c.height = Math.round(r.height*d);
+      g.ctx.setTransform(d,0,0,d,0,0);
+    });
+  }
+  function niceMax(a){
+    var steps = [5, 6, 8, 10, 12, 15, 20, 25, 30, 40];
+    for(var i = 0; i < steps.length; i++) if(a <= steps[i]) return steps[i];
+    return 40;
+  }
+  function tickStep(m){ return m <= 6 ? 1 : m <= 12 ? 2 : m <= 25 ? 5 : 10; }
+  function txt(ctx, s, x, y, col, size, align, mono){
+    ctx.font = (mono ? '' : '500 ') + (size||11) + 'px ' + (mono ? '"JetBrains Mono", ui-monospace, monospace' : '"Noto Sans JP", sans-serif');
+    ctx.fillStyle = col; ctx.textAlign = align || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y);
+  }
+  function seg(ctx, x1, y1, x2, y2, col, w, dash){
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w || 1; ctx.setLineDash(dash || []);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+  }
+  // 軸と目盛りをかく。戻り値は 値 → 座標 の関数
+  function axes(g, C, xmax, ymax, xlab, ylab, xstep, ystep){
+    var ctx = g.ctx, L = 40, R = 12, T = 26, B = 34;
+    var pw = g.W - L - R, ph = g.H - T - B;
+    var X = function(a){ return L + a/xmax*pw; }, Y = function(b){ return T + ph - b/ymax*ph; };
+    ctx.clearRect(0, 0, g.W, g.H);
+    for(var a = 0; a <= xmax + 1e-9; a += xstep){
+      seg(ctx, X(a), T, X(a), T + ph, C.line, 1);
+      txt(ctx, String(+a.toFixed(1)), X(a), T + ph + 14, C.soft, 10.5, 'center', true);
+    }
+    for(var b = 0; b <= ymax + 1e-9; b += ystep){
+      seg(ctx, L, Y(b), L + pw, Y(b), C.line, 1);
+      txt(ctx, String(b), L - 6, Y(b) + 4, C.soft, 10.5, 'right', true);
+    }
+    seg(ctx, L, T + ph, L + pw, T + ph, C.ink, 1.4);
+    seg(ctx, L, T, L, T + ph, C.ink, 1.4);
+    txt(ctx, ylab, 4, 14, C.ink, 11.5, 'left');
+    txt(ctx, xlab, L + pw, g.H - 4, C.ink, 11.5, 'right');
+    return { X: X, Y: Y, L: L, T: T, pw: pw, ph: ph };
+  }
+  function dot(ctx, x, y, r, fill, stroke){
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+    if(fill){ ctx.fillStyle = fill; ctx.fill(); }
+    if(stroke){ ctx.lineWidth = 1.8; ctx.strokeStyle = stroke; ctx.stroke(); }
+  }
+
+  function drawGraphs(C){
+    var Nn = N(), fmax = S.mu*Nn, fk = S.mu2*Nn;
+    var top = niceMax(Math.max(fmax*1.35, S.F*1.05, 5));
+    var ts = tickStep(top);
+
+    // ① F – f グラフ
+    var g = gc[0], ctx = g.ctx;
+    var A = axes(g, C, top, top, '横軸: 引く力 F [N]', '縦軸: 摩擦力の大きさ f [N]', ts, ts);
+    // 静止とすべりの区間
+    ctx.save(); ctx.globalAlpha = 0.08; ctx.fillStyle = C.accent2;
+    ctx.fillRect(A.X(fmax), A.T, A.X(top) - A.X(fmax), A.ph); ctx.restore();
+    txt(ctx, '止まっている', (A.X(0) + A.X(fmax))/2, A.T + 14, C.faint, 10.5, 'center');
+    if(A.X(top) - A.X(fmax) > 60) txt(ctx, 'すべっている', (A.X(fmax) + A.X(top))/2, A.T + 14, C.faint, 10.5, 'center');
+    seg(ctx, A.X(fmax), A.T, A.X(fmax), A.T + A.ph, C.faint, 1, [3,3]);
+    // 目安の線
+    seg(ctx, A.L, A.Y(fmax), A.L + A.pw, A.Y(fmax), C.soft, 1.3, [6,4]);
+    seg(ctx, A.L, A.Y(fk), A.L + A.pw, A.Y(fk), C.soft, 1.3, [6,4]);
+    txt(ctx, '最大摩擦力 μN = ' + fmax.toFixed(1), A.L + 6, A.Y(fmax) - 5, C.soft, 10.5, 'left');
+    txt(ctx, "動摩擦力 μ'N = " + fk.toFixed(1), A.L + A.pw - 2, A.Y(fk) + 13, C.soft, 10.5, 'right');
+    // 記録
+    ctx.save(); ctx.strokeStyle = C.accent2; ctx.lineWidth = 2.6; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    hist.forEach(function(p, i){ var px = A.X(p.F), py = A.Y(p.f); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+    ctx.stroke(); ctx.restore();
+    if(peak){
+      dot(ctx, A.X(peak.F), A.Y(peak.f), 6, null, C.accent2);
+      txt(ctx, 'ここで動き出す', A.X(peak.F) + 9, A.Y(peak.f) - 8, C.accent2, 10.5, 'left');
+    }
+    dot(ctx, A.X(S.F), A.Y(f), 4.5, C.accent2, C.ink);
+
+    // ② 時間変化
+    g = gc[1]; ctx = g.ctx;
+    var span = 20, t1 = Math.max(span, tt), t0 = t1 - span;
+    var B = axes(g, C, span, top, '横軸: 時間 t [s]', '縦軸: 力の大きさ [N]', 5, ts);
+    // 時間の目盛りを実際の時刻に付けかえる
+    ctx.clearRect(B.L - 20, B.T + B.ph + 2, B.pw + 30, 16);
+    for(var s = Math.ceil(t0/5)*5; s <= t1 + 1e-9; s += 5){
+      txt(ctx, String(s), B.X(s - t0), B.T + B.ph + 14, C.soft, 10.5, 'center', true);
+    }
+    seg(ctx, B.L, B.Y(fmax), B.L + B.pw, B.Y(fmax), C.faint, 1, [6,4]);
+    seg(ctx, B.L, B.Y(fk), B.L + B.pw, B.Y(fk), C.faint, 1, [6,4]);
+    txt(ctx, 'μN', B.L + 4, B.Y(fmax) - 4, C.soft, 10.5, 'left', true);
+    txt(ctx, "μ'N", B.L + 4, B.Y(fk) + 13, C.soft, 10.5, 'left', true);
+    slipT.forEach(function(ts0){
+      if(ts0 < t0) return;
+      seg(ctx, B.X(ts0 - t0), B.T, B.X(ts0 - t0), B.T + B.ph, C.faint, 1.2, [4,3]);
+      txt(ctx, '動き出した', B.X(ts0 - t0) + 4, B.T + 12, C.soft, 10.5, 'left');
+    });
+    function curve(key, col, w){
+      ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineJoin = 'round';
+      ctx.beginPath(); var started = false;
+      for(var i = 0; i < hist.length; i++){
+        var p = hist[i]; if(p.t < t0) continue;
+        var px = B.X(p.t - t0), py = B.Y(p[key]);
+        started ? ctx.lineTo(px, py) : ctx.moveTo(px, py); started = true;
+      }
+      ctx.stroke(); ctx.restore();
+    }
+    curve('F', C.accent, 2.2);
+    curve('f', C.accent2, 2.6);
+  }
+
+  // ---------- 描画(箱・ばねばかり・力の矢印) ----------
+  function layout(v){
+    geo.floor = v.H - 40;
+    geo.bw = Math.min(118, Math.max(80, v.W*0.2));
+    geo.bh = Math.round(geo.bw*0.62);
+    geo.bx = Math.max(56, v.W*0.16);                     // 箱の左端
+    geo.str = 18; geo.L0 = 26; geo.scw = 50;              // ひも・ばね(自然長)・ばねばかり本体の長さ
+    var room = v.W - 30 - (geo.bx + geo.bw + geo.str + geo.L0 + geo.scw + 16);
+    geo.kpx = Math.max(2.5, room/FMAX);                   // ばねののび [px/N]
+    geo.ay = geo.floor - geo.bh/2;                        // ひもの高さ
+  }
+  function handX(){ return geo.bx + geo.bw + geo.str + geo.L0 + S.F*geo.kpx + geo.scw; }
+
+  function draw(v){
+    var C = v.C, ctx = v.ctx;
+    v.clear();
+    var Nn = N(), fmax = S.mu*Nn, fk = S.mu2*Nn;
+    var fl = geo.floor, bx = geo.bx, bw = geo.bw, bh = geo.bh;
+
+    // 床(箱が進むと床が左へ流れる)
+    var PX = 90, off = (x*PX) % 14;
+    v.line(0, fl, v.W, fl, C.ink, 1.6);
+    for(var i = -off; i < v.W + 14; i += 14) v.line(i, fl, i - 8, fl + 8, C.faint, 1);
+    var m0 = Math.floor((x*PX - v.W)/PX), m1 = Math.ceil((x*PX + v.W)/PX);
+    for(var mm = m0; mm <= m1; mm++){
+      var xm = bx + bw/2 + mm*PX - x*PX;
+      if(xm < 0 || xm > v.W) continue;
+      v.line(xm, fl, xm, fl + 12, C.soft, 1.2);
+      if(mm >= 0) v.text(mm + ' m', xm + 3, fl + 24, C.faint, 10);
+    }
+
+    // 箱
+    ctx.save(); ctx.globalAlpha = 0.85; ctx.fillStyle = C.accent;
+    ctx.fillRect(bx, fl - bh, bw, bh); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.strokeRect(bx, fl - bh, bw, bh); ctx.restore();
+    v.label(S.m.toFixed(1) + ' kg', bx + 6, fl - bh + 16, C.ink, 11.5, 'left');
+
+    // ひも・ばね・ばねばかり・手
+    var ay = geo.ay, s0 = bx + bw + geo.str, s1 = s0 + geo.L0 + S.F*geo.kpx, hx = s1 + geo.scw;
+    v.line(bx + bw, ay, s0, ay, C.ink, 1.4);
+    ctx.save(); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(s0, ay);
+    var nz = 10, zl = s1 - s0;
+    for(var z = 1; z < nz*2; z++) ctx.lineTo(s0 + zl*z/(nz*2), ay + (z % 2 ? -7 : 7));
+    ctx.lineTo(s1, ay); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.fillStyle = C.paper; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.rect(s1, ay - 13, geo.scw, 26); ctx.fill(); ctx.stroke(); ctx.restore();
+    v.text(S.F.toFixed(1), s1 + geo.scw/2, ay + 4, C.accent, 12, 'center');
+    v.circle(hx + 12, ay, dragging ? 14 : 12, C.card, C.ink);
+    v.label('手', hx + 12, ay + 4, C.ink, 11, 'center');
+    if(S.F === 0 && st === 'rest' && !ramp && v.W > 420) v.label('← ドラッグして引く', hx + 30, ay + 4, C.faint, 11);
+
+    // 力の矢印(長さは mg を基準にした比)
+    var sc = 62/Math.max(Nn, fmax*1.25), cap = 150;
+    function L(F){ return Math.min(cap, F*sc); }
+    var cx = bx + bw/2, cy = fl - bh/2;
+    v.arrow(cx - 10, cy, cx - 10, cy + L(Nn), C.ink, 2.4);
+    v.label('mg', cx - 16, cy + L(Nn) + 2, C.ink, 12, 'right');
+    v.arrow(cx + 10, fl, cx + 10, fl - L(Nn), C.soft, 2.4);
+    v.label('N', cx + 15, fl - L(Nn) + 12, C.soft, 12);
+    if(S.F > 0.05) { v.arrow(bx + bw, ay - 22, bx + bw + L(S.F), ay - 22, C.accent, 2.6); v.label('F', bx + bw + L(S.F) + 4, ay - 18, C.accent, 13); }
+    if(f > 0.05){
+      // 摩擦力は床との接触面に沿って、箱の左下の角から左向きにかく
+      v.arrow(bx, fl - 3, bx - L(f), fl - 3, C.accent2, 3);
+      v.label(st === 'slide' ? "f = μ'N" : 'f', bx - L(f)/2, fl - 10, C.accent2, 13, 'center');
+    }
+    // 速度
+    if(u > 0.005){
+      var vl = Math.min(120, 18 + u*14);
+      v.arrow(bx, fl - bh - 12, bx + vl, fl - bh - 12, C.soft, 1.6);
+      v.text('v', bx + vl + 4, fl - bh - 8, C.soft, 12);
+    }
+
+    // 左上: 状態と「摩擦力の大きさ」メーター
+    var x0 = 14, y0 = 22, mw = Math.min(200, v.W*0.42);
+    var title, col = C.ink;
+    if(flash > 0){ title = '最大摩擦力を超えた → すべり出す!'; col = C.accent2; }
+    else if(st === 'slide') title = u > 0 && Math.abs(S.F - fk) < 0.05 ? 'すべっている(等速:F = μ\'N)' : 'すべっている(動摩擦力)';
+    else title = S.F > 0.05 ? '止まっている(静止摩擦力 f = F)' : '止まっている';
+    v.label(title, x0, y0, col, v.W < 420 ? 12.5 : 14);
+    var r = f/fmax;
+    ctx.save(); ctx.fillStyle = C.paper; ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.rect(x0, y0 + 10, mw, 10); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = C.accent2; ctx.fillRect(x0, y0 + 10, mw*Math.min(1, r), 10);
+    var kx = x0 + mw*S.mu2/S.mu;
+    ctx.restore();
+    v.line(kx, y0 + 7, kx, y0 + 23, C.ink, 1.2);
+    v.label('f / μN', x0 + mw + 8, y0 + 20, C.soft, 11);
+    v.text(r.toFixed(2), x0 + mw + 52, y0 + 20, r >= 0.999 ? C.accent2 : C.ink, 11);
+    v.label("μ'N", kx, y0 + 36, C.faint, 10, 'center');
+
+    if(paused || speed !== 1) v.label(paused ? '一時停止中' : 'スロー 1/4', v.W - 12, 22, paused ? C.accent2 : C.soft, 13, 'right');
+
+    drawGraphs(C);
+  }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key:'F', label:'引く力 F', min:0, max:FMAX, step:0.1, fmt:function(a){return a.toFixed(1)+' N';},
+        onChange:function(){ ramp = false; steady = false; showBtns(); } },
+      { key:'m', label:'質量 m', min:0.5, max:5, step:0.1, fmt:function(a){return a.toFixed(1)+' kg';}, onChange:function(){ resetAll(); } },
+      { key:'mu', label:'静止摩擦係数 μ', min:0.1, max:1, step:0.01, fmt:function(a){return a.toFixed(2);},
+        onChange:function(){ if(S.mu2 > S.mu) setSlider('mu2', S.mu); resetAll(); } },
+      { key:'mu2', label:"動摩擦係数 μ'", min:0.05, max:1, step:0.01, fmt:function(a){return a.toFixed(2);},
+        onChange:function(){ if(S.mu2 > S.mu) setSlider('mu2', S.mu); resetAll(); } }
+    ],
+    init: function(v){ layout(v); fitG(); resetAll(); },
+    resize: function(v){ layout(v); fitG(); },
+    step: function(v, h){
+      if(flash > 0) flash -= h;              // 表示は実時間で消す
+      if(paused) return;
+      step(h*speed);
+    },
+    draw: draw,
+    readout: function(){
+      var Nn = N();
+      return [
+        ['引く力 F', S.F.toFixed(1)+' N'],
+        ['摩擦力 f', f.toFixed(1)+' N'],
+        ['最大摩擦力 μN', (S.mu*Nn).toFixed(1)+' N'],
+        ["動摩擦力 μ'N", (S.mu2*Nn).toFixed(1)+' N'],
+        ['速さ v', u.toFixed(2)+' m/s'],
+        ['進んだ距離', x.toFixed(2)+' m']
+      ];
+    },
+    down: function(v, p){
+      if(Math.abs(p.x - (handX() + 12)) < 34 && Math.abs(p.y - geo.ay) < 30){ dragging = true; ramp = false; steady = false; showBtns(); }
+    },
+    move: function(v, p){
+      if(!dragging) return;
+      setF((p.x - 12 - geo.scw - geo.L0 - geo.str - geo.bx - geo.bw)/geo.kpx, true);
+    },
+    up: function(){ dragging = false; },
+    reset: function(){ setF(0, true); ramp = false; steady = false; resetAll(); }
+  });
+
+  function setSlider(key, val){
+    S[key] = val;
+    var el = document.getElementById('c-'+key); el.value = val;
+    el.parentNode.querySelector('output').textContent = val.toFixed(2);
+  }
+})();
+</script>
 </body>
 </html>
