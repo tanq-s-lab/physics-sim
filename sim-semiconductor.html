@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>n型・p型半導体 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* このページ専用: 図を見ながら操作できるよう横並び(スマホでは図を上に固定) */
+  .sc-stage{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:start;}
+  .sc-stage canvas.sim{height:clamp(380px,40vw,470px);}
+  .sc-left{position:sticky;top:8px;}
+  .row{display:flex;gap:6px;align-items:center;}
+  .row + .row{margin-top:10px;}
+  .row .lbl{font-size:0.86rem;color:var(--ink-soft);margin-right:2px;white-space:nowrap;}
+  .row .btn{flex:1;padding:5px 4px;min-width:0;}
+  .mode .btn{padding:8px 4px;font-size:0.95rem;}
+  .sc-right .controls{grid-template-columns:1fr;gap:10px;margin-top:14px;}
+  .sc-right .ctrl label{margin-bottom:0;}
+  .checks{margin:12px 0 0;display:flex;flex-direction:column;gap:4px;font-size:0.88rem;color:var(--ink-soft);}
+  .checks label{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .checks input{accent-color:var(--accent);width:16px;height:16px;margin:0;}
+  .sc-btns{margin-top:14px;}
+  .sc-right .hint{margin:10px 0 0;line-height:1.6;}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:10px 2px 0;padding:0;list-style:none;font-size:0.82rem;color:var(--ink-soft);}
+  .legend li{display:flex;align-items:center;gap:6px;}
+  .legend svg{flex:none;}
+  .pair{width:100%;border-collapse:collapse;font-size:0.9rem;margin-top:6px;}
+  .pair th,.pair td{border-bottom:1px dashed var(--line);padding:5px 6px;text-align:left;}
+  .pair th{color:var(--ink-soft);font-weight:500;}
+  @media (max-width:860px){
+    .sc-stage{grid-template-columns:1fr;gap:10px;}
+    .sc-left{display:contents;}
+    .sc-fig{position:sticky;top:0;z-index:5;background:var(--paper-card);padding:6px 0 4px;box-shadow:0 8px 10px -10px var(--shadow);}
+    .sc-stage canvas.sim{height:clamp(330px,88vw,420px);}
+    .sc-stage .readout{margin-top:0;}
+    .sc-stage .readout li{font-size:0.74rem;padding:2px 7px;}
+    .legend{font-size:0.76rem;gap:2px 12px;margin-top:6px;}
+  }
+</style>
+</head>
+<body class="u-em">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html" class="on">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./electromagnetism.html">電磁気</a> / n型・p型半導体</p>
+
+  <div class="sim-head">
+    <h1>n型・p型半導体 — 電子とホールの動き</h1>
+    <span class="eq">キャリア: n型=電子 / p型=ホール</span>
+  </div>
+
+  <section class="stage sc-stage">
+    <div class="sc-left">
+      <div class="sc-fig"><canvas class="sim" id="sim" aria-label="ケイ素の結晶の中を動く自由電子とホール、電極と電池をつないだ回路"></canvas></div>
+      <ul class="legend" aria-label="図の見方">
+        <li><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="var(--accent-2)"/><path d="M5 8h6" stroke="#fff" stroke-width="1.6"/></svg><span>自由電子(負の電荷 −e)</span></li>
+        <li><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--brand)" stroke-width="2"/><path d="M5.5 8h5M8 5.5v5" stroke="var(--brand)" stroke-width="1.6"/></svg><span>ホール(電子の抜けた穴、正の電荷 +e のようにふるまう)</span></li>
+        <li><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="5" cy="8" r="2.2" fill="var(--accent-2)" opacity=".55"/><circle cx="11" cy="8" r="2.2" fill="var(--accent-2)" opacity=".55"/></svg><span>価電子(原子どうしの結合に使われている電子 2 個)</span></li>
+        <li><span><b>Si</b> ケイ素(価電子 4)、<b>P</b> リン(価電子 5、ドナー)、<b>B</b> ホウ素(価電子 3、アクセプター)</span></li>
+      </ul>
+      <ul class="readout" id="readout"></ul>
+    </div>
+    <div class="sc-right">
+      <div class="row mode">
+        <button class="btn" id="m-n">n型</button>
+        <button class="btn" id="m-p">p型</button>
+      </div>
+      <div class="controls" id="controls"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn small" id="v0">V = 0</button>
+        <button class="btn small" id="vflip">電池を逆向きに</button>
+      </div>
+      <div class="checks">
+        <label><input type="checkbox" id="ck-note" checked>説明の文字を表示</label>
+        <label><input type="checkbox" id="ck-th">熱運動(でたらめな動き)も入れる</label>
+        <label><input type="checkbox" id="ck-bond" checked>価電子(結合)を表示</label>
+        <label><input type="checkbox" id="ck-trk">1 つを追いかける(軌跡)</label>
+        <label><input type="checkbox" id="ck-wire">導線の中の電子を表示</label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <span class="lbl">速さ</span>
+        <button class="btn small" data-sp="1">×1</button>
+        <button class="btn small" data-sp="0.25">1/4</button>
+        <button class="btn small" id="pause">停止</button>
+      </div>
+      <div class="btns sc-btns">
+        <button class="btn" id="reset">はじめから</button>
+      </div>
+      <p class="hint">はじめは電場による動きだけを、教科書の図のように整理して見せています。p型では、となりの価電子がホールに跳び移るたびに、ホールが反対向きに 1 つ進みます。「熱運動も入れる」にすると、実際に近いでたらめな動きが加わります(切り替えるとはじめからになります)。</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>ケイ素 Si は価電子が 4 個で、となりの 4 個の原子と電子を 2 個ずつ出し合って結合している。純粋な Si(真性半導体)は自由に動ける電子が少なく、電流が流れにくい。</li>
+        <li><strong>n型</strong>: 価電子 5 個のリン P などを少し混ぜる。結合に使われない 1 個が<strong>自由電子</strong>になり、P は正イオン P⁺ として結晶に固定される。電流を運ぶのは<strong>電子(負 negative)</strong>。</li>
+        <li><strong>p型</strong>: 価電子 3 個のホウ素 B などを混ぜる。結合の電子が 1 個足りない場所が<strong>ホール(正孔)</strong>。となりの価電子が跳び移ると、穴は反対向きに移動する。電流を運ぶのは<strong>ホール(正 positive のようにふるまう)</strong>。</li>
+        <li>電子は電場と<strong>逆向き</strong>に、ホールは電場と<strong>同じ向き</strong>に平均して進む。どちらの場合も電流の向きは電場の向き(＋極 → −極)で同じ。</li>
+        <li>熱運動はでたらめで平均すると 0。電場をかけると、その上にゆっくりした「平均の動き(ドリフト)」が加わる。</li>
+        <li>p型でも、<strong>導線の中を流れているのは電子</strong>。−極側の電極から電子がホールを埋め、＋極側の電極では電子が抜き取られて新しいホールができる。</li>
+      </ul>
+      <table class="pair" aria-label="n型とp型の比較">
+        <tr><th></th><th>n型</th><th>p型</th></tr>
+        <tr><td>混ぜる元素</td><td>P, As など(価電子 5)</td><td>B, Al など(価電子 3)</td></tr>
+        <tr><td>おもなキャリア</td><td>自由電子(−)</td><td>ホール(＋)</td></tr>
+        <tr><td>固定されたイオン</td><td>P⁺(ドナー)</td><td>B⁻(アクセプター)</td></tr>
+        <tr><td>キャリアの動く向き</td><td>電場と逆向き</td><td>電場と同じ向き</td></tr>
+      </table>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>V = 0 で熱運動だけのとき、電流は流れる? 「1 つを追いかける」で軌跡を見て、平均するとどうなるか確かめよう。</li>
+        <li>n型で電子は左右どちらへ進む? そのとき電流の向きは? p型と比べよう。</li>
+        <li>p型で、価電子が跳び移る向きとホールが進む向きの関係は? 「熱運動」を外してゆっくり見よう。</li>
+        <li>n型・p型の結晶全体は、正・負どちらに帯電している? 固定されたイオンとキャリアの数を数えよう。</li>
+        <li>p型の半導体につないだ導線の中では、何が、どちら向きに動いている?</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-lc.html">← 電気振動(LC 回路)</a>
+    <a href="./electromagnetism.html">電磁気の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  var S = { V:1.5 };
+  var mode = 'n';            // 'n' | 'p'
+  var speed = 1, paused = false;
+  var thermal = false, showBond = true, track = false, showWire = false, showNote = true;
+  var lastHop = null;   // 説明用:注目するホールの直前の跳び移り
+
+  // ---- 格子 ----
+  var L = null;              // 格子の配置
+  var atoms = [], bonds = [], dopant = {};   // dopant[ai] = 'P' | 'B'
+  var elecs = [];            // n型: 自由電子 {x,y,vx,vy,tc}
+  var holes = [];            // p型: {b,k, fx,fy, a, dur, wait}
+  var holeAt = {};           // "b:k" -> true
+  var hidden = [];           // {key, t}  跳び移り中で描かない価電子
+  var flyers = [];           // {x1,y1,x2,y2,t,dur} 移動中の価電子
+  var ghosts = [];           // {x1,y1,x2,y2,t,dur} 電極に消えるホール
+  var trail = [], trailT = 0;
+  var Iavg = 0;              // 電流(右向きを正、個/s)
+  var wirePhase = 0;
+  var simT = 0;
+
+  var TAU = 0.25, VTH = 70, ACC = 90;   // n型: 衝突の間隔, 熱運動の速さ, 1 V あたりの加速度 [px/s²]
+  var HOP = 3.0, BIAS = 0.5;           // p型: 跳び移りの頻度, 電場による偏り
+
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+  function Edir(){ return S.V > 0 ? 1 : (S.V < 0 ? -1 : 0); }   // 電場の向き(＋=右)
+
+  function layout(v){
+    var W = v.W, H = v.H;
+    var narrow = W < 600;
+    var s = narrow ? 50 : 80;
+    var top = narrow ? 46 : 52, bot = narrow ? 84 : 92, side = narrow ? 26 : 44;
+    var cols = Math.max(4, Math.floor((W - 2*side)/s));
+    var rows = Math.max(3, Math.floor((H - top - bot)/s));
+    var cw = cols*s, ch = rows*s;
+    var x0 = Math.round((W - cw)/2), y0 = top + Math.round(((H - top - bot) - ch)/2);
+    L = { s:s, cols:cols, rows:rows, x0:x0, y0:y0, x1:x0+cw, y1:y0+ch, d: s<60 ? 4 : 5,
+          yc: Math.min(H - 30, y0 + ch + 52) };
+  }
+  function atomPos(i,j){ return { x:L.x0 + (i+0.5)*L.s, y:L.y0 + (j+0.5)*L.s }; }
+
+  function build(v){
+    layout(v);
+    atoms = []; bonds = []; dopant = {};
+    var idx = {};
+    for(var j=0;j<L.rows;j++) for(var i=0;i<L.cols;i++){
+      idx[i+','+j] = atoms.length;
+      var p = atomPos(i,j); atoms.push({ i:i, j:j, x:p.x, y:p.y, bonds:[] });
+    }
+    function addBond(a,b,hz){
+      var A = atoms[a], B = atoms[b];
+      var bi = bonds.length;
+      bonds.push({ a:a, b:b, hz:hz, x:(A.x+B.x)/2, y:(A.y+B.y)/2, nb:[] });
+      A.bonds.push(bi); B.bonds.push(bi);
+    }
+    for(j=0;j<L.rows;j++) for(i=0;i<L.cols;i++){
+      if(i+1<L.cols) addBond(idx[i+','+j], idx[(i+1)+','+j], true);
+      if(j+1<L.rows) addBond(idx[i+','+j], idx[i+','+(j+1)], false);
+    }
+    bonds.forEach(function(b, bi){
+      [b.a, b.b].forEach(function(ai){
+        atoms[ai].bonds.forEach(function(o){ if(o!==bi && b.nb.indexOf(o)<0) b.nb.push(o); });
+      });
+    });
+    // 不純物の配置(となり合わないように)
+    var n = Math.max(3, Math.round(atoms.length/5));
+    var order = atoms.map(function(_,k){return k;}).sort(function(){return Math.random()-0.5;});
+    var chosen = [];
+    for(var q=0;q<order.length && chosen.length<n;q++){
+      var A = atoms[order[q]];
+      if(mode==='p' && (A.i===0 || A.i===L.cols-1)) continue;
+      var ok = chosen.every(function(c){ var C = atoms[c]; return Math.max(Math.abs(C.i-A.i), Math.abs(C.j-A.j)) > 1; });
+      if(ok) chosen.push(order[q]);
+    }
+    elecs = []; holes = []; holeAt = {}; hidden = []; flyers = []; ghosts = []; lastHop = null;
+    chosen.forEach(function(ai){
+      var A = atoms[ai];
+      if(mode==='n'){
+        dopant[ai] = 'P';
+        var th = rnd(0, 2*Math.PI);
+        var ex = A.x + Math.cos(th)*L.s*0.3, ey = A.y + Math.sin(th)*L.s*0.3;
+        if(!thermal){ ex = A.x + L.s*0.5; ey = A.y + (A.j < L.rows-1 ? 0.5 : -0.5)*L.s; }   // 原子の列の間を通る
+        elecs.push({ x:ex, y:ey, vx:0, vy:0, tc:rnd(0,TAU), home:ai });
+      } else {
+        dopant[ai] = 'B';
+        var hz = A.bonds.filter(function(o){ return bonds[o].hz; });
+        var bi = hz[Math.floor(Math.random()*hz.length)];
+        var k = 0;
+        var p = slotPos(bi,k);
+        holes.push({ b:bi, k:k, fx:p.x, fy:p.y, a:1, dur:0.3, wait:rnd(0.2, 0.8), home:ai });
+        holeAt[bi+':'+k] = true;
+      }
+    });
+    elecs.forEach(thermalKick);
+    trail = []; Iavg = 0; simT = 0;
+  }
+
+  function slotPos(bi,k){
+    var b = bonds[bi], d = (k ? 1 : -1)*L.d;
+    return b.hz ? { x:b.x, y:b.y + d } : { x:b.x + d, y:b.y };
+  }
+  function thermalKick(e){
+    if(thermal){ var th = rnd(0,2*Math.PI); e.vx = VTH*Math.cos(th); e.vy = VTH*Math.sin(th); }
+    else { e.vx = 0; e.vy = 0; }
+  }
+  function count(dir){ // dir: 正電荷が右へ 1 個運ばれたら +1
+    Iavg += dir * 1.0;  // 下で時間平均
+  }
+
+  // ---- n型:自由電子 ----
+  function stepN(h){
+    var a = -ACC * S.V;          // 電子は電場と逆向きに加速
+    elecs.forEach(function(e){
+      if(thermal){
+        e.vx += a*h;
+        e.tc -= h;
+        if(e.tc <= 0){ thermalKick(e); e.tc += -TAU*Math.log(Math.random()+1e-9); }
+      } else {
+        e.vx = a*TAU; e.vy = 0;  // 電場による平均の速さだけ
+      }
+      e.x += e.vx*h; e.y += e.vy*h;
+      var m = 7;
+      if(e.y < L.y0+m){ e.y = 2*(L.y0+m)-e.y; e.vy = Math.abs(e.vy); }
+      if(e.y > L.y1-m){ e.y = 2*(L.y1-m)-e.y; e.vy = -Math.abs(e.vy); }
+      if(e.x < L.x0){ e.x += (L.x1-L.x0); count(+1); if(e===elecs[0]) trail.push(null); }
+      else if(e.x > L.x1){ e.x -= (L.x1-L.x0); count(-1); if(e===elecs[0]) trail.push(null); }
+    });
+  }
+
+  // ---- p型:ホール ----
+  function edgeSide(bi){ // 電極に接している結合(両端の列の縦の結合)なら -1/+1
+    var b = bonds[bi]; if(b.hz) return 0;
+    var i = atoms[b.a].i;
+    if(i===0) return -1; if(i===L.cols-1) return 1; return 0;
+  }
+  function stepP(h){
+    var E = Edir();
+    for(var t=hidden.length-1;t>=0;t--){ hidden[t].t -= h; if(hidden[t].t<=0) hidden.splice(t,1); }
+    for(t=flyers.length-1;t>=0;t--){ flyers[t].t += h; if(flyers[t].t>=flyers[t].dur) flyers.splice(t,1); }
+    if(lastHop){ lastHop.t += h; if(lastHop.t > 1.4) lastHop = null; }
+    for(t=ghosts.length-1;t>=0;t--){ ghosts[t].t += h; if(ghosts[t].t>=ghosts[t].dur) ghosts.splice(t,1); }
+    holes.forEach(function(H){
+      if(H.a < 1){ H.a = Math.min(1, H.a + h/H.dur); return; }
+      H.wait -= h;
+      if(H.wait > 0) return;
+      if(!thermal){       // 教科書の図のように:同じ列の結合を 1 つずつ進む
+        var r0 = 0.6*Math.abs(S.V);
+        if(r0 <= 0){ H.wait = 0.3; return; }
+        H.wait = 1/r0;
+        var nb = nextHz(H.b, E);
+        if(nb === null) exitRow(H, E);
+        else if(!holeAt[nb+':'+H.k] && !isHidden(nb+':'+H.k)) hop(H, nb, H.k);
+        return;
+      }
+      var rate = HOP;
+      H.wait = rate > 0 ? -Math.log(Math.random()+1e-9)/rate : 0.5;
+      if(rate <= 0) return;
+      // 候補:となりの結合の価電子(ホールでないもの)+電極
+      var here = slotPos(H.b,H.k), cands = [];
+      bonds[H.b].nb.forEach(function(o){
+        for(var k=0;k<2;k++){
+          if(holeAt[o+':'+k] || isHidden(o+':'+k)) continue;
+          var p = slotPos(o,k), dx = (p.x - here.x)/L.s;
+          if(Math.abs(p.y-here.y) > L.s*0.75) continue;
+          cands.push({ b:o, k:k, dx:dx });
+        }
+      });
+      var side = edgeSide(H.b);
+      if(side) cands.push({ edge:side, dx:side*0.5 });
+      var ws = cands.map(function(c){
+        if(thermal) return Math.exp(BIAS*S.V*c.dx*2);
+        return (c.dx*E > 0.2) ? 1 : 0;
+      });
+      var sum = ws.reduce(function(a,b){return a+b;},0);
+      if(sum <= 0) return;
+      var r = Math.random()*sum, c = cands[0];
+      for(var q=0;q<cands.length;q++){ r -= ws[q]; if(r<=0){ c = cands[q]; break; } }
+      if(c.edge) exitHole(H, c.edge); else hop(H, c.b, c.k);
+    });
+  }
+  function nextHz(bi, E){
+    var b = bonds[bi], at = atoms[E>0 ? b.b : b.a], res = null;
+    at.bonds.forEach(function(o){ if(o!==bi && bonds[o].hz) res = o; });
+    return res;
+  }
+  function exitRow(H, side){
+    var dur = 0.45, from = slotPos(H.b,H.k);
+    var exX = side>0 ? L.x1 : L.x0, enX = side>0 ? L.x0 : L.x1;
+    var j = atoms[bonds[H.b].a].j, ci = side>0 ? 0 : L.cols-2, nb = null;
+    bonds.forEach(function(b,bi){ if(b.hz && atoms[b.a].j===j && atoms[b.a].i===ci) nb = bi; });
+    if(nb===null || holeAt[nb+':'+H.k] || isHidden(nb+':'+H.k)) return;
+    delete holeAt[H.b+':'+H.k];
+    hidden.push({ key:H.b+':'+H.k, t:dur });
+    flyers.push({ x1:exX, y1:from.y, x2:from.x, y2:from.y, t:0, dur:dur });
+    ghosts.push({ x1:from.x, y1:from.y, x2:exX, y2:from.y, t:0, dur:dur });
+    count(side);
+    var p = slotPos(nb, H.k);
+    flyers.push({ x1:p.x, y1:p.y, x2:enX, y2:p.y, t:0, dur:dur });
+    H.b = nb; holeAt[nb+':'+H.k] = true;
+    H.fx = p.x; H.fy = p.y; H.a = 0; H.dur = dur; H.jump = true;
+    if(H===holes[0]){ trail.push(null); lastHop = null; }
+  }
+  function isHidden(key){ return hidden.some(function(x){ return x.key===key; }); }
+  function hop(H, nb, nk){
+    var from = slotPos(H.b,H.k), to = slotPos(nb,nk);
+    var dur = 0.32;
+    delete holeAt[H.b+':'+H.k];
+    hidden.push({ key:H.b+':'+H.k, t:dur });      // 価電子が飛んで来るまで空
+    flyers.push({ x1:to.x, y1:to.y, x2:from.x, y2:from.y, t:0, dur:dur });
+    H.b = nb; H.k = nk; holeAt[nb+':'+nk] = true;
+    H.fx = from.x; H.fy = from.y; H.a = 0; H.dur = dur; H.jump = false;
+    if(H===holes[0]){ trail.push({x:from.x, y:from.y}); lastHop = { x1:from.x, y1:from.y, x2:to.x, y2:to.y, t:0 }; }
+  }
+  function exitHole(H, side){
+    var dur = 0.45;
+    var from = slotPos(H.b,H.k);
+    var exX = side>0 ? L.x1 : L.x0;
+    // 出ていく側:電極の電子がホールを埋める
+    delete holeAt[H.b+':'+H.k];
+    hidden.push({ key:H.b+':'+H.k, t:dur });
+    flyers.push({ x1:exX, y1:from.y, x2:from.x, y2:from.y, t:0, dur:dur });
+    ghosts.push({ x1:from.x, y1:from.y, x2:exX, y2:from.y, t:0, dur:dur });
+    count(side);
+    // 反対側:電極に価電子が抜き取られ、新しいホールができる
+    var col = side>0 ? 0 : L.cols-1, best = null, bd = 1e9;
+    bonds.forEach(function(b,bi){
+      if(b.hz || atoms[b.a].i!==col) return;
+      for(var k=0;k<2;k++){
+        if(holeAt[bi+':'+k] || isHidden(bi+':'+k)) continue;
+        var p = slotPos(bi,k), dd = Math.abs(p.y-from.y) + Math.random()*4;
+        if(dd < bd){ bd = dd; best = {b:bi,k:k,p:p}; }
+      }
+    });
+    if(!best) return;
+    var enX = side>0 ? L.x0 : L.x1;
+    flyers.push({ x1:best.p.x, y1:best.p.y, x2:enX, y2:best.p.y, t:0, dur:dur });
+    H.b = best.b; H.k = best.k; holeAt[best.b+':'+best.k] = true;
+    H.fx = best.p.x; H.fy = best.p.y; H.a = 0; H.dur = dur; H.jump = true;
+    H.wait = Math.max(H.wait, 0.1);
+    if(H===holes[0]) trail.push(null);
+  }
+  function holePos(H){
+    var p = slotPos(H.b,H.k);
+    if(H.jump) return p;
+    return { x:H.fx + (p.x-H.fx)*ease(H.a), y:H.fy + (p.y-H.fy)*ease(H.a) };
+  }
+  function ease(t){ return t<0.5 ? 2*t*t : 1-2*(1-t)*(1-t); }
+
+  // ---- 描画 ----
+  var sim = PhysSim({
+    state: S,
+    controls: [
+      { key:'V', label:'電池の電圧 V(＋=左が＋極)', min:-3, max:3, step:0.5, fmt:function(x){ return (x>0?'+':'')+x.toFixed(1)+' V'; } }
+    ],
+    onChange: function(){ },
+    init: function(v){ build(v); },
+    resize: function(v){ build(v); },
+    reset: function(v){ build(v); },
+    step: function(v, h){
+      if(paused) return;
+      h *= speed; simT += h;
+      Iavg *= Math.exp(-h/2.5);         // 2.5 秒の時間平均
+      if(mode==='n') stepN(h); else stepP(h);
+      wirePhase += h * (Iavg/2.5) * 26;
+      if(track){
+        trailT += h;
+        if(trailT > 0.05){
+          trailT = 0;
+          var c = mode==='n' ? elecs[0] : (holes[0] && holePos(holes[0]));
+          if(c) trail.push({x:c.x, y:c.y});
+          if(trail.length > 160) trail.shift();
+        }
+      }
+    },
+    draw: draw,
+    readout: function(){
+      var E = Edir();
+      var I = Iavg/2.5;
+      var carrier = mode==='n' ? '自由電子(−)' : 'ホール(＋)';
+      var go = E===0 ? '—' : (mode==='n' ? (E>0?'← 左向き':'→ 右向き') : (E>0?'→ 右向き':'← 左向き'));
+      return [
+        ['キャリア', carrier],
+        ['電場 E', E===0 ? '0' : (E>0 ? '→ 右向き' : '← 左向き')],
+        ['キャリアの平均の動き', go],
+        ['電流 I', Math.abs(I) < 0.05 ? 'ほぼ 0' : ((I>0?'→ 右向き ':'← 左向き ') + Math.abs(I).toFixed(1) + ' 個/s')]
+      ];
+    }
+  });
+
+  function rgba(hex, a){
+    var c = hex.replace('#','');
+    if(c.length===3) c = c.split('').map(function(x){return x+x;}).join('');
+    var n = parseInt(c,16);
+    return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
+  }
+
+  function draw(v){
+    var ctx = v.ctx, C = v.C, s = L.s;
+    var em = getComputedStyle(document.body).getPropertyValue('--em').trim() || '#6C4FBE';
+    var brand = getComputedStyle(document.body).getPropertyValue('--brand').trim() || '#C97A1A';
+    var blue = C.accent2;
+    v.clear();
+    var E = Edir();
+
+    // 結晶の枠
+    ctx.fillStyle = rgba(em, 0.05);
+    ctx.fillRect(L.x0, L.y0, L.x1-L.x0, L.y1-L.y0);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+    ctx.strokeRect(L.x0+0.5, L.y0+0.5, L.x1-L.x0-1, L.y1-L.y0-1);
+    v.label(mode==='n' ? 'n型半導体' : 'p型半導体', L.x0+2, L.y0-8, C.soft, 11);
+
+    // 電極
+    var ew = 14;
+    [[L.x0-ew, -1],[L.x1, 1]].forEach(function(q){
+      ctx.fillStyle = C.faint; ctx.globalAlpha = 0.55;
+      ctx.fillRect(q[0], L.y0-6, ew, L.y1-L.y0+12); ctx.globalAlpha = 1;
+      ctx.strokeStyle = C.soft; ctx.lineWidth = 1; ctx.strokeRect(q[0]+0.5, L.y0-5.5, ew-1, L.y1-L.y0+11);
+      var sign = E===0 ? '' : ((q[1]<0) === (E>0) ? '＋' : '−');
+      if(sign) v.label(sign, q[0]+ew/2, L.y0-12, C.ink, 16, 'center');
+    });
+
+    // 電場の矢印とキャリアの平均の動き
+    var cx = (L.x0+L.x1)/2, ty = 22;
+    if(E!==0){
+      var len = 30 + 22*Math.abs(S.V);
+      v.arrow(cx - E*len/2 - 70, ty, cx + E*len/2 - 70, ty, C.ink, 2.4);
+      v.label('電場 E', cx - 70, ty - 8, C.ink, 12, 'center');
+      var d = mode==='n' ? -E : E;
+      var col = mode==='n' ? blue : brand;
+      v.arrow(cx - d*25 + 80, ty, cx + d*25 + 80, ty, col, 2.4);
+      v.label(mode==='n' ? '電子の平均の動き' : 'ホールの平均の動き', cx + 80, ty - 8, col, 12, 'center');
+    } else {
+      v.label('V = 0:電場なし(熱運動だけ)', cx, ty+4, C.soft, 12, 'center');
+    }
+
+    // 結合と価電子
+    bonds.forEach(function(b, bi){
+      var A = atoms[b.a], B = atoms[b.b];
+      v.line(A.x, A.y, B.x, B.y, C.line, 1.2);
+      if(!showBond) return;
+      for(var k=0;k<2;k++){
+        var key = bi+':'+k;
+        if(holeAt[key] || isHidden(key)) continue;
+        var p = slotPos(bi,k);
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2.3, 0, Math.PI*2);
+        ctx.fillStyle = rgba(blue, 0.5); ctx.fill();
+      }
+    });
+
+    // 原子
+    var r = s*0.21;
+    atoms.forEach(function(A, ai){
+      var dp = dopant[ai];
+      ctx.beginPath(); ctx.arc(A.x, A.y, r, 0, Math.PI*2);
+      ctx.fillStyle = dp ? rgba(em, 0.22) : C.card; ctx.fill();
+      ctx.lineWidth = dp ? 1.8 : 1.1; ctx.strokeStyle = dp ? em : C.faint; ctx.stroke();
+      ctx.font = (dp?'700 ':'500 ') + Math.round(r*0.85) + 'px "JetBrains Mono", monospace';
+      ctx.fillStyle = dp ? C.ink : C.soft; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(dp || 'Si', A.x, A.y + 0.5);
+      if(dp && ionized(ai)){
+        var bx = A.x + r*0.85, by = A.y - r*0.85;
+        ctx.beginPath(); ctx.arc(bx, by, 6, 0, Math.PI*2);
+        ctx.fillStyle = C.card; ctx.fill(); ctx.lineWidth = 1.2; ctx.strokeStyle = em; ctx.stroke();
+        v.line(bx-3, by, bx+3, by, em, 1.5);
+        if(dp==='P') v.line(bx, by-3, bx, by+3, em, 1.5);
+      }
+    });
+
+    // 軌跡
+    if(track && trail.length > 1){
+      ctx.save(); ctx.strokeStyle = mode==='n' ? blue : brand; ctx.lineWidth = 2; ctx.globalAlpha = 0.55; ctx.setLineDash([]);
+      ctx.beginPath(); var pen = false;
+      trail.forEach(function(p){
+        if(!p){ pen = false; return; }
+        if(!pen){ ctx.moveTo(p.x,p.y); pen = true; } else ctx.lineTo(p.x,p.y);
+      });
+      ctx.stroke(); ctx.restore();
+    }
+
+    // 跳び移り中の価電子
+    flyers.forEach(function(f){
+      var u = ease(Math.min(1, f.t/f.dur));
+      var x = f.x1 + (f.x2-f.x1)*u, y = f.y1 + (f.y2-f.y1)*u;
+      v.line(f.x1, f.y1, x, y, rgba(blue, 0.35), 2);
+      ctx.beginPath(); ctx.arc(x, y, 3.6, 0, Math.PI*2); ctx.fillStyle = blue; ctx.fill();
+    });
+    // 電極に消えるホール
+    ghosts.forEach(function(g){
+      var u = Math.min(1, g.t/g.dur);
+      drawHole(ctx, g.x1 + (g.x2-g.x1)*u, g.y1 + (g.y2-g.y1)*u, brand, 1-u, false);
+    });
+    // ホール
+    holes.forEach(function(H, q){
+      var p = holePos(H);
+      drawHole(ctx, p.x, p.y, brand, H.jump ? Math.min(1, H.a*1.4) : 1, (track||showNote) && q===0);
+    });
+    // 自由電子
+    elecs.forEach(function(e, q){
+      drawElectron(ctx, e.x, e.y, blue, (track||showNote) && q===0);
+    });
+
+    if(showNote) drawNotes(v, blue, brand, em, r);
+    drawCircuit(v, blue, brand);
+  }
+
+  // 説明の文字(注目するキャリア 1 つと、動かないイオン 1 つ)
+  function tag(v, s, x, y, col, align){
+    var ctx = v.ctx, fs = L.s < 60 ? 11 : 12;
+    ctx.font = '700 '+fs+'px "Noto Sans JP", sans-serif';
+    var w = ctx.measureText(s).width + 10;
+    var bx = align==='left' ? x : (align==='right' ? x - w : x - w/2);
+    bx = Math.max(2, Math.min(v.W - w - 2, bx));
+    ctx.fillStyle = v.C.card; ctx.globalAlpha = 0.92;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, y - fs - 3, w, fs + 8, 5) : ctx.rect(bx, y - fs - 3, w, fs + 8); ctx.fill();
+    ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(s, bx + 5, y);
+  }
+  function drawNotes(v, blue, brand, em, r){
+    var ion = null;
+    for(var ai in dopant){ if(ionized(+ai)){ ion = atoms[+ai]; break; } }
+    if(ion) tag(v, mode==='n' ? 'P⁺ 動かない' : 'B⁻ 動かない', ion.x, ion.y + r + 18, em, 'center');
+    if(mode==='n' && elecs[0]){
+      tag(v, '自由電子(−)', elecs[0].x, elecs[0].y - 14, blue, 'center');
+    }
+    if(mode==='p' && holes[0]){
+      var p = holePos(holes[0]);
+      if(lastHop){
+        var hx = lastHop, al = Math.min(1, (1.4 - hx.t)/0.4);
+        v.ctx.save(); v.ctx.globalAlpha = al;
+        var dy = L.s*0.36;
+        v.arrow(hx.x2, hx.y1 - dy, hx.x1, hx.y1 - dy, blue, 2.4);
+        tag(v, '価電子が跳び移る', (hx.x1+hx.x2)/2, hx.y1 - dy - 8, blue, 'center');
+        v.arrow(hx.x1, hx.y1 + dy, hx.x2, hx.y1 + dy, brand, 2.4);
+        tag(v, 'ホールが進む', (hx.x1+hx.x2)/2, hx.y1 + dy + 20, brand, 'center');
+        v.ctx.restore();
+      } else {
+        tag(v, 'ホール(＋)', p.x, p.y - 16, brand, 'center');
+      }
+    }
+  }
+
+  function ionized(ai){
+    var A = atoms[ai];
+    if(dopant[ai]==='P'){
+      return !elecs.some(function(e){ return Math.hypot(e.x-A.x, e.y-A.y) < L.s*0.45; });
+    }
+    return !holes.some(function(H){ var p = holePos(H); return Math.hypot(p.x-A.x, p.y-A.y) < L.s*0.6; });
+  }
+  function drawElectron(ctx, x, y, col, mark){
+    ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.fillStyle = col; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(x-3, y); ctx.lineTo(x+3, y); ctx.stroke();
+    if(mark){ ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI*2); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke(); }
+  }
+  function drawHole(ctx, x, y, col, alpha, mark){
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.beginPath(); ctx.arc(x, y, 6.5, 0, Math.PI*2);
+    ctx.fillStyle = sim.C.card; ctx.fill();
+    ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.stroke();
+    ctx.lineWidth = 1.7;
+    ctx.beginPath(); ctx.moveTo(x-3.2, y); ctx.lineTo(x+3.2, y); ctx.moveTo(x, y-3.2); ctx.lineTo(x, y+3.2); ctx.stroke();
+    if(mark){ ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI*2); ctx.lineWidth = 2; ctx.stroke(); }
+    ctx.restore();
+  }
+
+  function drawCircuit(v, blue, brand){
+    var ctx = v.ctx, C = v.C;
+    var ew = 14, xL = L.x0 - ew/2, xR = L.x1 + ew/2, yb = L.y1 + 6, yc = L.yc;
+    var cx = (L.x0+L.x1)/2, gap = 9;
+    ctx.save(); ctx.strokeStyle = C.soft; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(xL, yb); ctx.lineTo(xL, yc); ctx.lineTo(cx-gap, yc);
+    ctx.moveTo(cx+gap, yc); ctx.lineTo(xR, yc); ctx.lineTo(xR, yb); ctx.stroke(); ctx.restore();
+    // 電池(長い線が＋極)
+    var E = Edir();
+    var leftPlus = S.V >= 0;
+    var hL = leftPlus ? 22 : 12, hR = leftPlus ? 12 : 22;
+    v.line(cx-gap, yc-hL/2, cx-gap, yc+hL/2, C.ink, leftPlus ? 2 : 4);
+    v.line(cx+gap, yc-hR/2, cx+gap, yc+hR/2, C.ink, leftPlus ? 4 : 2);
+    v.label(Math.abs(S.V).toFixed(1)+' V', cx, yc + 28, C.ink, 12, 'center');
+    if(E!==0){
+      v.label('＋', cx + (leftPlus ? -gap-10 : gap+10), yc - 10, C.ink, 12, 'center');
+      v.label('−', cx + (leftPlus ? gap+10 : -gap-10), yc - 10, C.ink, 12, 'center');
+    }
+    // 電流の矢印(下の導線上)
+    var I = Iavg/2.5;
+    if(Math.abs(I) > 0.05){
+      var dir = I > 0 ? -1 : 1;   // 結晶内で右向き → 下の導線では左向き
+      var ax = (xL + cx - gap)/2;
+      var len = Math.min(70, 26 + 14*Math.abs(I));
+      var ax2 = (cx + gap + xR)/2;
+      v.arrow(ax - dir*len/2, yc - 12, ax + dir*len/2, yc - 12, C.ink, 2.6);
+      v.label('電流 I', ax, yc - 20, C.ink, 12, 'center');
+      if(showWire){
+        v.arrow(ax2 + dir*len/2, yc - 12, ax2 - dir*len/2, yc - 12, blue, 2.6);
+        v.label('導線の中の電子', ax2, yc - 20, blue, 12, 'center');
+      }
+    }
+    // 導線の中の電子
+    if(showWire){
+      var pts = [[xL,yb],[xL,yc],[cx-gap,yc],[cx+gap,yc],[xR,yc],[xR,yb]];
+      var segs = [], total = 0;
+      for(var q=0;q<pts.length-1;q++){
+        var l = Math.hypot(pts[q+1][0]-pts[q][0], pts[q+1][1]-pts[q][1]);
+        segs.push({p:pts[q], q:pts[q+1], l:l, skip:q===2, s0:total}); total += l;
+      }
+      var sp = 22, off = ((wirePhase % sp) + sp) % sp;
+      for(var dd = off; dd < total; dd += sp){
+        for(q=0;q<segs.length;q++){
+          var g = segs[q];
+          if(dd >= g.s0 && dd < g.s0 + g.l){
+            if(g.skip) break;
+            var u = (dd - g.s0)/g.l;
+            var x = g.p[0] + (g.q[0]-g.p[0])*u, y = g.p[1] + (g.q[1]-g.p[1])*u;
+            ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fillStyle = rgba(blue, 0.8); ctx.fill();
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // ---- UI ----
+  function setMode(m){
+    mode = m;
+    document.getElementById('m-n').classList.toggle('primary', m==='n');
+    document.getElementById('m-p').classList.toggle('primary', m==='p');
+    build(sim);
+  }
+  document.getElementById('m-n').addEventListener('click', function(){ setMode('n'); });
+  document.getElementById('m-p').addEventListener('click', function(){ setMode('p'); });
+
+  var slider = document.getElementById('c-V');
+  function setV(x){ S.V = x; slider.value = x; slider.dispatchEvent(new Event('input')); }
+  document.getElementById('v0').addEventListener('click', function(){ setV(0); });
+  document.getElementById('vflip').addEventListener('click', function(){ setV(-S.V); });
+
+  document.getElementById('ck-th').addEventListener('change', function(e){
+    thermal = e.target.checked;
+    build(sim);
+  });
+  document.getElementById('ck-bond').addEventListener('change', function(e){ showBond = e.target.checked; });
+  document.getElementById('ck-trk').addEventListener('change', function(e){ track = e.target.checked; trail = []; });
+  document.getElementById('ck-note').addEventListener('change', function(e){ showNote = e.target.checked; });
+  document.getElementById('ck-wire').addEventListener('change', function(e){ showWire = e.target.checked; });
+
+  var spBtns = Array.prototype.slice.call(document.querySelectorAll('[data-sp]'));
+  var pauseBtn = document.getElementById('pause');
+  function syncSpeed(){
+    spBtns.forEach(function(b){ b.classList.toggle('primary', !paused && parseFloat(b.dataset.sp) === speed); });
+    pauseBtn.classList.toggle('primary', paused);
+    pauseBtn.textContent = paused ? '再開' : '停止';
+  }
+  spBtns.forEach(function(b){ b.addEventListener('click', function(){ speed = parseFloat(b.dataset.sp); paused = false; syncSpeed(); }); });
+  pauseBtn.addEventListener('click', function(){ paused = !paused; syncSpeed(); });
+  syncSpeed();
+  setMode('n');
+})();
+</script>
+</body>
+</html>
