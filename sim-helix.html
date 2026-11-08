@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ローレンツ力とらせん運動 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* このページ専用: 図を見ながら操作できるよう横並び(スマホでは図を上に固定) */
+  .hx-stage{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start;}
+  .hx-stage canvas.sim{height:clamp(400px,44vw,500px);touch-action:none;}
+  .hx-left{position:sticky;top:8px;}
+  .row{display:flex;gap:6px;align-items:center;}
+  .row + .row{margin-top:8px;}
+  .row .lbl{font-size:0.84rem;color:var(--ink-soft);margin-right:2px;white-space:nowrap;min-width:4.6em;}
+  .row .btn{flex:1;padding:5px 2px;min-width:0;white-space:nowrap;font-size:0.86rem;}
+  .hx-right .controls{grid-template-columns:1fr;gap:10px;margin-top:12px;}
+  .hx-right .ctrl label{margin-bottom:0;}
+  .checks{margin:12px 0 0;display:flex;flex-direction:column;gap:4px;font-size:0.88rem;color:var(--ink-soft);}
+  .checks label{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .checks input{accent-color:var(--accent);width:16px;height:16px;margin:0;}
+  .hx-btns{margin-top:14px;}
+  .hx-right .hint{margin:10px 0 0;line-height:1.6;}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:10px 2px 0;padding:0;list-style:none;font-size:0.82rem;color:var(--ink-soft);}
+  .legend li{display:flex;align-items:center;gap:6px;}
+  .legend svg{flex:none;}
+  @media (max-width:860px){
+    .hx-stage{grid-template-columns:1fr;gap:10px;}
+    .hx-left{display:contents;}
+    .hx-fig{position:sticky;top:0;z-index:5;background:var(--paper-card);padding:6px 0 4px;box-shadow:0 8px 10px -10px var(--shadow);}
+    .hx-stage canvas.sim{height:clamp(300px,82vw,400px);}
+    .hx-stage .readout{margin-top:0;}
+    .hx-stage .readout li{font-size:0.74rem;padding:2px 7px;}
+    .legend{font-size:0.76rem;gap:2px 12px;margin-top:6px;}
+  }
+</style>
+</head>
+<body class="u-em">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html" class="on">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./electromagnetism.html">電磁気</a> / ローレンツ力とらせん運動</p>
+
+  <div class="sim-head">
+    <h1>ローレンツ力とらせん運動</h1>
+    <span class="eq">f = qvB sinθ,  r = mv sinθ/(qB)</span>
+  </div>
+
+  <section class="stage hx-stage">
+    <div class="hx-left">
+      <div class="hx-fig"><canvas class="sim" id="sim" aria-label="一様な磁場の中を進む荷電粒子のらせん運動。左はななめ上から見た立体図、右は真上から見た図"></canvas></div>
+      <ul class="legend" aria-label="図の見方">
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 6h16" stroke="var(--brand)" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M15 2l5 4-5 4z" fill="var(--brand)"/></svg><span>磁場 B(⊙ 手前向き / ⊗ 奥向き)</span></li>
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 6h15" stroke="var(--wave)" stroke-width="2.4"/><path d="M15 1.5l6 4.5-6 4.5z" fill="var(--wave)"/></svg><span>速度 v</span></li>
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 6h15" stroke="var(--wave)" stroke-width="1.5" stroke-dasharray="3 2"/><path d="M15 2l5 4-5 4z" fill="var(--wave)" opacity=".7"/></svg><span>v の分解(B に平行 v<sub>∥</sub>・垂直 v<sub>⊥</sub>)</span></li>
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 6h15" stroke="var(--em)" stroke-width="2.4"/><path d="M15 1.5l6 4.5-6 4.5z" fill="var(--em)"/></svg><span>ローレンツ力 f(いつも円の中心向き)</span></li>
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 6h20" stroke="var(--ink-soft)" stroke-width="1.4" stroke-dasharray="2 3"/></svg><span>床への影(=真上から見た形)</span></li>
+      </ul>
+      <ul class="readout" id="readout"></ul>
+    </div>
+    <div class="hx-right">
+      <div class="row">
+        <span class="lbl">粒子の電荷</span>
+        <button class="btn small" id="q-p">正 ＋q</button>
+        <button class="btn small" id="q-m">負 −q</button>
+      </div>
+      <div class="row">
+        <span class="lbl">磁場の向き</span>
+        <button class="btn small" id="b-up">上向き</button>
+        <button class="btn small" id="b-dn">下向き</button>
+      </div>
+      <div class="controls" id="controls"></div>
+      <div class="row" style="margin-top:12px">
+        <span class="lbl">左の図</span>
+        <button class="btn small" data-cam="side">横から</button>
+        <button class="btn small" data-cam="tilt">やや真上</button>
+        <button class="btn small" data-cam="top">真上</button>
+      </div>
+      <div class="checks">
+        <label><input type="checkbox" id="ck-v" checked>速度 v と分解(v∥・v⊥)</label>
+        <label><input type="checkbox" id="ck-f" checked>ローレンツ力 f</label>
+        <label><input type="checkbox" id="ck-sh" checked>床への影(真上から見た形)</label>
+        <label><input type="checkbox" id="ck-b" checked>磁場の線</label>
+        <label><input type="checkbox" id="ck-ax">らせんの中心軸と半径</label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <span class="lbl">速さ</span>
+        <button class="btn small" data-sp="2">×2</button>
+        <button class="btn small" data-sp="1">×1</button>
+        <button class="btn small" data-sp="0.25">1/4</button>
+        <button class="btn small" id="pause">停止</button>
+      </div>
+      <div class="btns hx-btns">
+        <button class="btn" id="reset">はじめから</button>
+      </div>
+      <p class="hint">左の図はドラッグで回せます。右の図はいつも真上(磁場に沿う向き)から見たところです。粒子が上端に着くと、はじめから繰り返します。動きが見やすいように、粒子の比電荷 q/m と速さは調整しています(r・T・ピッチの比例関係は正確)。</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>磁場の中を動く荷電粒子は、速度と磁場の両方に<strong>垂直な</strong>力(ローレンツ力)を受ける。大きさは <strong>f = qvB sinθ</strong>(θ は v と B のなす角)。</li>
+        <li>速度を<strong>磁場に平行な成分 v<sub>∥</sub> = v cosθ</strong> と<strong>垂直な成分 v<sub>⊥</sub> = v sinθ</strong> に分けて考える。力を生むのは v<sub>⊥</sub> だけで、f = qv<sub>⊥</sub>B。</li>
+        <li>磁場の向きには力がはたらかないので、<strong>v<sub>∥</sub> のまま等速直線運動</strong>。磁場に垂直な面では、f が向心力になって<strong>等速円運動</strong>。この 2 つを合わせると<strong>らせん運動</strong>になる。</li>
+        <li>真上(磁場に沿う向き)から見ると円運動だけが見える。m v<sub>⊥</sub>²/r = q v<sub>⊥</sub>B より <strong>r = mv<sub>⊥</sub>/(qB)</strong>、周期 <strong>T = 2πr/v<sub>⊥</sub> = 2πm/(qB)</strong> は速さによらない。</li>
+        <li>1 周する間に磁場の向きに進む距離(<strong>ピッチ</strong>)は <strong>p = v<sub>∥</sub>T = 2πmv cosθ/(qB)</strong>。</li>
+        <li>ローレンツ力はいつも速度に垂直なので<strong>仕事をしない</strong>。速さ(運動エネルギー)は変わらず、向きだけが変わる。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>θ = 90° と θ = 0° のとき、粒子はどんな運動をする? 横から・真上から見て確かめよう。</li>
+        <li>速さ v を 2 倍にすると、半径 r・周期 T・ピッチ p はそれぞれ何倍になる?</li>
+        <li>磁束密度 B を 2 倍にすると、r・T・p はどうなる?</li>
+        <li>真上から見たとき、正の粒子は時計回り・反時計回りのどちら? 電荷を負にしたり、磁場を下向きにしたりするとどうなる? フレミングの左手の法則で確かめよう。</li>
+        <li>「横から」見た図で、粒子の影(上下方向の動き)はどんな運動に見える? 単振動との関係を考えよう。</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-semiconductor.html">← n型・p型半導体</a>
+    <a href="./electromagnetism.html">電磁気の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  // 単位: 長さ cm, 時間 s(画面上の時間)。B = 1 T, |q|/m = 1 のとき周期 T0 = 6 s になるよう調整
+  var S = { B: 1, v: 5, th: 70 };
+  var T0 = 6, K = 2*Math.PI/T0;           // Ω = K·(q/m)·B
+  var L = 7, ZMAX = 24;                   // 床 ±L, 高さ 0〜ZMAX
+  var qs = 1, bs = 1;                     // 電荷の符号, 磁場の向き(+1 上向き)
+  var speed = 1, paused = false;
+  var cam = { yaw: -0.55, pitch: 0.6 }, camT = { yaw: -0.55, pitch: 0.6 };
+  var CAMS = { side: 0.0, tilt: 0.6, top: Math.PI/2 };
+  var t, p0, cen, Om, vpar, vperp, trail, hold, drag = null;
+  var show = { v:true, f:true, sh:true, b:true, ax:false };
+  var col = {};
+  var LYT = null;
+
+  function cssv(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+  function readCol(){
+    col.plus = cssv('--thermo'); col.minus = cssv('--accent-2');
+    col.B = cssv('--brand'); col.v = cssv('--wave'); col.f = cssv('--em');
+  }
+
+  // ---------- 物理(解析解でらせんを計算) ----------
+  function restart(){
+    Om = K*qs*bs*S.B;                      // 回転の角速度(符号付き)。速度は −Ω で回る(z 軸まわり)
+    var th = S.th*Math.PI/180;
+    vperp = S.v*Math.sin(th); vpar = S.v*Math.cos(th);
+    // 中心が原点に来るように出発点を決める:c = p0 + (vy, −vx)/Ω、v0 = (v⊥, 0)
+    p0 = { x: 0, y: vperp/Om, z: vpar < 0.01 ? ZMAX*0.4 : 0 };   // θ=90° のときは宙に浮かせて回す
+    cen = { x: 0, y: 0 };
+    t = 0; trail = []; hold = 0;
+    trail.push(state(0));
+  }
+  function state(tt){
+    var a = -Om*tt, c = Math.cos(a), s = Math.sin(a);
+    var rx = p0.x - cen.x, ry = p0.y - cen.y;
+    var x = cen.x + rx*c - ry*s, y = cen.y + rx*s + ry*c;
+    var vx = vperp*c, vy = vperp*s;                    // v⊥0 = (v⊥, 0) を同じ角だけ回す
+    return { x:x, y:y, z: p0.z + vpar*tt, vx:vx, vy:vy, vz:vpar };
+  }
+  function radius(){ return Math.abs(vperp/Om); }
+  function period(){ return Math.abs(2*Math.PI/Om); }
+
+  // ---------- 投影(正射影:真上から見るとどの周も同じ円に重なる) ----------
+  function rot(p, yaw, pitch){
+    var cy = Math.cos(yaw), sy = Math.sin(yaw), ce = Math.cos(pitch), se = Math.sin(pitch);
+    var z = p.z - ZMAX/2;
+    var xr = p.x*cy - p.y*sy, yr = p.x*sy + p.y*cy;
+    return [xr, yr*ce - z*se, z*ce + yr*se];           // [横, 奥行き(大=奥), 上]
+  }
+  function mkProj(panel, yaw, pitch, sc){
+    var cx = panel.x + panel.w/2, cy = panel.y + panel.h*0.54;
+    return function(p){ var r = rot(p, yaw, pitch); return { x: cx + r[0]*sc, y: cy - r[2]*sc, d: r[1] }; };
+  }
+
+  function layout(W, H){
+    if(W >= 520){
+      var mw = Math.round(W*0.58);
+      return { main:{x:0,y:0,w:mw,h:H}, top:{x:mw,y:0,w:W-mw,h:H} };
+    }
+    var mw2 = Math.round(W*0.55);
+    return { main:{x:0,y:0,w:mw2,h:H}, top:{x:mw2,y:0,w:W-mw2,h:H} };
+  }
+
+  // ---------- 描画部品 ----------
+  function arrowHead(ctx, x1, y1, x2, y2, color, w, h){
+    var len = Math.hypot(x2-x1, y2-y1); if(len < 2) return;
+    var a = Math.atan2(y2-y1, x2-x1); h = Math.min(h||10, len*0.6);
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2 - Math.cos(a)*h*0.5, y2 - Math.sin(a)*h*0.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2,y2);
+    ctx.lineTo(x2 - h*Math.cos(a-0.42), y2 - h*Math.sin(a-0.42));
+    ctx.lineTo(x2 - h*Math.cos(a+0.42), y2 - h*Math.sin(a+0.42));
+    ctx.closePath(); ctx.fillStyle = color; ctx.fill(); ctx.restore();
+  }
+  function dashLine(ctx, a, b, color, w, dash){
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.setLineDash(dash || [4,4]);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.restore();
+  }
+  function particle(v, x, y, r){
+    var ctx = v.ctx, c = qs > 0 ? col.plus : col.minus;
+    var g = ctx.createRadialGradient(x - r*0.35, y - r*0.35, r*0.2, x, y, r);
+    g.addColorStop(0, '#fff'); g.addColorStop(1, c);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    ctx.strokeStyle = v.C.ink; ctx.lineWidth = 1.2; ctx.stroke();
+    v.label(qs > 0 ? '+' : '−', x, y + 4.5, '#fff', 13, 'center');
+  }
+  function trailPath(ctx, P, proj, color, alphaFn, w){
+    // 奥ほど薄く(奥行きで 3 段階に分けて描く)
+    if(P.length < 2) return;
+    var pts = P.map(proj), dmin = 1e9, dmax = -1e9;
+    pts.forEach(function(q){ dmin = Math.min(dmin, q.d); dmax = Math.max(dmax, q.d); });
+    var span = Math.max(1e-6, dmax - dmin);
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for(var band = 0; band < 3; band++){
+      ctx.globalAlpha = alphaFn ? alphaFn(band) : 1;
+      ctx.beginPath(); var open = false;
+      for(var i = 1; i < pts.length; i++){
+        var dm = ((pts[i].d + pts[i-1].d)/2 - dmin)/span, b = dm > 0.66 ? 0 : dm > 0.33 ? 1 : 2;
+        if(b === band){ if(!open){ ctx.moveTo(pts[i-1].x, pts[i-1].y); open = true; } ctx.lineTo(pts[i].x, pts[i].y); }
+        else open = false;
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ---------- 左:ななめから見た立体図 ----------
+  function drawMain(v, P){
+    var ctx = v.ctx, C = v.C, yaw = cam.yaw, pitch = cam.pitch;
+    var vert = ZMAX*Math.cos(pitch) + 2*L*Math.sin(pitch)*0.95;
+    var sc = Math.min(P.w/(2*L*1.18), P.h*0.86/vert);
+    var proj = mkProj(P, yaw, pitch, sc);
+    ctx.save(); ctx.beginPath(); ctx.rect(P.x, P.y, P.w, P.h); ctx.clip();
+
+    // 床
+    var fc = [{x:-L,y:-L,z:0},{x:L,y:-L,z:0},{x:L,y:L,z:0},{x:-L,y:L,z:0}].map(proj);
+    ctx.beginPath(); fc.forEach(function(p,i){ i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y); }); ctx.closePath();
+    ctx.fillStyle = C.card; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 0.8; ctx.beginPath();
+    for(var g = -L+3; g < L; g += 3){
+      var a = proj({x:g,y:-L,z:0}), b = proj({x:g,y:L,z:0}); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+      a = proj({x:-L,y:g,z:0}); b = proj({x:L,y:g,z:0}); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+    }
+    ctx.stroke();
+
+    // 磁場の線(奥 → 手前の順に)
+    var cur = state(t);
+    if(show.b){
+      var lines = [];
+      for(var i = -1; i <= 1; i++) for(var j = -1; j <= 1; j++){ if(i===0 && j===0) continue; lines.push({x:i*L*0.78, y:j*L*0.78}); }
+      lines.sort(function(a,b){ return rot({x:b.x,y:b.y,z:ZMAX/2},yaw,pitch)[1] - rot({x:a.x,y:a.y,z:ZMAX/2},yaw,pitch)[1]; });
+      lines.forEach(function(q){
+        var a = proj({x:q.x,y:q.y,z:0}), b = proj({x:q.x,y:q.y,z:ZMAX});
+        if(Math.hypot(a.x-b.x, a.y-b.y) < 6){                    // 真上から:点で表す
+          drawBsym(ctx, a.x, a.y, 7, bs > 0); return;
+        }
+        dashLine(ctx, a, b, col.B, 1.3, [5,4]);
+        var m1 = proj({x:q.x,y:q.y,z:ZMAX*(bs>0?0.55:0.65)}), m2 = proj({x:q.x,y:q.y,z:ZMAX*(bs>0?0.65:0.55)});
+        arrowHead(ctx, m1.x, m1.y, m2.x, m2.y, col.B, 1.6, 10);
+      });
+      var lb = proj({x:L*0.78, y:-L*0.78, z:ZMAX});
+      v.label('B', lb.x + 8, lb.y + 4, col.B, 14);
+    }
+
+    // 床への影(真上から見た形)
+    if(show.sh){
+      ctx.save(); ctx.setLineDash([2,3]);
+      trailPath(ctx, trail.map(function(q){ return {x:q.x,y:q.y,z:0}; }), proj, C.soft, null, 1.3);
+      ctx.restore();
+      var sp = proj({x:cur.x, y:cur.y, z:0}), pp = proj(cur);
+      dashLine(ctx, pp, sp, C.faint, 1, [2,3]);
+      ctx.fillStyle = C.soft; ctx.beginPath(); ctx.arc(sp.x, sp.y, 3, 0, 7); ctx.fill();
+    }
+
+    // 中心軸と半径
+    if(show.ax){
+      dashLine(ctx, proj({x:cen.x,y:cen.y,z:0}), proj({x:cen.x,y:cen.y,z:ZMAX}), C.soft, 1.1, [6,4]);
+      var cz = proj({x:cen.x, y:cen.y, z:cur.z}), pc = proj(cur);
+      dashLine(ctx, cz, pc, C.ink, 1.2, [3,3]);
+      v.text('r', (cz.x+pc.x)/2 + 4, (cz.y+pc.y)/2 - 4, C.ink, 12);
+    }
+
+    // 軌跡
+    trailPath(ctx, trail, proj, qs > 0 ? col.plus : col.minus, function(b){ return [1, 0.6, 0.3][b]; }, 2.4);
+
+    // 粒子とベクトル
+    var pc2 = proj(cur);
+    drawVectors(v, proj, cur, sc);
+    particle(v, pc2.x, pc2.y, 8);
+    ctx.restore();
+
+    var deg = Math.round(cam.pitch*180/Math.PI);
+    var narrow = P.w < 300;
+    v.label(deg >= 88 ? '真上から見た図' : deg <= 2 ? '横から見た図' : (narrow ? 'ななめ上から('+deg+'°)' : 'ななめ上から見た図(見下ろす角度 '+deg+'°)'), P.x + 10, 20, C.ink, narrow ? 11 : 12);
+    v.label('ドラッグで回転', P.x + 10, narrow ? 34 : 37, C.faint, narrow ? 10 : 11);
+  }
+
+  function drawVectors(v, proj, cur, sc){
+    var ctx = v.ctx, pc = proj(cur), kv = 0.9;     // 速度 1 cm/s → 0.9 cm の長さ
+    if(show.v){
+      var tip = proj({x:cur.x+cur.vx*kv, y:cur.y+cur.vy*kv, z:cur.z+cur.vz*kv});
+      var tp = proj({x:cur.x+cur.vx*kv, y:cur.y+cur.vy*kv, z:cur.z});     // v⊥ の先
+      var tq = proj({x:cur.x, y:cur.y, z:cur.z+cur.vz*kv});               // v∥ の先
+      if(Math.abs(vpar) > 0.05 && vperp > 0.05){
+        dashLine(ctx, tp, tip, v.C.faint, 1, [2,3]); dashLine(ctx, tq, tip, v.C.faint, 1, [2,3]);
+      }
+      ctx.save(); ctx.globalAlpha = 0.8; ctx.setLineDash([4,3]);
+      if(vperp > 0.05) arrowHead(ctx, pc.x, pc.y, tp.x, tp.y, col.v, 1.6, 9);
+      if(Math.abs(vpar) > 0.05) arrowHead(ctx, pc.x, pc.y, tq.x, tq.y, col.v, 1.6, 9);
+      ctx.restore();
+      arrowHead(ctx, pc.x, pc.y, tip.x, tip.y, col.v, 2.6, 12);
+      v.label('v', tip.x + 6, tip.y - 4, col.v, 13);
+      if(vperp > 0.4) v.label('v⊥', tp.x + 5, tp.y + 13, col.v, 11);
+      if(Math.abs(vpar) > 0.4) v.label('v∥', tq.x + 6, tq.y + 2, col.v, 11);
+    }
+    if(show.f && vperp > 0.02){
+      var fx = cen.x - cur.x, fy = cen.y - cur.y, fm = Math.hypot(fx, fy) || 1;
+      var flen = 0.9*vperp*S.B;                         // f ∝ q v⊥ B
+      var ft = proj({x:cur.x + fx/fm*flen, y:cur.y + fy/fm*flen, z:cur.z});
+      arrowHead(ctx, pc.x, pc.y, ft.x, ft.y, col.f, 2.6, 12);
+      v.label('f', ft.x + (ft.x>pc.x?5:-12), ft.y - 5, col.f, 13);
+    }
+  }
+
+  function drawBsym(ctx, x, y, r, out){
+    ctx.save(); ctx.strokeStyle = col.B; ctx.lineWidth = 1.3; ctx.globalAlpha = 0.85;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
+    if(out){ ctx.fillStyle = col.B; ctx.beginPath(); ctx.arc(x, y, r*0.28, 0, 7); ctx.fill(); }
+    else { var k = r*0.6; ctx.beginPath(); ctx.moveTo(x-k,y-k); ctx.lineTo(x+k,y+k); ctx.moveTo(x+k,y-k); ctx.lineTo(x-k,y+k); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  // ---------- 右:真上から見た図 ----------
+  function drawTop(v, P){
+    var ctx = v.ctx, C = v.C, yaw = cam.yaw;
+    var side = Math.min(P.w - 8, P.h - 70), sc = side*0.9/(2*L);
+    var cx = P.x + P.w/2, cy = P.y + 40 + side/2;
+    var proj = function(p){ var r = rot({x:p.x, y:p.y, z:ZMAX/2}, yaw, Math.PI/2); return { x: cx + r[0]*sc, y: cy - r[2]*sc, d: p.z ? -p.z : 0 }; };
+    // 枠
+    ctx.save();
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(P.x + 0.5, P.y + 8); ctx.lineTo(P.x + 0.5, P.y + P.h - 8); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.rect(P.x + 4, cy - side/2, P.w - 8, side); ctx.clip();
+    // 方眼(視点の向きに合わせて回す)
+    var big = L*2.2;
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 0.8; ctx.beginPath();
+    for(var g = -Math.floor(big/2)*2; g <= big; g += 2){
+      var a = proj({x:g,y:-big}), b = proj({x:g,y:big}); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+      a = proj({x:-big,y:g}); b = proj({x:big,y:g}); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+    }
+    ctx.stroke();
+    // 磁場の記号(一様なので画面に等間隔で並べる)
+    if(show.b){
+      var stp = Math.max(34, side/5), n = Math.floor(side/stp/2);
+      for(var i = -n; i <= n; i++) for(var j = -n; j <= n; j++) drawBsym(ctx, cx + i*stp, cy + j*stp, 6, bs > 0);
+    }
+    var cur = state(t), pc = proj(cur), cc = proj(cen);
+    // 円(軌跡の影)
+    trailPath(ctx, trail, function(p){ return proj(p); }, qs > 0 ? col.plus : col.minus, null, 2.2);
+    // 中心と半径
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(cc.x, cc.y, 2.6, 0, 7); ctx.fill();
+    if(vperp > 0.05){
+      dashLine(ctx, cc, pc, C.soft, 1.1, [3,3]);
+      v.text('r', (cc.x+pc.x)/2 + 5, (cc.y+pc.y)/2 - 3, C.soft, 12);
+      // 回る向きの弧
+      var rr = radius()*sc + 14, dir = Om > 0 ? -1 : 1;     // −Ω で回る:dir=+1 反時計回り(数学の向き)
+      var a0 = Math.atan2(-(pc.y - cc.y), pc.x - cc.x);
+      ctx.save(); ctx.strokeStyle = C.soft; ctx.lineWidth = 1.3; ctx.beginPath();
+      var steps = 20, span = 0.9;
+      for(var k = 0; k <= steps; k++){ var an = a0 + 0.25*dir + dir*span*k/steps; var X = cc.x + rr*Math.cos(an), Y = cc.y - rr*Math.sin(an); k?ctx.lineTo(X,Y):ctx.moveTo(X,Y); }
+      ctx.stroke(); ctx.restore();
+      var ae = a0 + 0.25*dir + dir*span, ae2 = ae - dir*0.12;
+      arrowHead(ctx, cc.x + rr*Math.cos(ae2), cc.y - rr*Math.sin(ae2), cc.x + rr*Math.cos(ae), cc.y - rr*Math.sin(ae), C.soft, 1.3, 9);
+    }
+    // ベクトル(真上からは v⊥ と f だけが見える)
+    var kv = 0.9;
+    if(show.v && vperp > 0.05){
+      var tp = proj({x:cur.x+cur.vx*kv, y:cur.y+cur.vy*kv});
+      arrowHead(ctx, pc.x, pc.y, tp.x, tp.y, col.v, 2.4, 11);
+      v.label('v⊥', tp.x + 5, tp.y - 4, col.v, 12);
+    }
+    if(show.f && vperp > 0.02){
+      var fx = cen.x - cur.x, fy = cen.y - cur.y, fm = Math.hypot(fx, fy) || 1, fl = 0.9*vperp*S.B;
+      var ft = proj({x:cur.x + fx/fm*fl, y:cur.y + fy/fm*fl});
+      arrowHead(ctx, pc.x, pc.y, ft.x, ft.y, col.f, 2.4, 11);
+      v.label('f', ft.x + 5, ft.y - 5, col.f, 13);
+    }
+    particle(v, pc.x, pc.y, 7);
+    ctx.restore();
+
+    v.label('真上から見た図', P.x + 12, 20, C.ink, 12);
+    v.label(bs > 0 ? 'B は手前向き ⊙' : 'B は奥向き ⊗', P.x + 12, 37, col.B, 11);
+    var turn = vperp < 0.05 ? '円運動なし(まっすぐ進む)' : (Om > 0 ? '時計回り' : '反時計回り');
+    v.label('回る向き:' + turn, P.x + 12, cy + side/2 + 22, C.soft, 12);
+  }
+
+  // ---------- UI ----------
+  function setBtns(){
+    document.getElementById('q-p').classList.toggle('primary', qs > 0);
+    document.getElementById('q-m').classList.toggle('primary', qs < 0);
+    document.getElementById('b-up').classList.toggle('primary', bs > 0);
+    document.getElementById('b-dn').classList.toggle('primary', bs < 0);
+    document.querySelectorAll('[data-sp]').forEach(function(b){ b.classList.toggle('primary', !paused && parseFloat(b.dataset.sp) === speed); });
+    var pb = document.getElementById('pause'); pb.classList.toggle('primary', paused); pb.textContent = paused ? '再開' : '停止';
+    document.querySelectorAll('[data-cam]').forEach(function(b){ b.classList.toggle('primary', Math.abs(CAMS[b.dataset.cam] - camT.pitch) < 0.01); });
+  }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key:'B',  label:'磁束密度 B', min:0.5, max:2, step:0.1, fmt:function(x){ return x.toFixed(1)+' T'; } },
+      { key:'v',  label:'速さ v', min:1, max:8, step:0.5, fmt:function(x){ return x.toFixed(1)+' cm/s'; } },
+      { key:'th', label:'v と B のなす角 θ', min:0, max:90, step:5, fmt:function(x){ return x+'°'; } }
+    ],
+    onChange: function(){ restart(); },
+    init: function(v){
+      readCol();
+      if(window.matchMedia){ var mq = window.matchMedia('(prefers-color-scheme: dark)'); if(mq.addEventListener) mq.addEventListener('change', function(){ setTimeout(readCol, 0); }); }
+      v.extraButton('q-p', function(){ qs = 1; restart(); setBtns(); });
+      v.extraButton('q-m', function(){ qs = -1; restart(); setBtns(); });
+      v.extraButton('b-up', function(){ bs = 1; restart(); setBtns(); });
+      v.extraButton('b-dn', function(){ bs = -1; restart(); setBtns(); });
+      v.extraButton('pause', function(){ paused = !paused; setBtns(); });
+      document.querySelectorAll('[data-sp]').forEach(function(b){ b.addEventListener('click', function(){ speed = parseFloat(b.dataset.sp); paused = false; setBtns(); }); });
+      document.querySelectorAll('[data-cam]').forEach(function(b){ b.addEventListener('click', function(){ camT.pitch = CAMS[b.dataset.cam]; setBtns(); }); });
+      [['ck-v','v'],['ck-f','f'],['ck-sh','sh'],['ck-b','b'],['ck-ax','ax']].forEach(function(p){
+        var el = document.getElementById(p[0]); el.addEventListener('change', function(){ show[p[1]] = el.checked; });
+      });
+      restart(); setBtns();
+    },
+    reset: function(){ restart(); },
+    resize: function(){},
+
+    step: function(v, h){
+      // カメラをなめらかに目標へ
+      if(!drag){
+        cam.pitch += (camT.pitch - cam.pitch)*Math.min(1, h*6);
+        cam.yaw += (camT.yaw - cam.yaw)*Math.min(1, h*6);
+      }
+      if(hold > 0){ hold -= h; if(hold <= 0) restart(); return; }
+      if(paused) return;
+      t += h*speed;
+      var s = state(t);
+      if(s.z > ZMAX){ t = (ZMAX - p0.z)/vpar; hold = 1.2; s = state(t); }
+      var last = trail[trail.length - 1];
+      if(Math.hypot(s.x-last.x, s.y-last.y, s.z-last.z) > 0.12) trail.push(s);
+      if(trail.length > 4000) trail.splice(0, trail.length - 4000);
+    },
+
+    draw: function(v){
+      v.clear();
+      LYT = layout(v.W, v.H);
+      drawMain(v, LYT.main);
+      drawTop(v, LYT.top);
+    },
+
+    readout: function(){
+      var rows = [
+        ['v∥ = v cosθ', Math.abs(vpar).toFixed(2)+' cm/s'],
+        ['v⊥ = v sinθ', vperp.toFixed(2)+' cm/s'],
+        ['半径 r', vperp < 0.005 ? '—' : radius().toFixed(2)+' cm'],
+        ['周期 T', period().toFixed(2)+' s'],
+        ['ピッチ p = v∥T', vperp < 0.005 ? '—' : (Math.abs(vpar)*period()).toFixed(1)+' cm'],
+        ['経過 t', t.toFixed(1)+' s(' + (vperp < 0.005 ? '—' : (t/period()).toFixed(2)+' 周') + ')']
+      ];
+      return rows;
+    },
+
+    down: function(v, p){
+      if(LYT && p.x < LYT.main.x + LYT.main.w) drag = { x:p.x, y:p.y, yaw:cam.yaw, pitch:cam.pitch };
+    },
+    move: function(v, p){
+      if(!drag) return;
+      cam.yaw = drag.yaw + (p.x - drag.x)*0.008;
+      cam.pitch = Math.max(-0.2, Math.min(Math.PI/2, drag.pitch + (p.y - drag.y)*0.008));
+      camT.yaw = cam.yaw; camT.pitch = cam.pitch; setBtns();
+    },
+    up: function(){ drag = null; }
+  });
+})();
+</script>
+</body>
+</html>
