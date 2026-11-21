@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>固定端・自由端の反射 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* このページ専用: 図を見ながら操作できるよう横並び(スマホでは図を上に固定) */
+  .sw-stage{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:start;}
+  .sw-stage canvas.sim{height:clamp(460px,48vw,580px);touch-action:none;cursor:pointer;}
+  .sw-left{position:sticky;top:8px;}
+  .row{display:flex;gap:6px;align-items:center;}
+  .row + .row{margin-top:8px;}
+  .row .lbl{font-size:0.84rem;color:var(--ink-soft);margin-right:2px;white-space:nowrap;min-width:4.4em;}
+  .row .btn{flex:1;padding:5px 2px;min-width:0;white-space:nowrap;font-size:0.86rem;}
+  .koma{margin-top:12px;padding:10px;border:1.5px dashed var(--line);border-radius:10px;}
+  .koma .row .btn.big{font-size:1rem;padding:6px 2px;}
+  .koma .now{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:0.9rem;text-align:center;margin-top:8px;color:var(--ink);}
+  .waves{margin-top:12px;padding:10px;border:1.5px solid var(--line);border-radius:10px;display:flex;flex-direction:column;gap:6px;}
+  .waves .cap{font-size:0.78rem;color:var(--ink-faint);}
+  .waves .btn{width:100%;text-align:left;padding:6px 12px;font-size:0.88rem;display:flex;align-items:center;gap:8px;}
+  .waves .btn i{display:inline-block;width:22px;height:0;border-top:3px solid currentColor;flex:none;}
+  .waves .btn[aria-pressed="false"]{opacity:.5;border-style:dashed;}
+  .waves .btn[aria-pressed="false"] i{border-top-style:dashed;}
+  #w1{color:var(--accent-2);border-color:var(--accent-2);}
+  #w2{color:var(--brand);border-color:var(--brand);}
+  #w3{color:var(--wave);border-color:var(--wave);}
+  .waves .btn:hover{background:transparent;filter:brightness(1.1);}
+  .seg2 .btn{flex:1;}
+  .sw-right .controls{grid-template-columns:1fr;gap:10px;margin-top:12px;}
+  .sw-right .ctrl label{margin-bottom:0;}
+  .checks{margin:12px 0 0;display:flex;flex-direction:column;gap:4px;font-size:0.88rem;color:var(--ink-soft);}
+  .checks .cap{font-size:0.78rem;color:var(--ink-faint);margin-top:4px;}
+  .checks label{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .checks input{accent-color:var(--accent);width:16px;height:16px;margin:0;}
+  .sw-btns{margin-top:14px;}
+  .sw-right .hint{margin:10px 0 0;line-height:1.6;}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:10px 2px 0;padding:0;list-style:none;font-size:0.82rem;color:var(--ink-soft);}
+  .legend li{display:flex;align-items:center;gap:6px;}
+  .legend svg{flex:none;}
+  @media (max-width:860px){
+    .sw-stage{grid-template-columns:1fr;gap:10px;}
+    .sw-left{display:contents;}
+    .sw-fig{position:sticky;top:0;z-index:5;background:var(--paper-card);padding:6px 0 4px;box-shadow:0 8px 10px -10px var(--shadow);}
+    .sw-stage canvas.sim{height:clamp(400px,112vw,490px);}
+    .sw-stage .readout{margin-top:0;}
+    .sw-stage .readout li{font-size:0.74rem;padding:2px 7px;}
+    .legend{font-size:0.76rem;gap:2px 12px;margin-top:6px;}
+  }
+</style>
+</head>
+<body class="u-wave">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html" class="on">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./waves.html">波動</a> / 固定端・自由端の反射</p>
+
+  <div class="sim-head">
+    <h1>固定端・自由端の反射</h1>
+    <span class="eq">固定端:上下を反転して反射 / 自由端:そのまま反射</span>
+  </div>
+
+  <section class="stage sw-stage">
+    <div class="sw-left">
+      <div class="sw-fig"><canvas class="sim" id="sim" aria-label="左から進んできた波が右端で反射する様子。固定端と自由端を切り替えられる"></canvas></div>
+      <ul class="legend" aria-label="図の見方">
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 8 Q6 0 11 6 T21 4" stroke="var(--accent-2)" stroke-width="1.8" fill="none"/></svg><span>入射波(右へ進む)</span></li>
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 4 Q6 12 11 6 T21 8" stroke="var(--brand)" stroke-width="1.8" fill="none"/></svg><span>反射波(左へ進む)</span></li>
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 8 Q6 0 11 6 T21 4" stroke="var(--wave)" stroke-width="3" fill="none"/></svg><span>合成波(実際の媒質の形)</span></li>
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><circle cx="6" cy="6" r="4" fill="var(--ink-soft)"/><circle cx="16" cy="6" r="4" fill="var(--ink-soft)"/></svg><span>媒質の粒</span></li>
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><circle cx="11" cy="6" r="5" fill="var(--thermo)"/></svg><span>注目する粒(タップで選べる)</span></li>
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 6 Q6 0 11 6 T21 6" stroke="var(--accent-2)" stroke-width="1.5" stroke-dasharray="3 2" fill="none"/></svg><span>作図の線(端の向こう側)</span></li>
+      </ul>
+      <ul class="readout" id="readout"></ul>
+    </div>
+    <div class="sw-right">
+      <div class="row seg2">
+        <span class="lbl">右の端</span>
+        <button class="btn small" id="e-fix">固定端</button>
+        <button class="btn small" id="e-free">自由端</button>
+      </div>
+      <div class="row seg2">
+        <span class="lbl">送る波</span>
+        <button class="btn small" id="m-pulse">山を1つ</button>
+        <button class="btn small" id="m-cont">連続波</button>
+      </div>
+      <div class="waves">
+        <span class="cap">表示する波(タップでオン・オフ)</span>
+        <button class="btn small" id="w1" aria-pressed="true"><i></i>入射波</button>
+        <button class="btn small" id="w2" aria-pressed="true"><i></i>反射波</button>
+        <button class="btn small" id="w3" aria-pressed="true"><i></i>合成波(実際の形)</button>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <span class="lbl">速さ</span>
+        <button class="btn small" data-sp="1">×1</button>
+        <button class="btn small" data-sp="0.25">1/4</button>
+        <button class="btn small" data-sp="0.1">1/10</button>
+        <button class="btn small" id="pause">停止</button>
+      </div>
+
+      <div class="koma">
+        <div class="row">
+          <span class="lbl">コマ送り</span>
+          <button class="btn small big" id="k-back" aria-label="1コマ戻す">◀ 戻す</button>
+          <button class="btn small big" id="k-next" aria-label="1コマ進める">進める ▶</button>
+        </div>
+        <div class="row">
+          <span class="lbl">1コマ</span>
+          <button class="btn small" data-step="4">T/4</button>
+          <button class="btn small" data-step="8">T/8</button>
+          <button class="btn small" data-step="16">T/16</button>
+        </div>
+        <div class="now" id="now">t = 0</div>
+      </div>
+
+      <div class="controls" id="controls"></div>
+
+      <div class="checks">
+        <span class="cap">反射のしかた</span>
+        <label><input type="checkbox" id="ck-con" checked>反射波の作図(端の向こう側)</label>
+        <label><input type="checkbox" id="ck-stop" checked>山が端に着いたら止める(山を1つ)</label>
+        <span class="cap">媒質</span>
+        <label><input type="checkbox" id="ck-p" checked>媒質の粒(外すと波形だけ)</label>
+        <label><input type="checkbox" id="ck-me" checked>注目する粒(赤)</label>
+        <label><input type="checkbox" id="ck-add">重ね合わせの矢印(赤い粒で 入射+反射)</label>
+        <span class="cap">連続波のとき</span>
+        <label><input type="checkbox" id="ck-nd" checked>節・腹の印</label>
+        <label><input type="checkbox" id="ck-env">振幅の範囲(包絡線)</label>
+        <label><input type="checkbox" id="ck-gh">残像(合成波の 1〜3 コマ前)</label>
+        <span class="cap">グラフ</span>
+        <label><input type="checkbox" id="ck-yt">注目する粒の y–t グラフ</label>
+      </div>
+
+      <div class="btns sw-btns">
+        <button class="btn primary" id="reset">はじめから</button>
+      </div>
+      <p class="hint">図の粒をタップすると、その粒が「注目する粒」になります(端の粒を選んで、固定端と自由端で比べてみよう)。コマ送りを押すと自動で停止します。縦(変位)の目盛りは見やすく拡大しています。</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li><strong>固定端</strong>では端の媒質が動けないので、反射波は<strong>上下が反転</strong>して戻ってくる(山 → 谷)。位相が π ずれる、ともいいます。</li>
+        <li><strong>自由端</strong>では端が自由に動けるので、反射波は<strong>そのままの形</strong>で戻ってくる(山 → 山)。</li>
+        <li>反射波の作図:端がないとして波を<strong>そのまま延長</strong> →(固定端なら<strong>上下を反転</strong>)→ 端で<strong>折り返す</strong>。</li>
+        <li>連続波では入射波と反射波が重なって<strong>定常波</strong>ができます。端は、固定端なら<strong>節</strong>、自由端なら<strong>腹</strong>。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>「山を1つ」で、山が端に着いた瞬間に止めよう。コマ送りで進めると、固定端と自由端で端の粒の動きはどうちがう?</li>
+        <li>自由端で山が端に着いたとき、端の粒の変位は元の山の何倍? 重ね合わせの矢印で確かめよう。</li>
+        <li>連続波で、端からいちばん近い節までの距離は、固定端・自由端でそれぞれ λ の何倍?</li>
+        <li>作図の線を表示して、固定端の「延長 → 上下反転 → 折り返し」の順に、反射波の形がどう決まるか説明しよう。</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-standing.html">← 定常波(定在波)のでき方</a>
+    <a href="./waves.html">波動の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+
+<script src="./sim-core.js"></script>
+<script>
+(function(){
+  "use strict";
+  // 波源(左端 x = 0)の振動 f(τ):連続波 = A sin(2πτ/T)(τ ≥ 0)、山を1つ = 0 ≤ τ ≤ T/2 だけ
+  // 入射波 yi(x, t) = f(t − x/v)
+  // 反射波 yr(x, t) = ε f(t − (2XW − x)/v)   … 端 XW で折り返した位置から来る波。固定端 ε = −1、自由端 ε = +1
+  // 単位 cm・s。画面は 0〜60 cm、端は XW = 45 cm(その右は作図用)
+  var XL = 60, XW = 45, DX = 1.5, NP = Math.round(XW/DX) + 1;
+  var S = { A: 2.5, lam: 20, T: 2 };
+  var speed = 1, paused = false, div = 8, fixed = true, pulse = true, stopped = false;
+  var on = { w1:true, w2:true, w3:true };
+  var show = { con:true, stop:true, p:true, me:true, add:false, nd:true, env:false, gh:false, yt:false };
+  var t = 0, me = NP - 1;
+  var col = {}, P = {}, G = {};
+
+  function cssv(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+  function readCol(){
+    col.wave = cssv('--wave'); col.red = cssv('--thermo'); col.blue = cssv('--accent-2'); col.brand = cssv('--brand'); col.em = cssv('--em');
+    col.ink = cssv('--ink'); col.soft = cssv('--ink-soft'); col.faint = cssv('--ink-faint');
+    col.line = cssv('--line'); col.grid = cssv('--grid'); col.card = cssv('--paper-card-2');
+  }
+  function vel(){ return S.lam/S.T; }
+  function eps(){ return fixed ? -1 : 1; }
+  function f(tau){
+    if(tau < 0) return 0;
+    if(pulse && tau > S.T/2) return 0;
+    return S.A*Math.sin(2*Math.PI*tau/S.T);
+  }
+  function yi(x, tt){ return f(tt - x/vel()); }
+  function yr(x, tt){ return eps()*f(tt - (2*XW - x)/vel()); }
+  function ys(x, tt){ return yi(x, tt) + yr(x, tt); }
+  function stepDt(){ return S.T/div; }
+  function tHit(){ return XW/vel() + S.T/4; }          // 山の頂上が端に着く時刻
+
+  // ---------- 配置 ----------
+  function layout(v){
+    var narrow = v.W < 520;
+    var ml = narrow ? 42 : 58, mr = narrow ? 12 : 18;
+    var ytH = show.yt ? Math.max(130, v.H*0.33) : 0;
+    P.x0 = ml; P.x1 = v.W - mr; P.sx = (P.x1 - P.x0)/XL;
+    P.top = 8; P.bot = v.H - ytH - (show.yt ? 14 : 8);
+    P.cy = (P.top + 48 + P.bot - 44)/2;
+    P.sy = Math.min((P.bot - P.top - 102)/2/(2*S.A + 1.6), 24);
+    P.ymax = Math.floor(((P.bot - P.top - 102)/2)/P.sy);
+    G.on = show.yt; G.top = P.bot + 14; G.bot = v.H - 8; G.x0 = P.x0; G.x1 = P.x1;
+    G.cy = (G.top + 28 + G.bot - 24)/2; G.sy = (G.bot - G.top - 60)/2/(2*S.A*1.05);
+    P.narrow = narrow;
+  }
+  function X(x){ return P.x0 + x*P.sx; }
+  function Y(y){ return P.cy - y*P.sy; }
+
+  // ---------- 描画部品 ----------
+  function panelBg(ctx, top, bot){
+    ctx.save(); ctx.strokeStyle = col.line; ctx.lineWidth = 1;
+    ctx.strokeRect(P.x0 - 0.5, top + 0.5, P.x1 - P.x0 + 1, bot - top); ctx.restore();
+  }
+  function axisTitle(v, txt, x, y, align){
+    var ctx = v.ctx, fs = P.narrow ? 13 : 15;
+    ctx.save(); ctx.font = '700 ' + fs + 'px "Noto Sans JP", sans-serif';
+    var w = ctx.measureText(txt).width + 8, x0 = align === 'right' ? x - w + 4 : x - 4;
+    ctx.fillStyle = col.card; ctx.globalAlpha = 0.9; ctx.fillRect(x0, y - fs, w, fs + 6); ctx.restore();
+    ctx.save(); ctx.font = '700 ' + fs + 'px "Noto Sans JP", sans-serif'; ctx.fillStyle = col.ink;
+    ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.fillText(txt, x, y); ctx.restore();
+  }
+  function waveGrid(v){
+    var ctx = v.ctx, st = P.ymax > 4 ? 2 : 1, nf = P.narrow ? 12 : 14;
+    // 端の向こう側(作図用)を薄く塗る
+    ctx.save(); ctx.fillStyle = col.line; ctx.globalAlpha = 0.35;
+    ctx.fillRect(X(XW), P.top + 46, P.x1 - X(XW), P.bot - 42 - (P.top + 46)); ctx.restore();
+    ctx.save(); ctx.strokeStyle = col.grid; ctx.lineWidth = 1; ctx.beginPath();
+    for(var x = 0; x <= XL; x += 5){ ctx.moveTo(X(x), P.top + 46); ctx.lineTo(X(x), P.bot - 42); }
+    for(var y = -P.ymax; y <= P.ymax; y++){ if(y % st) continue; ctx.moveTo(P.x0, Y(y)); ctx.lineTo(P.x1, Y(y)); }
+    ctx.stroke(); ctx.restore();
+    v.line(P.x0, P.cy, X(XW), P.cy, col.faint, 1.2, [6,4]);
+    for(var xx = 0; xx <= XL; xx += 10) v.text(String(xx), X(xx), P.bot - 24, col.soft, nf, 'center');
+    for(var yy = -P.ymax; yy <= P.ymax; yy++){ if(yy % st) continue; v.text(String(yy), P.x0 - 6, Y(yy) + 5, col.soft, nf, 'right'); }
+    axisTitle(v, '縦軸: 変位 y [cm]', P.x0 + 6, P.top + 21, 'left');
+    axisTitle(v, '横軸: 位置 x [cm]', P.x1 - 6, P.bot - 5, 'right');
+    v.label(P.narrow ? '波の形' : '波の形 y–x グラフ(いまの瞬間)', P.x1 - 6, P.top + 21, col.ink, P.narrow ? 13 : 15, 'right');
+    if(!show.con) v.label(P.narrow ? '端の向こう' : '端の向こう側(作図用)', (X(XW) + P.x1)/2, P.bot - 48, col.faint, P.narrow ? 11 : 13, 'center');
+  }
+  function curve(v, fn, tt, a, b, color, width, alpha, dash){
+    var ctx = v.ctx; ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = 'round';
+    ctx.setLineDash(dash || []); ctx.beginPath();
+    var n = Math.ceil((X(b) - X(a))/2);
+    for(var i = 0; i <= n; i++){ var x = a + (b - a)*i/n, py = Y(fn(x, tt)); if(i) ctx.lineTo(X(x), py); else ctx.moveTo(X(x), py); }
+    ctx.stroke(); ctx.restore();
+  }
+  // 端の絵
+  function endPiece(v){
+    var ctx = v.ctx, px = X(XW), top = Y(2*S.A) - 14, bot = Y(-2*S.A) + 14, fs = P.narrow ? 12 : 14;
+    if(fixed){
+      ctx.save(); ctx.fillStyle = col.soft; ctx.globalAlpha = 0.85; ctx.fillRect(px, top, 10, bot - top); ctx.restore();
+      ctx.save(); ctx.strokeStyle = col.card; ctx.lineWidth = 1.4; ctx.beginPath();
+      for(var y = top + 4; y < bot; y += 9){ ctx.moveTo(px + 1, y + 6); ctx.lineTo(px + 9, y); }
+      ctx.stroke(); ctx.restore();
+      v.circle(px, P.cy, 4.5, col.ink, col.ink);
+      v.label('固定端', px + 14, top + 2, col.ink, fs, 'left');
+      v.label('(動けない)', px + 14, top + 2 + fs + 3, col.soft, fs - 1, 'left');
+    } else {
+      v.line(px, top, px, bot, col.soft, 3);
+      var ye = Y(ys(XW, t));
+      ctx.save(); ctx.strokeStyle = col.ink; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.ellipse(px, ye, 5, 8, 0, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+      v.label('自由端', px + 10, top + 2, col.ink, fs, 'left');
+      v.label('(棒にそって動ける)', px + 10, top + 2 + fs + 3, col.soft, fs - 1, 'left');
+    }
+  }
+  function source(v){
+    var px = X(0), bx = px - 8;
+    v.ctx.save(); v.ctx.fillStyle = col.blue; v.ctx.fillRect(bx - 4, Y(yi(0, t)) - 7, 8, 14); v.ctx.restore();
+    v.label('波源 →', P.x0 + 6, P.top + 64, col.blue, P.narrow ? 12 : 13, 'left');
+  }
+  // 作図:端がないとしたときの入射波(延長)→(固定端なら反転)→ 折り返し
+  function construction(v){
+    if(!show.con) return;
+    var fs = P.narrow ? 11 : 13;
+    var ext = function(x, tt){ return yi(x, tt); };
+    var inv = function(x, tt){ return -yi(x, tt); };
+    var any = false;
+    for(var x = XW; x <= XL; x += 0.5) if(Math.abs(yi(x, t)) > 1e-6){ any = true; break; }
+    if(!any) return;
+    curve(v, ext, t, XW, XL, col.blue, 1.6, 0.9, [5,4]);
+    if(fixed) curve(v, inv, t, XW, XL, col.em, 1.8, 0.95, [5,4]);
+    var nl = fixed ? 3 : 2, lx = X(XW) + 6, ly = P.bot - 50 - (nl - 1)*(fs + 4);
+    v.ctx.save(); v.ctx.fillStyle = col.card; v.ctx.fillRect(X(XW) + 2, ly - fs - 2, P.x1 - X(XW) - 4, nl*(fs + 4) + 8); v.ctx.restore();
+    var nw = P.narrow;
+    v.label(nw ? '①延長' : '① そのまま延長', lx, ly, col.blue, fs, 'left');
+    if(fixed){ v.label(nw ? '②上下反転' : '② 上下を反転', lx, ly + fs + 4, col.em, fs, 'left'); v.label(nw ? '③折り返す' : '③ 端で折り返す → 反射波', lx, ly + 2*(fs + 4), col.brand, fs, 'left'); }
+    else v.label(nw ? '②折り返す' : '② 端で折り返す', lx, ly + fs + 4, col.brand, fs, 'left');
+  }
+  // 連続波:入射波と反射波が重なっている範囲 [2XW − vt, XW]
+  function overlapFrom(){ return Math.max(0, 2*XW - vel()*t); }
+  function standOk(){ return !pulse && overlapFrom() < XW - 1e-6; }
+  function envelope(v){
+    if(!show.env || !standOk()) return;
+    var a = overlapFrom(), k = 2*Math.PI/S.lam, ctx = v.ctx;
+    var amp = function(x){ var d = XW - x; return 2*S.A*Math.abs(fixed ? Math.sin(k*d) : Math.cos(k*d)); };
+    [1, -1].forEach(function(sg){
+      ctx.save(); ctx.strokeStyle = col.faint; ctx.lineWidth = 1.4; ctx.setLineDash([4,3]); ctx.beginPath();
+      for(var i = 0; i <= 240; i++){ var x = a + (XW - a)*i/240, py = Y(sg*amp(x)); if(i) ctx.lineTo(X(x), py); else ctx.moveTo(X(x), py); }
+      ctx.stroke(); ctx.restore();
+    });
+  }
+  function nodeMarks(v){
+    if(!show.nd || !standOk()) return;
+    var a = overlapFrom(), h = S.lam/2, fs = P.narrow ? 12 : 14, ctx = v.ctx;
+    var nOff = fixed ? 0 : S.lam/4, aOff = fixed ? S.lam/4 : 0;
+    for(var d = nOff; XW - d >= a - 1e-6; d += h){
+      var px = X(XW - d);
+      ctx.save(); ctx.fillStyle = col.ink; ctx.beginPath(); ctx.arc(px, P.cy, 4, 0, Math.PI*2); ctx.fill(); ctx.restore();
+      v.label('節', px - (d === 0 ? 10 : 0), Y(-2*S.A) + 14 + fs, col.ink, fs, 'center');
+    }
+    for(var e = aOff; XW - e >= a - 1e-6; e += h){
+      var qx = X(XW - e);
+      v.line(qx, Y(2*S.A), qx, Y(-2*S.A), col.brand, 1.2, [5,4]);
+      v.label('腹', qx - (e === 0 ? 10 : 0), Y(2*S.A) - 6, col.brand, fs, 'center');
+    }
+  }
+  function medium(v){
+    if(!show.p) return;
+    var ctx = v.ctx, r = P.narrow ? 3.2 : 4.4;
+    ctx.save(); ctx.fillStyle = col.soft;
+    for(var k = 0; k < NP; k++){ if(show.me && k === me) continue; var xk = k*DX; ctx.beginPath(); ctx.arc(X(xk), Y(ys(xk, t)), r, 0, Math.PI*2); ctx.fill(); }
+    ctx.restore();
+    if(show.me){
+      var xm = me*DX, pxm = X(xm);
+      v.line(pxm, Y(2*S.A) - 4, pxm, Y(-2*S.A) + 4, col.red, 1, [3,3]);
+      v.circle(pxm, Y(ys(xm, t)), r + 2.4, col.red, col.ink);
+    }
+  }
+  function sgn(y){ return (y >= 0 ? '+' : '−') + Math.abs(y).toFixed(2); }
+  function addArrows(v){
+    if(!show.add || !show.me) return;
+    var xm = me*DX, px = X(xm), a = yi(xm, t), b = yr(xm, t), off = P.narrow ? 9 : 12, fs = P.narrow ? 12 : 13;
+    if(Math.abs(a*P.sy) > 2) v.arrow(px - off, P.cy, px - off, Y(a), col.blue, 2.6);
+    if(Math.abs(b*P.sy) > 2) v.arrow(px + off, P.cy, px + off, Y(b), col.brand, 2.6);
+    if(Math.abs((a+b)*P.sy) > 2) v.arrow(px, P.cy, px, Y(a + b), col.wave, 3.4);
+    var left = xm > XW*0.55, tx = px + (left ? -22 : 22), al = left ? 'right' : 'left', ty = P.top + 92;
+    var ctx = v.ctx, lines = [['入射 = ' + sgn(a), col.blue], ['反射 = ' + sgn(b), col.brand], ['合成 = ' + sgn(a + b), col.wave]];
+    ctx.save(); ctx.font = fs + 'px "JetBrains Mono", "Noto Sans JP", monospace';
+    var w = Math.max.apply(null, lines.map(function(l){ return ctx.measureText(l[0]).width; })) + 10;
+    ctx.fillStyle = col.card; ctx.globalAlpha = 0.9; ctx.fillRect(al === 'left' ? tx - 5 : tx - w + 5, ty - fs, w, (fs + 4)*3 + 4); ctx.restore();
+    lines.forEach(function(l, i){ v.text(l[0], tx, ty + i*(fs + 4), l[1], fs, al); });
+  }
+
+  // ---------- y–t グラフ ----------
+  function ytGraph(v){
+    if(!G.on) return;
+    var ctx = v.ctx, W = 4*S.T, t0 = Math.max(0, t - W*0.85);
+    var gx = function(tt){ return G.x0 + (tt - t0)/W*(G.x1 - G.x0); };
+    var gy = function(y){ return G.cy - y*G.sy; };
+    var gf = P.narrow ? 12 : 14;
+    panelBg(ctx, G.top, G.bot);
+    ctx.save(); ctx.lineWidth = 1;
+    for(var q = Math.ceil(t0/(S.T/4)); q*(S.T/4) <= t0 + W + 1e-9; q++){
+      var gxp = gx(q*S.T/4); ctx.strokeStyle = (q % 4 === 0) ? col.line : col.grid;
+      ctx.beginPath(); ctx.moveTo(gxp, G.top + 28); ctx.lineTo(gxp, G.bot - 22); ctx.stroke();
+      if(q % 4 === 0 && q > 0 && gxp < G.x1 - 20) v.text((q/4 === 1 ? '' : q/4) + 'T', gxp, G.bot - 5, col.soft, gf, 'center');
+    }
+    ctx.restore();
+    v.line(G.x0, G.cy, G.x1, G.cy, col.faint, 1.2, [6,4]);
+    [-2*S.A, 2*S.A].forEach(function(a){ v.line(G.x0, gy(a), G.x1, gy(a), col.grid, 1); });
+    v.text('+' + (2*S.A), G.x0 - 6, gy(2*S.A) + 5, col.soft, gf, 'right');
+    v.text('−' + (2*S.A), G.x0 - 6, gy(-2*S.A) + 5, col.soft, gf, 'right');
+    v.text('0', G.x0 - 6, G.cy + 5, col.soft, gf, 'right');
+    v.label(P.narrow ? '赤い粒の y–t' : '注目する粒(赤)の y–t グラフ(1 つの粒の記録)', G.x1 - 6, G.top + 21, col.ink, P.narrow ? 13 : 15, 'right');
+    axisTitle(v, '縦軸: 変位 y [cm]', G.x0 + 6, G.top + 21, 'left');
+    axisTitle(v, '横軸: 時間 t', G.x1 - 6, G.bot - 28, 'right');
+    if(!show.me){ v.label('「注目する粒」を表示すると記録が出ます', (G.x0 + G.x1)/2, G.cy + 5, col.soft, 14, 'center'); return; }
+    var xm = me*DX;
+    ctx.save(); ctx.strokeStyle = col.red; ctx.lineWidth = 2.2; ctx.lineJoin = 'round'; ctx.beginPath();
+    var n = Math.max(2, Math.ceil((gx(t) - G.x0)/2));
+    for(var i = 0; i <= n; i++){ var tt = t0 + (t - t0)*i/n, p = [gx(tt), gy(ys(xm, tt))]; if(i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }
+    ctx.stroke(); ctx.restore();
+    v.line(gx(t), G.top + 28, gx(t), G.bot - 22, col.red, 1, [2,3]);
+    v.circle(gx(t), gy(ys(xm, t)), 4.5, col.red, col.ink);
+  }
+
+  // ---------- 時刻・状態 ----------
+  function gcd(a,b){ return b ? gcd(b, a % b) : a; }
+  function tLabel(){
+    var q = t/S.T*16, k = Math.round(q);
+    if(Math.abs(q - k) < 1e-6){
+      if(k === 0) return 't = 0';
+      var g = gcd(k, 16), nu = k/g, de = 16/g;
+      return 't = ' + (de === 1 ? (nu === 1 ? '' : nu) + 'T' : nu + '/' + de + ' T');
+    }
+    return 't = ' + (t/S.T).toFixed(2) + ' T';
+  }
+  function stage(){
+    if(!pulse){
+      if(vel()*t < XW) return '入射波が端に向かって進む';
+      if(vel()*t < 2*XW) return '反射波が戻ってくる';
+      return '定常波ができている';
+    }
+    var tf = XW/vel();                                  // 山の先頭が端に着く
+    if(t < tf) return '山が端に向かって進む';
+    if(t < tf + S.T/2) return '端で反射している';
+    if(t < 2*tf + S.T/2) return fixed ? '谷になって戻ってくる' : '山のまま戻ってくる';
+    return '波源まで戻った';
+  }
+
+  // ---------- ボタン ----------
+  function setBtns(){
+    document.getElementById('e-fix').classList.toggle('primary', fixed);
+    document.getElementById('e-free').classList.toggle('primary', !fixed);
+    document.getElementById('m-pulse').classList.toggle('primary', pulse);
+    document.getElementById('m-cont').classList.toggle('primary', !pulse);
+    document.querySelectorAll('[data-sp]').forEach(function(b){ b.classList.toggle('primary', !paused && parseFloat(b.dataset.sp) === speed); });
+    var pb = document.getElementById('pause'); pb.classList.toggle('primary', paused); pb.textContent = paused ? '再開' : '停止';
+    document.querySelectorAll('[data-step]').forEach(function(b){ b.classList.toggle('primary', parseInt(b.dataset.step, 10) === div); });
+    ['w1','w2','w3'].forEach(function(k){ document.getElementById(k).setAttribute('aria-pressed', on[k] ? 'true' : 'false'); });
+  }
+  function restart(){ t = 0; stopped = false; paused = false; setBtns(); }
+  function koma(sg){
+    paused = true;
+    var d = stepDt(), n = Math.round(t/d);
+    if(Math.abs(t - n*d) > 1e-6) n = sg > 0 ? Math.floor(t/d) : Math.ceil(t/d);
+    t = Math.max(0, (n + sg)*d);
+    stopped = true;
+    setBtns();
+  }
+
+  PhysSim({
+    state: S,
+    controls: [
+      { key:'A',   label:'振幅 A',  min:1,  max:4,  step:0.5, fmt:function(x){ return x.toFixed(1) + ' cm'; } },
+      { key:'lam', label:'波長 λ',  min:8,  max:40, step:2,   fmt:function(x){ return x + ' cm'; } },
+      { key:'T',   label:'周期 T',  min:1,  max:4,  step:0.5, fmt:function(x){ return x.toFixed(1) + ' s'; } }
+    ],
+    init: function(v){
+      readCol(); layout(v); setBtns();
+      document.getElementById('e-fix').addEventListener('click', function(){ fixed = true; setBtns(); });
+      document.getElementById('e-free').addEventListener('click', function(){ fixed = false; setBtns(); });
+      document.getElementById('m-pulse').addEventListener('click', function(){ pulse = true; restart(); });
+      document.getElementById('m-cont').addEventListener('click', function(){ pulse = false; restart(); });
+      ['w1','w2','w3'].forEach(function(k){ document.getElementById(k).addEventListener('click', function(){ on[k] = !on[k]; setBtns(); }); });
+      v.extraButton('pause', function(){ paused = !paused; setBtns(); });
+      document.querySelectorAll('[data-sp]').forEach(function(b){ b.addEventListener('click', function(){ speed = parseFloat(b.dataset.sp); paused = false; setBtns(); }); });
+      document.querySelectorAll('[data-step]').forEach(function(b){ b.addEventListener('click', function(){ div = parseInt(b.dataset.step, 10); setBtns(); }); });
+      v.extraButton('k-next', function(){ koma(1); });
+      v.extraButton('k-back', function(){ koma(-1); });
+      var map = { con:'ck-con', stop:'ck-stop', p:'ck-p', me:'ck-me', add:'ck-add', nd:'ck-nd', env:'ck-env', gh:'ck-gh', yt:'ck-yt' };
+      Object.keys(map).forEach(function(k){
+        var el = document.getElementById(map[k]); el.checked = show[k];
+        el.addEventListener('change', function(){
+          show[k] = el.checked;
+          if(k === 'add' && el.checked && !show.me){ show.me = true; document.getElementById('ck-me').checked = true; }
+          layout(v);
+        });
+      });
+      if(window.matchMedia){ var mq = window.matchMedia('(prefers-color-scheme: dark)'); if(mq.addEventListener) mq.addEventListener('change', readCol); }
+    },
+    step: function(v, h){
+      if(paused) return;
+      var tn = t + h*speed;
+      // 山を1つ:頂上が端に着いた瞬間で一度だけ止める
+      if(pulse && show.stop && !stopped && t < tHit() && tn >= tHit()){ t = tHit(); paused = true; stopped = true; setBtns(); return; }
+      t = tn;
+    },
+    draw: function(v){
+      layout(v);
+      var ctx = v.ctx; v.clear();
+      panelBg(ctx, P.top, P.bot);
+      waveGrid(v);
+      envelope(v);
+      if(show.gh && on.w3){
+        var d = stepDt();
+        [0.42, 0.26, 0.14].forEach(function(a, i){ var tt = t - (i + 1)*d; if(tt > 0) curve(v, ys, tt, 0, XW, col.wave, 2, a); });
+      }
+      nodeMarks(v);
+      construction(v);
+      if(on.w1) curve(v, yi, t, 0, XW, col.blue, 1.8, 0.95);
+      if(on.w2) curve(v, yr, t, 0, XW, col.brand, 1.8, 0.95);
+      if(on.w3) curve(v, ys, t, 0, XW, col.wave, 3.2, 1);
+      endPiece(v);
+      source(v);
+      medium(v);
+      addArrows(v);
+      v.label(tLabel(), P.x0 + 6, P.top + 42, col.ink, P.narrow ? 14 : 16);
+      v.label(stage(), (P.x0 + X(XW))/2 + (P.narrow ? 20 : 0), P.top + (P.narrow ? 64 : 42), col.wave, P.narrow ? 13 : 15, 'center');
+      ytGraph(v);
+      document.getElementById('now').textContent = tLabel() + '(' + t.toFixed(2) + ' s)';
+    },
+    readout: function(){
+      var xm = me*DX;
+      return [
+        ['端', fixed ? '固定端' : '自由端'], ['λ', S.lam + ' cm'], ['T', S.T.toFixed(1) + ' s'], ['v', vel().toFixed(1) + ' cm/s'],
+        ['反射', fixed ? '上下反転(位相 π ずれ)' : 'そのまま'],
+        ['赤い粒', show.me ? 'x = ' + xm.toFixed(1) + ' cm, y = ' + sgn(ys(xm, t)) + ' cm' : '—']
+      ];
+    },
+    down: function(v, p){
+      if(p.y > P.bot) return;
+      var x = (p.x - P.x0)/P.sx, i = Math.round(x/DX);
+      if(i < 0 || i >= NP) return;
+      if(Math.abs(X(i*DX) - p.x) > 18) return;
+      me = i; show.me = true; document.getElementById('ck-me').checked = true;
+    },
+    reset: function(){ restart(); },
+    resize: function(v){ layout(v); }
+  });
+})();
+</script>
+</body>
+</html>
