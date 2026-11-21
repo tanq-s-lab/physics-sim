@@ -35,7 +35,7 @@
     .sw-stage{grid-template-columns:1fr;gap:10px;}
     .sw-left{display:contents;}
     .sw-fig{position:sticky;top:0;z-index:5;background:var(--paper-card);padding:6px 0 4px;box-shadow:0 8px 10px -10px var(--shadow);}
-    .sw-stage canvas.sim{height:clamp(330px,92vw,440px);}
+    .sw-stage canvas.sim{height:clamp(380px,108vw,470px);}
     .sw-stage .readout{margin-top:0;}
     .sw-stage .readout li{font-size:0.74rem;padding:2px 7px;}
     .legend{font-size:0.76rem;gap:2px 12px;margin-top:6px;}
@@ -159,7 +159,7 @@
   <nav class="pager">
     <a href="./sim-interference.html">← 水面波の干渉</a>
     <a href="./waves.html">波動の一覧へ</a>
-    <span></span>
+    <a href="./sim-standing.html">定常波(定在波)のでき方 →</a>
   </nav>
 
   <footer>
@@ -201,14 +201,14 @@
   // ---------- 配置 ----------
   function layout(v){
     var narrow = v.W < 520;
-    var ml = narrow ? 34 : 46, mr = narrow ? 12 : 18;
-    var ytH = show.yt ? Math.max(110, v.H*0.34) : 0;
+    var ml = narrow ? 42 : 58, mr = narrow ? 12 : 18;
+    var ytH = show.yt ? Math.max(130, v.H*0.36) : 0;
     P.x0 = ml; P.x1 = v.W - mr; P.sx = (P.x1 - P.x0)/XL;
     P.top = 8; P.bot = v.H - ytH - (show.yt ? 14 : 8);
-    P.cy = (P.top + 26 + P.bot - 22)/2;
-    P.sy = Math.min((P.bot - P.top - 64)/2/5.8, 22);
+    P.cy = (P.top + 48 + P.bot - 26)/2;
+    P.sy = Math.min((P.bot - P.top - 84)/2/5.8, 22);
     G.on = show.yt; G.top = P.bot + 14; G.bot = v.H - 8; G.x0 = P.x0; G.x1 = P.x1;
-    G.cy = (G.top + 22 + G.bot - 18)/2; G.sy = (G.bot - G.top - 46)/2/5.5;
+    G.cy = (G.top + 28 + G.bot - 24)/2; G.sy = (G.bot - G.top - 60)/2/5.5;
     P.narrow = narrow;
   }
   function X(x){ return P.x0 + x*P.sx; }
@@ -219,19 +219,29 @@
     ctx.save(); ctx.strokeStyle = col.line; ctx.lineWidth = 1; ctx.setLineDash([]);
     ctx.strokeRect(P.x0 - 0.5, top + 0.5, P.x1 - P.x0 + 1, bot - top); ctx.restore();
   }
+  // 軸の名前(太字・背景つきで大きく)
+  function axisTitle(v, txt, x, y, align){
+    var ctx = v.ctx, fs = P.narrow ? 13 : 15;
+    ctx.save(); ctx.font = '700 ' + fs + 'px "Noto Sans JP", sans-serif';
+    var w = ctx.measureText(txt).width + 8, x0 = align === 'right' ? x - w + 4 : x - 4;
+    ctx.fillStyle = col.card; ctx.globalAlpha = 0.9; ctx.fillRect(x0, y - fs, w, fs + 6); ctx.restore();
+    ctx.save(); ctx.font = '700 ' + fs + 'px "Noto Sans JP", sans-serif'; ctx.fillStyle = col.ink;
+    ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.fillText(txt, x, y); ctx.restore();
+  }
   function waveGrid(v){
     var ctx = v.ctx;
     ctx.save(); ctx.strokeStyle = col.grid; ctx.lineWidth = 1;
     ctx.beginPath();
-    for(var x = 0; x <= XL; x += 5){ ctx.moveTo(X(x), P.top + 24); ctx.lineTo(X(x), P.bot - 18); }
-    for(var y = -6; y <= 6; y += 2){ if(Math.abs(Y(y) - P.cy) > (P.bot - P.top)/2 - 20) continue; ctx.moveTo(P.x0, Y(y)); ctx.lineTo(P.x1, Y(y)); }
+    for(var x = 0; x <= XL; x += 5){ ctx.moveTo(X(x), P.top + 46); ctx.lineTo(X(x), P.bot - 24); }
+    for(var y = -6; y <= 6; y += 2){ if(Math.abs(Y(y) - P.cy) > (P.bot - P.top)/2 - 28) continue; ctx.moveTo(P.x0, Y(y)); ctx.lineTo(P.x1, Y(y)); }
     ctx.stroke(); ctx.restore();
     v.line(P.x0, P.cy, P.x1, P.cy, col.faint, 1.2, [6,4]);
-    for(var xx = 0; xx <= XL; xx += 10) v.text(String(xx), X(xx), P.bot - 4, col.faint, 10, 'center');
-    for(var yy = -6; yy <= 6; yy += 2){ if(Math.abs(Y(yy) - P.cy) > (P.bot - P.top)/2 - 20) continue; v.text(String(yy), P.x0 - 5, Y(yy) + 3, col.faint, 10, 'right'); }
-    v.label(P.narrow ? '変位 y [cm]' : '縦軸: 変位 y [cm]', P.x0 + 4, P.top + 16, col.soft, 11);
-    v.label('x [cm]', P.x1 - 2, P.bot - 4 - 12, col.faint, 10, 'right');
-    v.label(P.narrow ? '波の形(y–x)' : '波の形 y–x グラフ(いまの瞬間)', P.x1 - 4, P.top + 16, col.ink, 12, 'right');
+    var nf = P.narrow ? 12 : 14;
+    for(var xx = 0; xx <= XL; xx += 10) v.text(String(xx), X(xx), P.bot - 6, col.soft, nf, 'center');
+    for(var yy = -6; yy <= 6; yy += 2){ if(Math.abs(Y(yy) - P.cy) > (P.bot - P.top)/2 - 28) continue; v.text(String(yy), P.x0 - 6, Y(yy) + 5, col.soft, nf, 'right'); }
+    axisTitle(v, P.narrow ? '縦軸: 変位 y [cm]' : '縦軸: 変位 y [cm]', P.x0 + 6, P.top + 21, 'left');
+    axisTitle(v, '横軸: 位置 x [cm]', P.x1 - 6, P.bot - 30, 'right');
+    v.label(P.narrow ? '波の形' : '波の形 y–x グラフ(いまの瞬間)', P.x1 - 6, P.top + 21, col.ink, P.narrow ? 13 : 15, 'right');
   }
   function waveline(v, tt, color, width, alpha){
     var ctx = v.ctx; ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = 'round';
@@ -245,14 +255,14 @@
     var bx = dir > 0 ? px - 8 : px + 8;
     v.line(px, Y(-S.A) , px, Y(S.A), col.faint, 1, [2,3]);
     v.ctx.save(); v.ctx.fillStyle = col.ink; v.ctx.fillRect(bx - 4, Y(ys) - 7, 8, 14); v.ctx.restore();
-    v.label('波源', px + (dir > 0 ? 2 : -2), P.bot - 34, col.soft, 11, dir > 0 ? 'left' : 'right');
+    v.label('波源', px + (dir > 0 ? 4 : -4), P.bot - 52, col.soft, 13, dir > 0 ? 'left' : 'right');
   }
   function front(v){
     if(!show.fr) return;
     var sf = vel()*t; if(sf >= XL) return;
     var px = X(xOf(sf));
     v.line(px, P.top + 26, px, P.bot - 30, col.soft, 1, [2,4]);
-    v.label('波の先頭', px + (dir > 0 ? 4 : -4), P.top + (P.narrow ? 52 : 38), col.soft, 11, dir > 0 ? 'left' : 'right');
+    v.label('波の先頭', px + (dir > 0 ? 4 : -4), P.top + 64, col.soft, 13, dir > 0 ? 'left' : 'right');
   }
   // 山:s = λ(t/T − 1/4 − m)
   function crestS(m, tt){ return S.lam*(tt/S.T - 0.25 - m); }
@@ -273,7 +283,7 @@
     var px = X(xOf(s)), py = Y(S.A) - 12, ctx = v.ctx;
     ctx.save(); ctx.fillStyle = col.brand; ctx.beginPath();
     ctx.moveTo(px - 8, py - 12); ctx.lineTo(px + 8, py - 12); ctx.lineTo(px, py); ctx.closePath(); ctx.fill(); ctx.restore();
-    v.label('山', px, py - 16, col.brand, 12, 'center');
+    v.label('山', px, py - 16, col.brand, 14, 'center');
   }
   function lamA(v){
     if(!show.la) return;
@@ -289,16 +299,16 @@
       v.arrow((X(a)+X(b))/2, yb, X(a)+1, yb, col.ink, 1.4);
       v.arrow((X(a)+X(b))/2, yb, X(b)-1, yb, col.ink, 1.4);
       var lt = 'λ = ' + S.lam + ' cm', ctx = v.ctx;
-      ctx.save(); ctx.font = '12px "JetBrains Mono", monospace'; var w = ctx.measureText(lt).width + 8;
-      ctx.fillStyle = col.card; ctx.fillRect((X(a)+X(b))/2 - w/2, yb + 4, w, 15); ctx.restore();
-      v.text(lt, (X(a)+X(b))/2, yb + 15, col.ink, 12, 'center');
+      ctx.save(); ctx.font = '14px "JetBrains Mono", monospace'; var w = ctx.measureText(lt).width + 8;
+      ctx.fillStyle = col.card; ctx.fillRect((X(a)+X(b))/2 - w/2, yb + 4, w, 18); ctx.restore();
+      v.text(lt, (X(a)+X(b))/2, yb + 17, col.ink, 14, 'center');
     }
     for(var c = Math.min(1, list.length - 1); c >= 0; c--){
       var pa = X(list[c]) + (dir > 0 ? 14 : -14);
       if(pa > P.x0 + 20 && pa < P.x1 - 20){
         v.arrow(pa, P.cy, pa, Y(S.A) + 1, col.ink, 1.4);
         v.arrow(pa, Y(S.A), pa, P.cy - 1, col.ink, 1.4);
-        v.text('A', pa + (dir > 0 ? 6 : -6), (P.cy + Y(S.A))/2 + 4, col.ink, 12, dir > 0 ? 'left' : 'right');
+        v.text('A', pa + (dir > 0 ? 6 : -6), (P.cy + Y(S.A))/2 + 5, col.ink, 15, dir > 0 ? 'left' : 'right');
         break;
       }
     }
@@ -330,8 +340,7 @@
   function header(v){
     var ar = dir > 0 ? '進む向き →' : '← 進む向き';
     var txt = ar + '  v = ' + vel().toFixed(1) + ' cm/s';
-    if(P.narrow) v.label(txt, P.x1 - 4, P.top + 34, col.wave, 11, 'right');
-    else v.label(txt, (P.x0 + P.x1)/2, P.top + 16, col.wave, 12, 'center');
+    v.label(txt, P.x1 - 6, P.top + 42, col.wave, P.narrow ? 12 : 14, 'right');
   }
 
   // ---------- y–t グラフ ----------
@@ -345,25 +354,26 @@
     ctx.save(); ctx.lineWidth = 1;
     for(var q = Math.ceil(t0/(S.T/4)); q*(S.T/4) <= t0 + W + 1e-9; q++){
       var gxp = gx(q*S.T/4); ctx.strokeStyle = (q % 4 === 0) ? col.line : col.grid;
-      ctx.beginPath(); ctx.moveTo(gxp, G.top + 22); ctx.lineTo(gxp, G.bot - 16); ctx.stroke();
-      if(q % 4 === 0 && q > 0 && gxp < G.x1 - 16) v.text((q/4 === 1 ? '' : q/4) + 'T', gxp, G.bot - 3, col.faint, 10, 'center');
+      ctx.beginPath(); ctx.moveTo(gxp, G.top + 28); ctx.lineTo(gxp, G.bot - 22); ctx.stroke();
+      if(q % 4 === 0 && q > 0 && gxp < G.x1 - 20) v.text((q/4 === 1 ? '' : q/4) + 'T', gxp, G.bot - 5, col.soft, P.narrow ? 12 : 14, 'center');
     }
     ctx.restore();
     v.line(G.x0, G.cy, G.x1, G.cy, col.faint, 1.2, [6,4]);
     [-S.A, S.A].forEach(function(a){ v.line(G.x0, gy(a), G.x1, gy(a), col.grid, 1); });
-    v.text('+' + S.A, G.x0 - 5, gy(S.A) + 3, col.faint, 10, 'right');
-    v.text('−' + S.A, G.x0 - 5, gy(-S.A) + 3, col.faint, 10, 'right');
-    v.text('0', G.x0 - 5, G.cy + 3, col.faint, 10, 'right');
-    v.label(P.narrow ? '赤い粒の y–t グラフ' : '注目する粒(赤)の y–t グラフ(1 つの粒の動きの記録)', G.x1 - 4, G.top + 16, col.ink, 12, 'right');
-    v.label(P.narrow ? 'y [cm]' : '縦軸: 変位 y [cm]', G.x0 + 4, G.top + 16, col.soft, 11);
-    v.label('t', G.x1 - 2, G.bot - 3, col.faint, 10, 'right');
-    if(!show.me){ v.label('「注目する粒」を表示すると記録が出ます', (G.x0 + G.x1)/2, G.cy + 4, col.faint, 12, 'center'); return; }
+    var gf = P.narrow ? 12 : 14;
+    v.text('+' + S.A, G.x0 - 6, gy(S.A) + 5, col.soft, gf, 'right');
+    v.text('−' + S.A, G.x0 - 6, gy(-S.A) + 5, col.soft, gf, 'right');
+    v.text('0', G.x0 - 6, G.cy + 5, col.soft, gf, 'right');
+    v.label(P.narrow ? '赤い粒の y–t' : '注目する粒(赤)の y–t グラフ(1 つの粒の記録)', G.x1 - 6, G.top + 21, col.ink, P.narrow ? 13 : 15, 'right');
+    axisTitle(v, '縦軸: 変位 y [cm]', G.x0 + 6, G.top + 21, 'left');
+    axisTitle(v, '横軸: 時間 t', G.x1 - 6, G.bot - 28, 'right');
+    if(!show.me){ v.label('「注目する粒」を表示すると記録が出ます', (G.x0 + G.x1)/2, G.cy + 5, col.soft, 14, 'center'); return; }
     var xm = me*DX;
     ctx.save(); ctx.strokeStyle = col.red; ctx.lineWidth = 2.2; ctx.lineJoin = 'round'; ctx.beginPath();
     var n = Math.max(2, Math.ceil(gx(t) - G.x0)/2);
     for(var i = 0; i <= n; i++){ var tt = t0 + (t - t0)*i/n, p = [gx(tt), gy(yAt(xm, tt))]; if(i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }
     ctx.stroke(); ctx.restore();
-    v.line(gx(t), G.top + 22, gx(t), G.bot - 16, col.red, 1, [2,3]);
+    v.line(gx(t), G.top + 28, gx(t), G.bot - 22, col.red, 1, [2,3]);
     v.circle(gx(t), gy(yAt(xm, t)), 4.5, col.red, col.ink);
   }
 
@@ -441,7 +451,7 @@
       source(v);
       medium(v);
       crestMark(v);
-      v.label(tLabel(), P.x0 + 4, P.top + 34, col.ink, 13);
+      v.label(tLabel(), P.x0 + 6, P.top + 42, col.ink, P.narrow ? 14 : 16);
       ytGraph(v);
       document.getElementById('now').textContent = tLabel() + '(' + t.toFixed(2) + ' s)';
     },
