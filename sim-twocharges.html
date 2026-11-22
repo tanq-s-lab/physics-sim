@@ -10,7 +10,8 @@
 <link rel="stylesheet" href="./style.css">
 <style>
   /* このページ専用:図(3段)と操作を横並び。スマホでは上2段の図を固定 */
-  .tc-stage{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start;}
+  .page{max-width:1320px;}
+  .tc-stage{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px;align-items:start;padding:12px;}
   .tc-figs{display:flex;flex-direction:column;gap:6px;}
   .tc-pl{position:relative;border-radius:10px;border:1px solid var(--line);background:var(--paper-card-2);overflow:hidden;}
   .tc-pl canvas{display:block;width:100%;touch-action:none;}
@@ -171,7 +172,7 @@
           <button class="btn" data-z="60">60a</button>
         </div>
       </div>
-      <p class="hint" style="margin-top:10px">小球は図の上でドラッグして動かせます(①と③)。上の図にカーソルを当てると、その点の電位が出ます。単位は k = a = 1、小球の質量・電気量は 1 にしています。</p>
+      <p class="hint" style="margin-top:10px">小球は図の上でドラッグして動かせます(①と③)。上の図にカーソルを当てると、その点の電位が出ます。静電気力の矢印は、力が強いほど長くなります(長さは目安)。単位は k = a = 1、小球の質量・電気量は 1 にしています。</p>
     </div>
   </section>
 
@@ -263,7 +264,7 @@ function X(x){const v=view();return padL+(x-v.a)*sc();}
 function iX(px){const v=view();return v.a+(px-padL)/sc();}
 function resize(){
   const d=window.devicePixelRatio||1;W=cvs.xy.parentElement.clientWidth;
-  const sm=window.innerWidth<=860;H=sm?{xy:170,v:150,t:120}:{xy:240,v:210,t:150};
+  const sm=window.innerWidth<=860;H=sm?{xy:190,v:155,t:120}:{xy:360,v:230,t:150};
   for(const k in cvs){const c=cvs[k];c.style.height=H[k]+'px';c.width=Math.round(W*d);c.height=Math.round(H[k]*d);
     ctx[k]=c.getContext('2d');ctx[k].setTransform(d,0,0,d,0,0);}
   heat=null;calcVR();
@@ -307,6 +308,23 @@ function arrow(c,x1,y1,x2,y2,col,w=2.2){
   c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hh*Math.cos(ang-0.45),y2-hh*Math.sin(ang-0.45));
   c.lineTo(x2-hh*Math.cos(ang+0.45),y2-hh*Math.sin(ang+0.45));c.closePath();c.fill();
 }
+function forceArrow(c,bx,y,f,fref){
+  if(Math.abs(f)<1e-6)return;
+  const L=18+82*Math.tanh(Math.abs(f)/fref),dir=Math.sign(f),x2=bx+dir*L;
+  // 背景に溶けないよう白い縁取り → 太い矢印
+  c.save();c.globalAlpha=0.9;arrowBig(c,bx,y,x2,y,C.paper,9,20);c.restore();
+  arrowBig(c,bx,y,x2,y,C.pos,5,16);
+  c.font='700 13px '+SANS;c.textBaseline='bottom';c.textAlign=dir>0?'left':'right';
+  const tx=x2+dir*4,ty=y-6;c.lineWidth=4;c.strokeStyle=C.paper;c.strokeText('静電気力',tx,ty);c.fillStyle=C.pos;c.fillText('静電気力',tx,ty);
+}
+function arrowBig(c,x1,y1,x2,y2,col,w,head){
+  const ang=Math.atan2(y2-y1,x2-x1),L=Math.hypot(x2-x1,y2-y1),hh=Math.min(head,L*0.7);
+  const bx2=x2-hh*0.8*Math.cos(ang),by2=y2-hh*0.8*Math.sin(ang);
+  c.strokeStyle=col;c.fillStyle=col;c.lineWidth=w;c.lineCap='round';
+  c.beginPath();c.moveTo(x1,y1);c.lineTo(bx2,by2);c.stroke();
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hh*Math.cos(ang-0.5),y2-hh*Math.sin(ang-0.5));
+  c.lineTo(x2-hh*Math.cos(ang+0.5),y2-hh*Math.sin(ang+0.5));c.closePath();c.fill();
+}
 function dot(c,x,y,r,fill,stroke,label,lc){
   c.beginPath();c.arc(x,y,r,0,7);c.fillStyle=fill;c.fill();
   if(stroke){c.strokeStyle=stroke;c.lineWidth=1.5;c.stroke();}
@@ -343,11 +361,11 @@ function drawXY(){
   const bx=X(S.x);
   if(S.x<=v.b){
     if(S.mode===1){
-      const f=-Ex(S.x);arrow(c,bx,ym-22,bx+Math.max(-70,Math.min(70,f*70)),ym-22,C.pos);
+      forceArrow(c,bx,ym-30,-Ex(S.x),0.3);
       dot(c,bx,ym,8,C.paper,C.neg,'−Q',C.neg);
     }else{
-      const f=Ex(S.x);arrow(c,bx,ym-22,bx+Math.max(-70,Math.min(70,f*25)),ym-22,C.pos);
-      if(Math.abs(S.v)>1e-3)arrow(c,bx,ym+24,bx+Math.max(-80,Math.min(80,S.v*14)),ym+24,C.neg);
+      forceArrow(c,bx,ym-30,Ex(S.x),1.0);
+      if(Math.abs(S.v)>1e-3)arrow(c,bx,ym+28,bx+Math.max(-80,Math.min(80,S.v*14)),ym+28,C.neg,2.6);
       dot(c,bx,ym,8,C.brand,C.paper,'q','#1B1002');
     }
   }else{
