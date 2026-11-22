@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2つの点電荷と電位の谷 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* このページ専用:図(3段)と操作を横並び。スマホでは上2段の図を固定 */
+  .tc-stage{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start;}
+  .tc-figs{display:flex;flex-direction:column;gap:6px;}
+  .tc-pl{position:relative;border-radius:10px;border:1px solid var(--line);background:var(--paper-card-2);overflow:hidden;}
+  .tc-pl canvas{display:block;width:100%;touch-action:none;}
+  .tc-pl .lab{position:absolute;left:10px;top:5px;font-size:0.8rem;color:var(--ink-soft);pointer-events:none;font-weight:500;}
+  .modes{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;}
+  .modes .btn{padding:6px 14px;font-size:0.88rem;}
+  .modes .btn.on{background:var(--accent);border-color:var(--accent);color:var(--brand-ink);}
+  .box{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+  .box + .box{margin-top:12px;}
+  .box h2{font-size:1rem;margin:0 0 6px;}
+  .box .q{font-size:0.86rem;color:var(--ink-soft);margin:0;line-height:1.65;}
+  .tc-right .controls{grid-template-columns:1fr;gap:8px;margin-top:10px;}
+  .row{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap;}
+  .row .lbl{font-size:0.84rem;color:var(--ink-soft);white-space:nowrap;min-width:4.2em;}
+  .row .btn{padding:4px 10px;font-size:0.82rem;}
+  .row .btn.on{background:var(--ink);color:var(--paper);}
+  .tc-btns{margin-top:10px;}
+  .status{margin-top:10px;font-size:0.84rem;padding:6px 9px;border-radius:8px;background:var(--paper-card-2);border:1px solid var(--line);line-height:1.6;min-height:2.4em;}
+  .status.good{border-color:var(--wave);color:var(--wave);}
+  .status.warn{border-color:var(--thermo);color:var(--thermo);}
+  details{margin-top:10px;font-size:0.86rem;}
+  summary{cursor:pointer;font-weight:700;color:var(--accent);}
+  details p{margin:6px 0;color:var(--ink-soft);}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 2px 0;padding:0;list-style:none;font-size:0.8rem;color:var(--ink-soft);}
+  .legend li{display:flex;align-items:center;gap:6px;}
+  .hide{display:none!important;}
+  @media (max-width:860px){
+    .tc-stage{grid-template-columns:1fr;gap:10px;}
+    .tc-left{display:contents;}
+    .tc-sticky{position:sticky;top:0;z-index:5;background:var(--paper-card);padding:4px 0;box-shadow:0 8px 10px -10px var(--shadow);display:flex;flex-direction:column;gap:4px;}
+    .tc-figs{display:contents;}
+    .legend{font-size:0.74rem;gap:2px 12px;}
+    .tc-stage .readout li{font-size:0.74rem;padding:2px 7px;}
+  }
+</style>
+</head>
+<body class="u-em">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html">波動</a>
+      <a href="./electromagnetism.html" class="on">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./electromagnetism.html">電磁気</a> / 2つの点電荷と電位の谷</p>
+
+  <div class="sim-head">
+    <h1>2つの点電荷と電位の谷</h1>
+    <span class="eq">V = kQ₁/r₁ + kQ₂/r₂,  W = qΔV</span>
+  </div>
+
+  <div class="modes" id="modes">
+    <button class="btn on" data-m="1">① 運ぶ(仕事)</button>
+    <button class="btn" data-m="2">② 放す(速さ最大の点)</button>
+    <button class="btn" data-m="3">③ 無限遠に届くか</button>
+  </div>
+
+  <section class="stage tc-stage">
+    <div class="tc-left">
+      <div class="tc-figs">
+        <div class="tc-sticky">
+          <div class="tc-pl"><canvas id="cxy" aria-label="xy平面の等電位線と電荷、小球"></canvas><span class="lab">xy 平面(等電位線)</span></div>
+          <div class="tc-pl"><canvas id="cv" aria-label="x軸上の電位のグラフ"></canvas><span class="lab">縦軸: x 軸上の電位 V [kQ/a]</span></div>
+        </div>
+        <div class="tc-pl"><canvas id="ct" aria-label="運動の記録のグラフ"></canvas><span class="lab" id="tlab">記録</span></div>
+      </div>
+      <ul class="legend" aria-label="図の見方">
+        <li><svg width="22" height="10"><rect x="1" y="2" width="20" height="6" rx="2" fill="var(--thermo)" opacity=".35"/></svg><span>V＞0</span></li>
+        <li><svg width="22" height="10"><rect x="1" y="2" width="20" height="6" rx="2" fill="var(--accent-2)" opacity=".35"/></svg><span>V＜0</span></li>
+        <li><svg width="22" height="10"><path d="M1 5h20" stroke="var(--thermo)" stroke-width="2"/></svg><span>V = 0 の等電位線</span></li>
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 6h15" stroke="var(--thermo)" stroke-width="2.4"/><path d="M15 1.5l6 4.5-6 4.5z" fill="var(--thermo)"/></svg><span>静電気力</span></li>
+        <li><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 6h15" stroke="var(--accent-2)" stroke-width="2.4"/><path d="M15 1.5l6 4.5-6 4.5z" fill="var(--accent-2)"/></svg><span>速度</span></li>
+        <li><svg width="22" height="10"><path d="M1 5h20" stroke="var(--brand)" stroke-width="2" stroke-dasharray="5 3"/></svg><span>全エネルギー qV(x₀)</span></li>
+      </ul>
+      <ul class="readout" id="readout"></ul>
+    </div>
+
+    <div class="tc-right">
+      <!-- ① -->
+      <div class="box" id="p1">
+        <h2>① −Q を (−3a, 0) まで運ぶ</h2>
+        <p class="q">電気量 −Q の小球を、負の無限遠から点 (−3a, 0) までゆっくり運ぶ。静電気力がする仕事は? 図の左端を「無限遠」の代わりにし、W は無限遠からの値 W = (−Q)(0 − V) = Q·V(x) を表示します。</p>
+        <div class="btns tc-btns">
+          <button class="btn primary" id="go1">▶ ゆっくり運ぶ</button>
+          <button class="btn" id="rs1">リセット</button>
+        </div>
+        <div class="status" id="st1"></div>
+        <details><summary>答えを確かめる(+Q, −4Q のとき)</summary>
+          <p>V(−3a) = kQ/(4a) − 4kQ/(2a) = −7kQ/(4a)</p>
+          <p>W = (−Q){V(∞) − V(−3a)} = <b>−7kQ²/(4a)</b>(負の仕事。−Q は −4Q に押し戻されながら運ばれる)</p>
+        </details>
+      </div>
+      <!-- ② -->
+      <div class="box hide" id="p2">
+        <h2>② 速さが最大になる点</h2>
+        <p class="q">正電荷の小球を (a, 0) のすぐ右に静かに置くと、x 軸正の向きに動き出す。速さが最大になるのはどこ?</p>
+        <div class="controls"><div class="ctrl"><label for="dl"><span>置く位置 a + δ の δ</span><output id="dlo">0.10a</output></label><input type="range" id="dl" min="0.02" max="0.6" step="0.01" value="0.10"></div></div>
+        <div class="btns tc-btns">
+          <button class="btn primary" id="go2">▶ 放す</button>
+          <button class="btn" id="rs2">リセット</button>
+        </div>
+        <div class="status" id="st2"></div>
+        <details><summary>答えを確かめる(+Q, −4Q のとき)</summary>
+          <p>速さ最大 ⇔ 加速度 0 ⇔ 電場 E = 0(V(x) の谷底)。kQ/(x−a)² = 4kQ/(x+a)² より x + a = 2(x − a)</p>
+          <p>∴ <b>x = 3a</b>(δ によらない)</p>
+        </details>
+      </div>
+      <!-- ③ -->
+      <div class="box hide" id="p3">
+        <h2>③ 無限遠に届くか</h2>
+        <p class="q">正電荷の小球を (x₀, 0)(x₀＞a)に静かに置く。x 軸正の向きの無限遠に到達しないのは、x₀ がどんな範囲のとき?</p>
+        <div class="controls"><div class="ctrl"><label for="x0"><span>置く位置 x₀</span><output id="x0o">2a</output></label><input type="range" id="x0" min="1.10" max="12" step="0.01" value="2"></div></div>
+        <div class="row">
+          <button class="btn" id="snV">V=0 の点</button>
+          <button class="btn" id="snE">E=0 の点</button>
+          <button class="btn" id="sn15">x₀ = 1.5a</button>
+        </div>
+        <div class="btns tc-btns">
+          <button class="btn primary" id="go3">▶ 放す</button>
+          <button class="btn" id="rs3">リセット</button>
+        </div>
+        <div class="status" id="st3"></div>
+        <details><summary>答えを確かめる(+Q, −4Q のとき)</summary>
+          <p>½mv² + qV(x) = qV(x₀)。無限遠では V = 0 なので、届くには qV(x₀) ≥ 0 が必要。V(x₀) = 0 となるのは x₀ = 5a/3。</p>
+          <p>∴ 到達しない条件 <b>x₀ ≥ 5a/3</b>(x₀ = 5a/3 は無限遠でちょうど速さ 0 になる境界)</p>
+        </details>
+      </div>
+
+      <div class="box">
+        <h2>電荷の大きさ</h2>
+        <div class="controls">
+          <div class="ctrl"><label for="q1"><span>右 (a, 0) の Q₁</span><output id="q1o">+Q</output></label><input type="range" id="q1" min="-6" max="6" step="0.5" value="1"></div>
+          <div class="ctrl"><label for="q2"><span>左 (−a, 0) の Q₂</span><output id="q2o">−4Q</output></label><input type="range" id="q2" min="-6" max="6" step="0.5" value="-4"></div>
+        </div>
+        <div class="row"><button class="btn" id="qdef">+Q と −4Q に戻す</button></div>
+        <div class="row">
+          <span class="lbl">速さ</span>
+          <button class="btn" data-sp="2">×2</button>
+          <button class="btn" data-sp="1">×1</button>
+          <button class="btn" data-sp="0.25">1/4</button>
+        </div>
+        <div class="row hide" id="zoomrow">
+          <span class="lbl">表示範囲</span>
+          <button class="btn" data-z="10">10a</button>
+          <button class="btn" data-z="25">25a</button>
+          <button class="btn" data-z="60">60a</button>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:10px">小球は図の上でドラッグして動かせます(①と③)。上の図にカーソルを当てると、その点の電位が出ます。単位は k = a = 1、小球の質量・電気量は 1 にしています。</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>2 つの点電荷がつくる電位は、それぞれの電位の<strong>和</strong>:V = kQ₁/r₁ + kQ₂/r₂(電位はスカラーなので、そのまま足せる)。</li>
+        <li>静電気力がする仕事は <strong>W = q(V<sub>始</sub> − V<sub>終</sub>)</strong>。通った道すじによらず、はじめと終わりの電位だけで決まる。</li>
+        <li>x 軸上の V(x) のグラフは「電位の坂道」。正電荷の小球は<strong>坂を下る向き</strong>に力を受け、グラフの傾きが <strong>−E<sub>x</sub></strong>。</li>
+        <li>V(x) の<strong>谷底</strong>は電場 E = 0 の点。加速度が 0 になるので、そこで<strong>速さが最大</strong>になる。</li>
+        <li>力学的エネルギー保存 <strong>½mv² + qV = 一定</strong>。全エネルギーの線(だいだいの破線)より V(x) が高い場所には行けない。無限遠(V = 0)に届くには qV(x₀) ≥ 0 が必要。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>② で δ を変えて放してみよう。速さが最大になる位置は変わる? 最大の速さはどうなる?</li>
+        <li>③ で x₀ を V = 0 の点の左右に置いてみよう。だいだいの線と V(x) のグラフの関係から、届く・届かないを説明しよう。</li>
+        <li>③ で谷底より右に置くと、小球はどちらに動き出す? そのあとどんな運動になる?</li>
+        <li>Q₂ を −9Q、−Q に変えると、E = 0 の点と V = 0 の点はどう動く? 谷底がなくなるのはどんなとき?</li>
+        <li>上の図で、谷底の点を通る等電位線はどんな形? その点で等電位線が交わるのはなぜ?</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-helix.html">← ローレンツ力とらせん運動</a>
+    <a href="./electromagnetism.html">電磁気の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+<script>
+(()=>{
+"use strict";
+// ===== 物理(単位:k=a=1、Q を単位、小球 q=1・m=1) =====
+let q1=1,q2=-4;
+const Vxy=(x,y)=>q1/Math.hypot(x-1,y)+q2/Math.hypot(x+1,y);
+const Vx=x=>q1/Math.abs(x-1)+q2/Math.abs(x+1);
+const Ex=x=>q1*(x-1)/Math.abs(x-1)**3+q2*(x+1)/Math.abs(x+1)**3;
+const F=(v,d=3)=>(v<0?'−':'')+Math.abs(v).toFixed(d);
+function frac(x){for(let d=1;d<=12;d++){const n=Math.round(x*d);if(Math.abs(x*d-n)<1e-6){
+  if(n===0)return '0';const s=n<0?'−':'';return d===1?s+Math.abs(n):s+Math.abs(n)+'/'+d;}}return null;}
+function niceA(x){const f=frac(x);if(f===null)return '≈'+x.toFixed(2)+'a';
+  if(f==='1')return 'a';if(f.includes('/')){const [n,d]=f.split('/');return (n==='1'?'':n)+'a/'+d;}return f+'a';}
+function xEq(x,v='x'){const n=niceA(x);return n[0]==='≈'?v+' '+n:v+' = '+n;}
+function niceV(x){const f=frac(x);return f===null?F(x,3):f;}
+function qLabel(q){if(q===0)return '0';const s=q>0?'+':'−',m=Math.abs(q);return s+(m===1?'':(Number.isInteger(m)?m:m.toFixed(1)))+'Q';}
+const $=id=>document.getElementById(id);
+
+const D={};
+function derive(){
+  D.xE=null;const r2=-q2/q1;
+  if(q1!==0&&r2>1){const r=Math.sqrt(r2);D.xE=(r+1)/(r-1);}
+  D.xV0=null;if(q1+q2!==0){const x=(q2-q1)/(q1+q2);if(x>1+1e-9)D.xV0=x;}
+  D.vminR=D.xE!==null?Math.min(0,Vx(D.xE)):0;
+}
+const S={mode:1,running:false,x:-10.5,v:0,trace:[],zoom:10,x0:2,delta:0.10,speed:1,
+  vmaxSeen:0,xAtVmax:null,turns:[],done:false,hover:null,drag:false};
+
+// ===== 色(サイトの CSS 変数から) =====
+let C={},RGB={};
+function readColors(){
+  const cs=getComputedStyle(document.body),g=n=>cs.getPropertyValue(n).trim();
+  C={ink:g('--ink'),soft:g('--ink-soft'),faint:g('--ink-faint'),line:g('--line'),card:g('--paper-card-2'),paper:g('--paper-card'),
+     pos:g('--thermo'),neg:g('--accent-2'),brand:g('--brand'),wave:g('--wave'),em:g('--em')};
+  const t=document.createElement('canvas').getContext('2d');
+  const rgb=c=>{t.clearRect(0,0,1,1);t.fillStyle=c;t.fillRect(0,0,1,1);return Array.from(t.getImageData(0,0,1,1).data.slice(0,3));};
+  t.canvas.width=t.canvas.height=1;
+  RGB={pos:rgb(C.pos),neg:rgb(C.neg),ink:rgb(C.ink)};
+  heat=null;
+}
+
+// ===== キャンバス =====
+const cvs={xy:$('cxy'),v:$('cv'),t:$('ct')};
+let H={xy:240,v:210,t:150};
+const ctx={};let W=800,heat=null;
+const padL=50,padR=14;
+function view(){return S.mode===1?{a:-11,b:4}:{a:-3,b:S.zoom};}
+function sc(){const v=view();return (W-padL-padR)/(v.b-v.a);}
+function X(x){const v=view();return padL+(x-v.a)*sc();}
+function iX(px){const v=view();return v.a+(px-padL)/sc();}
+function resize(){
+  const d=window.devicePixelRatio||1;W=cvs.xy.parentElement.clientWidth;
+  const sm=window.innerWidth<=860;H=sm?{xy:170,v:150,t:120}:{xy:240,v:210,t:150};
+  for(const k in cvs){const c=cvs[k];c.style.height=H[k]+'px';c.width=Math.round(W*d);c.height=Math.round(H[k]*d);
+    ctx[k]=c.getContext('2d');ctx[k].setTransform(d,0,0,d,0,0);}
+  heat=null;calcVR();
+}
+function niceStep(r){const p=10**Math.floor(Math.log10(r));const m=r/p;return (m<1.5?1:m<3?2:m<7?5:10)*p;}
+function yLab(y,st){const d=st>=1?0:st>=0.1?1:2;return Math.abs(y)<1e-9?'0':F(y,d);}
+const MONO='"JetBrains Mono",ui-monospace,monospace',SANS='"Noto Sans JP",sans-serif';
+
+// ===== 等電位線 =====
+function buildHeat(){
+  const h=H.xy,st=2,gw=Math.ceil(W/st),gh=Math.ceil(h/st),s=sc();
+  const qm=Math.max(1,Math.abs(q1),Math.abs(q2)),step=0.0625*qm,cs=0.3*qm;
+  const off=document.createElement('canvas');off.width=gw;off.height=gh;
+  const ic=off.getContext('2d'),img=ic.createImageData(gw,gh),d=img.data;
+  const vals=new Float32Array(gw*gh);
+  for(let j=0;j<gh;j++)for(let i=0;i<gw;i++)vals[j*gw+i]=Vxy(iX(i*st),(h/2-j*st)/s);
+  const P=RGB.pos,N=RGB.neg,K=RGB.ink;
+  for(let j=0;j<gh;j++)for(let i=0;i<gw;i++){
+    const k=j*gw+i,V=vals[k],p=k*4,t=Math.tanh(V/cs);
+    let c=t>0?P:N,a=Math.abs(t)*0.32;
+    if(Math.abs(V)<16*step){
+      const l=Math.floor(V/step);
+      for(const W2 of [i+1<gw?vals[k+1]:V,j+1<gh?vals[k+gw]:V]){
+        const l2=Math.floor(W2/step);
+        if(l2!==l){const lo=Math.min(l,l2),hi=Math.max(l,l2);
+          if(lo<0&&hi>=0){c=P;a=Math.max(a,0.9);}else{c=K;a=Math.max(a,0.22);}}
+      }
+    }
+    d[p]=c[0];d[p+1]=c[1];d[p+2]=c[2];d[p+3]=Math.round(a*255);
+  }
+  ic.putImageData(img,0,0);heat=off;
+}
+function ticks(){const v=view(),r=v.b-v.a;const st=r<=16?1:r<=30?5:10;const out=[];
+  for(let n=Math.ceil(v.a/st)*st;n<=v.b;n+=st)out.push(n);return out;}
+const tl=n=>n===0?'O':n===1?'a':n===-1?'−a':(n<0?'−':'')+Math.abs(n)+'a';
+
+function arrow(c,x1,y1,x2,y2,col,w=2.2){
+  const L=Math.hypot(x2-x1,y2-y1);if(L<3)return;const ang=Math.atan2(y2-y1,x2-x1),hh=Math.min(10,L*0.5);
+  c.strokeStyle=col;c.fillStyle=col;c.lineWidth=w;c.lineCap='round';
+  c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hh*Math.cos(ang-0.45),y2-hh*Math.sin(ang-0.45));
+  c.lineTo(x2-hh*Math.cos(ang+0.45),y2-hh*Math.sin(ang+0.45));c.closePath();c.fill();
+}
+function dot(c,x,y,r,fill,stroke,label,lc){
+  c.beginPath();c.arc(x,y,r,0,7);c.fillStyle=fill;c.fill();
+  if(stroke){c.strokeStyle=stroke;c.lineWidth=1.5;c.stroke();}
+  if(label){c.fillStyle=lc||'#fff';c.font='700 11px '+MONO;c.textAlign='center';c.textBaseline='middle';c.fillText(label,x,y+0.5);}
+}
+function vline(c,x,y1,y2,col,dash){c.save();c.strokeStyle=col;c.lineWidth=1.2;c.setLineDash(dash||[4,4]);c.beginPath();c.moveTo(x,y1);c.lineTo(x,y2);c.stroke();c.restore();}
+function charge(c,x,ym,q){
+  const r=Math.min(16,7+1.5*Math.abs(q)),col=q>0?C.pos:q<0?C.neg:C.faint,lab=qLabel(q);
+  dot(c,X(x),ym,r,col,C.paper,lab.length<=4?lab:'');
+  if(lab.length>4){c.fillStyle=col;c.font='700 11px '+MONO;c.textAlign='center';c.textBaseline='bottom';c.fillText(lab,X(x),ym-r-3);}
+}
+function mark(c,x,ym,t,col){const px=X(x);vline(c,px,ym-44,ym+44,col,[3,3]);c.fillStyle=col;c.font='700 12px '+MONO;c.textAlign='center';c.textBaseline='bottom';c.fillText(t,px,ym-46);}
+
+// ===== 上段:xy 平面 =====
+function drawXY(){
+  const c=ctx.xy,h=H.xy,v=view(),s=sc(),ym=h/2;
+  c.clearRect(0,0,W,h);
+  if(!heat)buildHeat();
+  c.save();c.beginPath();c.rect(padL,0,W-padL-padR,h);c.clip();c.imageSmoothingEnabled=true;c.drawImage(heat,0,0,W,h);c.restore();
+  c.strokeStyle=C.ink;c.lineWidth=1.3;
+  c.beginPath();c.moveTo(padL,ym);c.lineTo(W-padR,ym);c.stroke();
+  if(v.a<0&&v.b>0){c.beginPath();c.moveTo(X(0),6);c.lineTo(X(0),h-6);c.stroke();}
+  c.font='11px '+MONO;c.fillStyle=C.soft;c.textAlign='center';c.textBaseline='top';
+  for(const n of ticks()){const px=X(n);c.beginPath();c.moveTo(px,ym-3);c.lineTo(px,ym+3);c.stroke();if(n!==1&&n!==-1)c.fillText(tl(n),px,ym+6);}
+  c.textAlign='right';c.fillText('x',W-padR,ym-18);
+  if(S.mode!==1){
+    if(D.xE!==null&&D.xE<v.b)mark(c,D.xE,ym,niceA(D.xE),C.wave);
+    if(S.mode===3&&D.xV0!==null&&D.xV0<v.b)mark(c,D.xV0,ym,niceA(D.xV0),C.pos);
+  }else mark(c,-3,ym,'−3a',C.brand);
+  charge(c,-1,ym,q2);charge(c,1,ym,q1);
+  c.fillStyle=C.ink;c.font='12px '+MONO;c.textAlign='center';c.textBaseline='top';
+  c.fillText('−a',X(-1),ym+18);c.fillText('a',X(1),ym+18);
+  for(const tp of S.turns){c.strokeStyle=C.brand;c.lineWidth=1.5;c.beginPath();c.moveTo(X(tp)-5,ym-5);c.lineTo(X(tp)+5,ym+5);c.moveTo(X(tp)+5,ym-5);c.lineTo(X(tp)-5,ym+5);c.stroke();}
+  const bx=X(S.x);
+  if(S.x<=v.b){
+    if(S.mode===1){
+      const f=-Ex(S.x);arrow(c,bx,ym-22,bx+Math.max(-70,Math.min(70,f*70)),ym-22,C.pos);
+      dot(c,bx,ym,8,C.paper,C.neg,'−Q',C.neg);
+    }else{
+      const f=Ex(S.x);arrow(c,bx,ym-22,bx+Math.max(-70,Math.min(70,f*25)),ym-22,C.pos);
+      if(Math.abs(S.v)>1e-3)arrow(c,bx,ym+24,bx+Math.max(-80,Math.min(80,S.v*14)),ym+24,C.neg);
+      dot(c,bx,ym,8,C.brand,C.paper,'q','#1B1002');
+    }
+  }else{
+    arrow(c,W-padR-40,ym-30,W-padR-4,ym-30,C.brand,2.5);
+    c.fillStyle=C.brand;c.font='700 12px '+MONO;c.textAlign='right';c.textBaseline='bottom';
+    c.fillText('画面外 x='+S.x.toFixed(1)+'a',W-padR-4,ym-36);
+  }
+  if(S.hover){const [hx,hy]=S.hover;if(hx>padL){const x=iX(hx),y=(ym-hy)/s;const V=Vxy(x,y);
+    const txt='V='+(Math.abs(V)>99?(V>0?'+∞':'−∞'):F(V,2));c.font='11px '+MONO;
+    const tw=c.measureText(txt).width+10;let tx=hx+10,ty=hy-22;if(tx+tw>W)tx=hx-tw-10;if(ty<2)ty=hy+8;
+    c.fillStyle=C.paper;c.fillRect(tx,ty,tw,17);c.strokeStyle=C.line;c.strokeRect(tx,ty,tw,17);
+    c.fillStyle=C.ink;c.textAlign='left';c.textBaseline='middle';c.fillText(txt,tx+5,ty+9);}}
+}
+
+// ===== 中段:V(x) =====
+let VR={lo:-1,hi:1,st:0.5};
+function calcVR(){
+  const v=view();let mn=Infinity,mx=-Infinity;
+  const a=S.mode===1?v.a:1.4,b=S.mode===1?-2:v.b;
+  for(let i=0;i<=300;i++){const x=a+(b-a)*i/300;const V=Vx(x);if(isFinite(V)){mn=Math.min(mn,V);mx=Math.max(mx,V);}}
+  const span=Math.max(mx-mn,0.6);let lo,hi;
+  if(S.mode===1){lo=Math.min(mn-0.15*span,-0.3);hi=Math.max(mx+0.4*span,0.3);}
+  else{lo=Math.min(mn-0.6*span,-0.3);hi=Math.max(mx+0.6*span,0.3);}
+  VR={lo,hi,st:niceStep((hi-lo)/(H.v<180?3.5:5))};
+}
+function Yv(V,h){const t=24,b=20;return t+(VR.hi-V)/(VR.hi-VR.lo)*(h-t-b);}
+function gridY(c,h,r,Y,t,b){
+  c.font='11px '+MONO;c.textAlign='right';c.textBaseline='middle';
+  for(let y=Math.ceil(r.lo/r.st)*r.st;y<=r.hi+1e-9;y+=r.st){const py=Y(y);const z=Math.abs(y)<1e-9;
+    c.strokeStyle=z?C.ink:C.line;c.lineWidth=z?1.3:1;
+    c.beginPath();c.moveTo(padL,py);c.lineTo(W-padR,py);c.stroke();c.fillStyle=C.soft;c.fillText(yLab(y,r.st),padL-6,py);}
+  c.textAlign='center';c.textBaseline='top';
+  for(const n of ticks()){const px=X(n);c.strokeStyle=C.line;c.lineWidth=1;c.beginPath();c.moveTo(px,t);c.lineTo(px,h-b);c.stroke();c.fillStyle=C.soft;c.fillText(tl(n),px,h-b+3);}
+}
+function drawV(){
+  const c=ctx.v,h=H.v,v=view(),r=VR;c.clearRect(0,0,W,h);
+  gridY(c,h,r,y=>Yv(y,h),20,20);
+  vline(c,X(-1),20,h-20,C.faint);vline(c,X(1),20,h-20,C.faint);
+  c.save();c.beginPath();c.rect(padL,20,W-padL-padR,h-40);c.clip();
+  c.strokeStyle=C.ink;c.lineWidth=2.2;c.beginPath();let pen=false,prev=null;
+  const big=Math.abs(r.hi-r.lo)*20;
+  for(let px=padL;px<=W-padR;px+=1){const x=iX(px);
+    if(prev!==null&&((prev<-1)!==(x<-1)||(prev<1)!==(x<1)))pen=false;
+    prev=x;let V=Vx(x);if(!isFinite(V)){pen=false;continue;}
+    V=Math.max(r.lo-big,Math.min(r.hi+big,V));const py=Yv(V,h);
+    if(pen)c.lineTo(px,py);else{c.moveTo(px,py);pen=true;}}
+  c.stroke();
+  if(S.mode>=2&&q1>0){
+    const E=S.mode===2?Vx(1+S.delta):Vx(S.x0);
+    c.fillStyle=C.brand;c.font='700 12px '+SANS;c.textAlign='right';
+    if(E<=r.hi&&E>=r.lo){const py=Yv(E,h);c.save();c.strokeStyle=C.brand;c.lineWidth=1.8;c.setLineDash([7,5]);
+      c.beginPath();c.moveTo(X(1.001),py);c.lineTo(W-padR,py);c.stroke();c.restore();
+      c.textBaseline='bottom';c.fillText('全エネルギー '+F(E,3),W-padR-4,py-3);}
+    else{c.textBaseline='top';c.fillText((W<520?'全E ':'全エネルギー ')+F(E,2)+(E>r.hi?(W<520?'(上の外)':'(グラフの上の外)'):(W<520?'(下の外)':'(グラフの下の外)')),W-padR-4,22);}
+  }
+  c.restore();
+  if(S.mode===1)pt(c,-3,Vx(-3),'V(−3a) = '+niceV(Vx(-3)),C.brand,h);
+  else{
+    if(D.xE!==null&&D.xE<v.b)pt(c,D.xE,Vx(D.xE),'谷底:'+xEq(D.xE).replace(/ /g,'')+'(E=0)',C.wave,h);
+    if(S.mode===3&&D.xV0!==null&&D.xV0<v.b)pt(c,D.xV0,0,'V=0:'+xEq(D.xV0).replace(/ /g,''),C.pos,h,true);
+  }
+  if(S.x<=v.b){let V=Vx(S.x);const inR=V<=r.hi&&V>=r.lo;V=Math.max(r.lo,Math.min(r.hi,V));
+    const px=X(S.x),py=Yv(V,h);
+    if(S.mode===1)dot(c,px,py,7,C.paper,C.neg);else dot(c,px,py,7,C.brand,C.paper);
+    if(!inR){c.fillStyle=C.soft;c.font='11px '+MONO;c.textAlign='center';c.textBaseline=V>=r.hi?'top':'bottom';c.fillText(V>=r.hi?'↑':'↓',px,V>=r.hi?py+8:py-8);}}
+}
+function pt(c,x,V,t,col,h,above){if(V>VR.hi||V<VR.lo)return;const px=X(x),py=Yv(V,h);c.beginPath();c.arc(px,py,4,0,7);c.fillStyle=col;c.fill();
+  c.font='700 11.5px '+SANS;c.textAlign='left';c.textBaseline=above?'bottom':'top';
+  const tw=c.measureText(t).width;const tx=Math.min(px+6,W-padR-tw-2);
+  c.fillStyle=C.card;c.globalAlpha=0.85;c.fillRect(tx-2,above?py-20:py+4,tw+4,16);c.globalAlpha=1;
+  c.fillStyle=col;c.fillText(t,tx,above?py-4:py+5);}
+
+// ===== 下段:記録 =====
+function tRange(){
+  if(S.mode===1)return {lo:VR.lo,hi:VR.hi,st:VR.st};
+  const E=S.mode===2?Vx(1+S.delta):Vx(S.x0);const vm=Math.sqrt(Math.max(0,2*(E-D.vminR)))||0.5;
+  const raw=vm*1.15,st=niceStep(raw/(S.mode===2?2.5:1.2)),top=Math.ceil(raw/st)*st;
+  return S.mode===2?{lo:0,hi:top,st}:{lo:-top,hi:top,st};
+}
+function drawT(){
+  const c=ctx.t,h=H.t,r=tRange(),t=30,b=20;c.clearRect(0,0,W,h);
+  const Y=y=>t+(r.hi-y)/(r.hi-r.lo)*(h-t-b);
+  gridY(c,h,r,Y,t,b);
+  c.save();c.beginPath();c.rect(padL,t-4,W-padL-padR,h-t-b+8);c.clip();
+  if(S.mode===1){
+    c.strokeStyle=C.brand;c.globalAlpha=0.35;c.setLineDash([4,4]);c.lineWidth=1.5;c.beginPath();let f=true;
+    for(let px=padL;px<=W-padR;px++){const x=iX(px);if(x>-1.08)break;const y=Math.max(r.lo-50,Math.min(r.hi+50,Vx(x)));if(f){c.moveTo(px,Y(y));f=false;}else c.lineTo(px,Y(y));}
+    c.stroke();c.setLineDash([]);c.globalAlpha=1;vline(c,X(-3),t,h-b,C.brand);
+  }else if(D.xE!==null)vline(c,X(D.xE),t,h-b,C.wave);
+  if(S.trace.length>1){c.strokeStyle=S.mode===1?C.brand:C.neg;c.lineWidth=2.4;c.beginPath();
+    S.trace.forEach((p,i)=>{const px=X(p[0]),py=Y(Math.max(r.lo-1,Math.min(r.hi+1,p[1])));i?c.lineTo(px,py):c.moveTo(px,py);});c.stroke();}
+  if(S.mode===2&&S.xAtVmax!==null&&S.xAtVmax<view().b){const px=X(S.xAtVmax),py=Y(Math.min(r.hi,S.vmaxSeen));c.beginPath();c.arc(px,py,5,0,7);c.fillStyle=C.pos;c.fill();
+    c.font='700 11.5px '+SANS;c.textAlign='left';c.textBaseline='bottom';c.fillStyle=C.pos;c.fillText('最大 v='+S.vmaxSeen.toFixed(3)+'(x='+S.xAtVmax.toFixed(2)+'a)',Math.min(px+7,W-padR-190),py-2);}
+  c.restore();
+}
+
+// ===== 運動(実時間に合わせた固定刻み) =====
+function rk4(x,v,dt){
+  const k1x=v,k1v=Ex(x),k2x=v+k1v*dt/2,k2v=Ex(x+k1x*dt/2),k3x=v+k2v*dt/2,k3v=Ex(x+k2x*dt/2),k4x=v+k3v*dt,k4v=Ex(x+k3x*dt);
+  return [x+dt*(k1x+2*k2x+2*k3x+k4x)/6,v+dt*(k1v+2*k2v+2*k3v+k4v)/6];
+}
+const H_STEP=0.0005,SIM_RATE=1.2; // 1 秒あたりに進める物理の時間(×1 のとき)
+let acc=0;
+function step(realDt){
+  if(!S.running)return;
+  if(S.mode===1){
+    S.x=Math.min(-3,S.x+1.8*S.speed*realDt);S.trace.push([S.x,Vx(S.x)]);
+    if(S.x>=-3){S.x=-3;S.running=false;S.done=true;
+      setStatus(1,'(−3a, 0) に到着。W = Q·V(−3a) = '+niceV(Vx(-3))+' kQ²/a ≈ '+F(Vx(-3),3)+' kQ²/a','good');}
+    return;
+  }
+  acc+=realDt*SIM_RATE*S.speed;
+  const E=S.mode===2?Vx(1+S.delta):Vx(S.x0);
+  let guard=0;
+  while(acc>=H_STEP&&guard<20000){
+    acc-=H_STEP;guard++;
+    const pv=S.v;[S.x,S.v]=rk4(S.x,S.v,H_STEP);
+    if(S.x<1.003||!isFinite(S.x)){S.x=1.003;S.v=0;S.running=false;S.done=true;setStatus(S.mode,'電荷 Q₁ にぶつかった','warn');return;}
+    if(S.mode===2&&Math.abs(S.v)>S.vmaxSeen){S.vmaxSeen=Math.abs(S.v);S.xAtVmax=S.x;}
+    if(S.mode===3&&pv!==0&&Math.sign(pv)!==Math.sign(S.v)){S.turns.push(S.x);if(S.turns.length>2)S.turns.shift();}
+  }
+  const last=S.trace[S.trace.length-1];
+  if(!last||Math.abs(last[0]-S.x)>0.004)S.trace.push([S.x,S.v]);
+  if(S.trace.length>6000)S.trace.splice(0,S.trace.length-6000);
+  const xmax=view().b;
+  if(S.mode===2){
+    if(D.xE!==null&&S.x>D.xE+0.05)setStatus(2,xEq(D.xE)+' を過ぎると減速。速さ最大は x ≈ '+S.xAtVmax.toFixed(2)+'a(電場 E = 0 の点)','good');
+    if(D.xE===null&&S.x>3)setStatus(2,'x > a に電場 0 の点がないので、ずっと加速し続ける(速さは無限遠で最大)');
+    if(S.x>xmax+1){S.running=false;S.done=true;}
+  }else{
+    const eq=D.xE!==null?xEq(D.xE)+' のまわりを往復':'往復運動';
+    if(Math.abs(E)<1e-6){if(S.x>(D.xE||3))setStatus(3,'qV(x₀) = 0:無限遠でちょうど速さ 0 になる境界の場合');}
+    else if(E>0){if(S.v>0&&(D.xE===null||S.x>D.xE))setStatus(3,'qV(x₀) ＞ 0 → 無限遠に到達する(戻ってこない)','warn');}
+    else if(S.turns.length)setStatus(3,'qV(x₀) ＜ 0 → 引き戻されて'+eq+'。無限遠には到達しない','good');
+    if(E>0&&S.x>Math.max(xmax*2,120)){S.running=false;S.done=true;}
+  }
+}
+
+// ===== 表示 =====
+function setStatus(m,t,cls){const el=$('st'+m);el.textContent=t;el.className='status'+(cls?' '+cls:'');}
+const ro=$('readout');let roKey='';
+function readout(){
+  let rows;
+  if(S.mode===1)rows=[['位置 x',F(S.x,2)+' a'],['電位 V(x)',F(Vx(S.x),3)+' kQ/a'],['静電気力の仕事 W',F(Vx(S.x),3)+' kQ²/a']];
+  else if(S.mode===2)rows=[['位置 x',F(S.x,3)+' a'],['速さ v',Math.abs(S.v).toFixed(3)],['速さ最大の位置',S.xAtVmax===null?'–':S.xAtVmax.toFixed(3)+' a'],['½mv²+qV',F(0.5*S.v*S.v+Vx(S.x),3)]];
+  else rows=[['位置 x',F(S.x,3)+' a'],['速度 v',F(S.v,3)],['全エネルギー qV(x₀)',F(Vx(S.x0),4)]];
+  const key=S.mode+':'+rows.length;
+  if(key!==roKey){ro.innerHTML=rows.map(()=>'<li><b></b><span></span></li>').join('');roKey=key;}
+  rows.forEach((r,i)=>{const li=ro.children[i];if(li.firstChild.textContent!==r[0])li.firstChild.textContent=r[0];if(li.lastChild.textContent!==r[1])li.lastChild.textContent=r[1];});
+}
+let last=null;
+function frame(ts){
+  if(last===null)last=ts;const dt=Math.min((ts-last)/1000,0.05);last=ts;
+  step(dt);drawXY();drawV();drawT();readout();syncBtns();requestAnimationFrame(frame);
+}
+document.addEventListener('visibilitychange',()=>{last=null;acc=0;});
+
+// ===== 操作 =====
+const NOPUSH='Q₁ が正でないと、正の小球は x 正の向きに動き出しません(Q₁ に引き寄せられる)';
+function reset(){
+  S.running=false;S.done=false;S.v=0;S.trace=[];S.turns=[];S.vmaxSeen=0;S.xAtVmax=null;acc=0;
+  if(S.mode===1){S.x=-10.5;setStatus(1,'ボタンを押すか、小球をドラッグして運んでみよう。');}
+  else if(S.mode===2){S.x=1+S.delta;q1>0?setStatus(2,'δ を変えても、速さ最大の位置は変わるだろうか?'):setStatus(2,NOPUSH,'warn');}
+  else{S.x=S.x0;
+    if(q1<=0)setStatus(3,NOPUSH,'warn');
+    else if(D.xE!==null&&Math.abs(S.x0-D.xE)<1e-9)setStatus(3,xEq(D.xE,'x₀')+' は電場 0 の点。放しても動かない(つりあい)');
+    else setStatus(3,'だいだいの線(全エネルギー)と V(x) のグラフを見比べよう。');}
+  calcVR();
+}
+function setMode(m){S.mode=m;document.querySelectorAll('#modes .btn').forEach(b=>b.classList.toggle('on',+b.dataset.m===m));
+  [1,2,3].forEach(k=>$('p'+k).classList.toggle('hide',k!==m));
+  $('zoomrow').classList.toggle('hide',m===1);
+  $('tlab').textContent=m===1?'縦軸: 静電気力がした仕事 W [kQ²/a](無限遠から)':m===2?'縦軸: 速さ v':'縦軸: 速度 v(＋が x 正の向き)';
+  heat=null;reset();}
+document.querySelectorAll('#modes .btn').forEach(b=>b.onclick=()=>setMode(+b.dataset.m));
+function go(){
+  if(S.mode!==1&&q1<=0){setStatus(S.mode,NOPUSH,'warn');return;}
+  if(S.mode===3&&D.xE!==null&&Math.abs(S.x0-D.xE)<1e-9){setStatus(3,xEq(D.xE,'x₀')+' は電場 0 の点。放しても動かない(つりあい)');return;}
+  if(S.done)reset();
+  S.running=!S.running;
+  if(S.running&&S.mode===3&&!S.trace.length)setStatus(3,'運動中…');
+}
+$('go1').onclick=$('go2').onclick=$('go3').onclick=go;
+$('rs1').onclick=$('rs2').onclick=$('rs3').onclick=reset;
+function syncBtns(){const b=$('go'+S.mode);const txt=S.running?'❚❚ 一時停止':S.done?'↻ もう一度':(S.trace.length>1?'▶ 再開':(S.mode===1?'▶ ゆっくり運ぶ':'▶ 放す'));if(b.textContent!==txt)b.textContent=txt;}
+document.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{S.speed=+b.dataset.sp;document.querySelectorAll('[data-sp]').forEach(z=>z.classList.toggle('on',z===b));});
+document.querySelector('[data-sp="1"]').classList.add('on');
+document.querySelectorAll('[data-z]').forEach(b=>b.onclick=()=>{S.zoom=+b.dataset.z;heat=null;calcVR();document.querySelectorAll('[data-z]').forEach(z=>z.classList.toggle('on',z===b));});
+document.querySelector('[data-z="10"]').classList.add('on');
+$('dl').oninput=e=>{S.delta=+e.target.value;$('dlo').textContent=S.delta.toFixed(2)+'a';reset();};
+function setX0(v){S.x0=v;$('x0').value=Math.min(12,v);$('x0o').textContent=niceA(v).replace('≈','');reset();}
+$('x0').oninput=e=>setX0(+e.target.value);
+$('snV').onclick=()=>{if(D.xV0!==null)setX0(D.xV0);};
+$('snE').onclick=()=>{if(D.xE!==null)setX0(D.xE);};
+$('sn15').onclick=()=>setX0(1.5);
+function snapLabels(){
+  const a=$('snV'),b=$('snE');
+  a.disabled=D.xV0===null||D.xV0>12;a.textContent=D.xV0===null?'V=0 の点なし':xEq(D.xV0,'x₀')+'(V=0)';
+  b.disabled=D.xE===null||D.xE>12;b.textContent=D.xE===null?'E=0 の点なし':xEq(D.xE,'x₀')+'(E=0)';
+}
+function setCharges(a,b){
+  q1=a;q2=b;$('q1').value=a;$('q2').value=b;$('q1o').textContent=qLabel(a);$('q2o').textContent=qLabel(b);
+  derive();snapLabels();heat=null;reset();
+}
+$('q1').oninput=e=>setCharges(+e.target.value,q2);
+$('q2').oninput=e=>setCharges(q1,+e.target.value);
+$('qdef').onclick=()=>setCharges(1,-4);
+
+function canDrag(){return !S.running&&(S.mode===1||(S.mode===3&&q1>0));}
+function ptr(cv,isXY){
+  cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),px=e.clientX-r.left;
+    if(canDrag()&&Math.abs(px-X(S.x))<24){S.drag=true;try{cv.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();}});
+  cv.addEventListener('pointermove',e=>{const r=cv.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;
+    if(isXY&&e.pointerType==='mouse')S.hover=[px,py];
+    cv.style.cursor=canDrag()&&Math.abs(px-X(S.x))<24?'grab':'default';
+    if(!S.drag)return;let x=iX(px);
+    if(S.mode===1){x=Math.max(view().a+0.2,Math.min(-1.15,x));S.x=x;S.done=false;S.trace.push([x,Vx(x)]);
+      setStatus(1,Math.abs(x+3)<0.05?'ちょうど (−3a, 0) 付近。W ≈ '+F(Vx(x),3)+' kQ²/a':'W = Q·V(x) は通った道すじによらず、位置だけで決まる');}
+    else{x=Math.max(1.1,Math.min(12,x));
+      if(D.xV0!==null&&Math.abs(x-D.xV0)<0.03)x=D.xV0;if(D.xE!==null&&Math.abs(x-D.xE)<0.04)x=D.xE;setX0(x);}
+  });
+  const up=()=>{S.drag=false;};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  if(isXY)cv.addEventListener('pointerleave',()=>{S.hover=null;});
+}
+ptr(cvs.xy,true);ptr(cvs.v,false);
+
+window.addEventListener('resize',resize);
+if(window.matchMedia){const mq=window.matchMedia('(prefers-color-scheme: dark)');if(mq.addEventListener)mq.addEventListener('change',readColors);}
+readColors();resize();derive();snapLabels();setMode(1);S.x0=2;$('x0o').textContent='2a';setMode(1);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
