@@ -310,20 +310,19 @@ function arrow(c,x1,y1,x2,y2,col,w=2.2){
 }
 function forceArrow(c,bx,y,f,fref){
   if(Math.abs(f)<1e-6)return;
-  const L=18+82*Math.tanh(Math.abs(f)/fref),dir=Math.sign(f),x2=bx+dir*L;
-  // 背景に溶けないよう白い縁取り → 太い矢印
-  c.save();c.globalAlpha=0.9;arrowBig(c,bx,y,x2,y,C.paper,9,20);c.restore();
-  arrowBig(c,bx,y,x2,y,C.pos,5,16);
+  // 1つの図形(軸+矢じり)として描くので、途中で色が変わらない
+  const dir=Math.sign(f),L=26+94*Math.tanh(Math.abs(f)/fref),x2=bx+dir*L;
+  const hl=Math.min(20,L*0.6),hw=3.5,hh=10,xb=x2-dir*hl;
+  c.save();
+  c.beginPath();
+  c.moveTo(bx,y-hw);c.lineTo(xb,y-hw);c.lineTo(xb,y-hh);c.lineTo(x2,y);
+  c.lineTo(xb,y+hh);c.lineTo(xb,y+hw);c.lineTo(bx,y+hw);c.closePath();
+  c.lineJoin='round';c.lineWidth=4;c.strokeStyle=C.paper;c.stroke();
+  c.fillStyle=C.pos;c.fill();
   c.font='700 13px '+SANS;c.textBaseline='bottom';c.textAlign=dir>0?'left':'right';
-  const tx=x2+dir*4,ty=y-6;c.lineWidth=4;c.strokeStyle=C.paper;c.strokeText('静電気力',tx,ty);c.fillStyle=C.pos;c.fillText('静電気力',tx,ty);
-}
-function arrowBig(c,x1,y1,x2,y2,col,w,head){
-  const ang=Math.atan2(y2-y1,x2-x1),L=Math.hypot(x2-x1,y2-y1),hh=Math.min(head,L*0.7);
-  const bx2=x2-hh*0.8*Math.cos(ang),by2=y2-hh*0.8*Math.sin(ang);
-  c.strokeStyle=col;c.fillStyle=col;c.lineWidth=w;c.lineCap='round';
-  c.beginPath();c.moveTo(x1,y1);c.lineTo(bx2,by2);c.stroke();
-  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hh*Math.cos(ang-0.5),y2-hh*Math.sin(ang-0.5));
-  c.lineTo(x2-hh*Math.cos(ang+0.5),y2-hh*Math.sin(ang+0.5));c.closePath();c.fill();
+  const tx=x2+dir*4,ty=y-7;c.lineJoin='round';c.lineWidth=4;c.strokeStyle=C.paper;c.strokeText('静電気力',tx,ty);
+  c.fillStyle=C.pos;c.fillText('静電気力',tx,ty);
+  c.restore();
 }
 function dot(c,x,y,r,fill,stroke,label,lc){
   c.beginPath();c.arc(x,y,r,0,7);c.fillStyle=fill;c.fill();
