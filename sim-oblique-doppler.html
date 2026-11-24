@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>斜めドップラー効果 — 動く物理ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* このページ専用:図(上から見た図+グラフ)と操作を横並び。スマホでは図2枚を固定 */
+  .page{max-width:1320px;}
+  .od-stage{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start;padding:12px;}
+  .od-figs{display:flex;flex-direction:column;gap:6px;}
+  .od-pl{position:relative;border-radius:10px;border:1px solid var(--line);background:var(--paper-card-2);overflow:hidden;}
+  .od-pl canvas{display:block;width:100%;touch-action:none;}
+  #top{height:clamp(250px,36vw,400px);cursor:grab;}
+  #graph{height:clamp(150px,20vw,230px);}
+  .od-pl .lab{position:absolute;left:10px;top:5px;font-size:0.8rem;color:var(--ink-soft);pointer-events:none;font-weight:500;}
+  .box{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
+  .od-right .controls{grid-template-columns:1fr;gap:8px;margin-top:10px;}
+  .row{display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap;}
+  .row .lbl{font-size:0.84rem;color:var(--ink-soft);white-space:nowrap;min-width:4.6em;}
+  .row .btn{padding:4px 10px;font-size:0.82rem;}
+  .row .btn.on{background:var(--ink);color:var(--paper);}
+  .row .btn.toggle[aria-pressed="false"]{opacity:.55;border-style:dashed;}
+  .status{font-size:0.86rem;line-height:1.65;min-height:4.8em;}
+  .status b{color:var(--ink);}
+  .status.hi{border-color:var(--thermo);}
+  .status.lo{border-color:var(--accent-2);}
+  .status.key{border-color:var(--brand);border-width:2px;}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 2px 0;padding:0;list-style:none;font-size:0.8rem;color:var(--ink-soft);}
+  .legend li{display:flex;align-items:center;gap:6px;}
+  .legend i{display:inline-block;width:22px;height:0;border-top:2px solid currentColor;}
+  .legend i.dash{border-top-style:dashed;}
+  .legend i.thick{border-top-width:4px;}
+  .legend i.dot{width:11px;height:11px;border:none;border-radius:50%;background:currentColor;}
+  .legend i.ring{width:11px;height:11px;border:2px solid currentColor;border-radius:50%;}
+  .c-src{color:var(--thermo);} .c-obs{color:var(--accent-2);} .c-wave{color:var(--wave);}
+  .c-brand{color:var(--brand);} .c-faint{color:var(--ink-faint);}
+  .od-btns{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;}
+  @media (max-width:860px){
+    .od-stage{grid-template-columns:1fr;gap:10px;}
+    .od-left{display:contents;}
+    .od-figs{position:sticky;top:0;z-index:5;background:var(--paper-card);padding:4px 0;box-shadow:0 8px 10px -10px var(--shadow);gap:4px;}
+    #top{height:clamp(200px,56vw,280px);}
+    #graph{height:clamp(120px,32vw,170px);}
+    .legend{font-size:0.74rem;gap:2px 12px;}
+    .od-stage .readout li{font-size:0.74rem;padding:2px 7px;}
+  }
+</style>
+</head>
+<body class="u-wave">
+<div class="page">
+
+  <header class="site-header">
+    <a class="brand" href="./index.html">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 4 V13" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="var(--ink)"/>
+        <circle cx="15" cy="19" r="6" fill="var(--brand)" stroke="var(--ink)" stroke-width="1.6"/>
+      </svg>
+      <span class="brand-name">動く物理ノート</span>
+    </a>
+    <nav class="top-nav">
+      <a href="./mechanics.html">力学</a>
+      <a href="./waves.html" class="on">波動</a>
+      <a href="./electromagnetism.html">電磁気</a>
+      <a href="./thermo.html">熱と気体</a>
+    </nav>
+  </header>
+
+  <p class="crumbs"><a href="./index.html">トップ</a> / <a href="./waves.html">波動</a> / 斜めドップラー効果</p>
+
+  <div class="sim-head">
+    <h1>斜めドップラー効果</h1>
+    <span class="eq">f′ = fV / (V − v cosθ)</span>
+  </div>
+
+  <section class="stage od-stage">
+    <div class="od-left">
+      <div class="od-figs">
+        <div class="od-pl"><canvas id="top" aria-label="まっすぐ進む音源と観測者、広がる波面を上から見た図"></canvas><span class="lab">上から見た図</span></div>
+        <div class="od-pl"><canvas id="graph" aria-label="観測者に聞こえる振動数のグラフ"></canvas><span class="lab" id="glab">縦軸: 聞こえる振動数 f′ [Hz]</span></div>
+      </div>
+      <ul class="legend">
+        <li class="c-src"><i class="dot"></i>音源 S(いまの位置)</li>
+        <li class="c-obs"><i class="dot"></i>観測者 O</li>
+        <li class="c-wave"><i class="ring"></i>いま O に届いた音を出した位置</li>
+        <li class="c-wave"><i class="thick"></i>いま O に届いた波面</li>
+        <li class="c-brand"><i class="thick"></i>v cosθ(O に近づく速さ)</li>
+        <li class="c-faint"><i class="dash"></i>d = 0(正面を通る)ときの f′</li>
+      </ul>
+      <ul class="readout" id="readout"></ul>
+    </div>
+
+    <div class="od-right">
+      <div class="box status" id="status">—</div>
+      <div class="controls" id="controls"></div>
+      <div class="row"><span class="lbl">速さ</span>
+        <button class="btn" data-r="2">×2</button>
+        <button class="btn on" data-r="1">×1</button>
+        <button class="btn" data-r="0.25">1/4</button>
+        <button class="btn" data-r="0">停止</button>
+      </div>
+      <div class="row"><span class="lbl">グラフ横軸</span>
+        <button class="btn on" data-ax="x">音を出した位置</button>
+        <button class="btn" data-ax="t">聞いた時刻</button>
+      </div>
+      <div class="row"><span class="lbl">表示</span>
+        <button class="btn toggle" id="b-con" aria-pressed="true">作図(θ・v cosθ)</button>
+        <button class="btn toggle" id="b-step" aria-pressed="false">d = 0 と比べる</button>
+        <button class="btn toggle" id="b-pause" aria-pressed="true">大事な瞬間で止める</button>
+        <button class="btn toggle" id="b-snd" aria-pressed="false">♪ 音を聞く</button>
+      </div>
+      <div class="od-btns">
+        <button class="btn primary" id="reset">はじめから</button>
+      </div>
+    </div>
+  </section>
+  <p class="hint" style="margin:10px 4px 0">音源 S は左右に、観測者 O は上下にドラッグできます(O を動かすと距離 d が変わります)。波面は見やすいように間引いて描いています。「♪ 音を聞く」で、O に聞こえる音を鳴らせます(音量に注意)。</p>
+
+  <section class="notes">
+    <div class="note">
+      <h2>ポイント</h2>
+      <ul>
+        <li>音源が観測者に<strong>近づく速さ(視線方向の成分)v cosθ</strong> だけがドップラー効果に効きます。θ は「音を出したときの音源から観測者への向き」と速度のなす角。</li>
+        <li>x → −∞ で cosθ → 1 なので <strong>f′ → f₁ = fV/(V − v)</strong>(上限)、x → +∞ で cosθ → −1 なので <strong>f′ → f₂ = fV/(V + v)</strong>(下限)。f′ はこの間を<strong>なめらかに単調に下がり</strong>ます。</li>
+        <li>真横(θ = 90°)で出した音は <strong>f′ = f</strong>。でも、その音が O に届くのは d/V 秒後で、そのとき音源はもう v·d/V だけ先に進んでいます。</li>
+        <li>d が小さいほど、真横付近で f′ が急に変わります。d → 0 が、教科書の「直線上のドップラー効果」(f₁ から f₂ へ一気に変わる)です。</li>
+      </ul>
+    </div>
+    <div class="note q">
+      <h2>考えてみよう</h2>
+      <ol>
+        <li>v = 85 m/s、f = 500 Hz のとき、f₁ と f₂ を計算しよう。グラフの上限・下限と合っている?</li>
+        <li>音源が真横を通過した瞬間(最初に止まる所)、O に聞こえている音は f より高い? 低い? それはなぜ?</li>
+        <li>f′ = f になる瞬間、音源と O の距離は d より長い? 音が届くまでの時間を使って説明しよう。</li>
+        <li>d を 10 m と 200 m で比べると、グラフの形はどう変わる? 「♪ 音を聞く」で、音の下がり方も聞き比べよう。</li>
+      </ol>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <a href="./sim-reflect.html">← 固定端・自由端の反射</a>
+    <a href="./waves.html">波動の一覧へ</a>
+    <span></span>
+  </nav>
+
+  <footer>
+    <span>動く物理ノート — 高校物理のインタラクティブ教材</span>
+    <span>すべてブラウザ上で動作します。</span>
+    <span class="copy">© 2026 TANQ-Sラボ | tanq-s-lab.com</span>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // 座標:音源の進路が x 軸(右向き正)、観測者 O は (0, d)。y は画面下向き正。単位 m・s。
+  // 音源の位置 x_s = v t(t = 0 で O の真横)。時刻 t_e に出た音の波面は中心 (v t_e, 0)、半径 V(t − t_e)。
+  // O に時刻 t に届く音を出した時刻 t_e は  t_e + r_e/V = t  を解いて求める(r_e = √((v t_e)² + d²))。
+  // cosθ = −x_e / r_e、 f′ = fV / (V − v cosθ)
+  var VS = 340;
+  var S = { v:85, d:60, f:500 };
+  var rate = 1, t = 0, finished = false, hold = 0, holdMsg = '', passA = false, passB = false;
+  var showCon = true, showStep = false, pauseOn = true, axis = 'x', sound = false;
+  var drag = null, dScale = null;
+  var cv = $('top'), ctx = cv.getContext('2d'), gv = $('graph'), gctx = gv.getContext('2d');
+  var W = 0, H = 0, GW = 0, GH = 0, sc = 1, cx = 0, y0 = 0, XV = 600;
+  var col = {}, H_ = {}, glab = $('glab');   // H_: いま聞こえている音の情報
+
+  function $(id){ return document.getElementById(id); }
+  function cssv(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+  function readCol(){
+    col.ink = cssv('--ink'); col.soft = cssv('--ink-soft'); col.faint = cssv('--ink-faint');
+    col.line = cssv('--line'); col.grid = cssv('--grid'); col.card = cssv('--paper-card-2');
+    col.src = cssv('--thermo'); col.obs = cssv('--accent-2'); col.wave = cssv('--wave'); col.brand = cssv('--brand');
+  }
+  function fit(c, g){
+    var r = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    c.width = Math.round(r.width*dpr); c.height = Math.round(r.height*dpr);
+    g.setTransform(dpr,0,0,dpr,0,0); return [r.width, r.height];
+  }
+  function layout(){
+    var a = fit(cv, ctx), b = fit(gv, gctx);
+    W = a[0]; H = a[1]; GW = b[0]; GH = b[1];
+    y0 = Math.max(50, H*0.28);
+    // 縮尺は d に合わせる(O を動かしている間は固定)
+    var dS = dScale !== null ? dScale : S.d, xvt = Math.max(W < 560 ? 140 : 270, 3.4*dS);
+    sc = Math.min((W/2 - 6)/xvt, (H - y0 - 34)/(dS + 12));
+    cx = W/2; XV = (W/2 - 6)/sc;
+  }
+  function X(x){ return cx + x*sc; }  function Y(y){ return y0 + y*sc; }
+
+  // ---------- 物理 ----------
+  function tr(xe){ return xe/S.v + Math.hypot(xe, S.d)/VS; }              // 位置 xe で出た音が届く時刻
+  function fp(xe){ return S.f*VS/(VS + S.v*xe/Math.hypot(xe, S.d)); }      // その音の振動数
+  function f1(){ return S.f*VS/(VS - S.v); }
+  function f2(){ return S.f*VS/(VS + S.v); }
+  function heard(T){                                                        // 時刻 T に O に届いている音
+    var g = function(te){ return te + Math.hypot(S.v*te, S.d)/VS - T; };
+    var hi = T, lo = T - 1, k = 0;
+    while(g(lo) > 0 && k++ < 60) lo = T - 2*(T - lo);
+    for(var i=0; i<60; i++){ var m = (lo + hi)/2; if(g(m) > 0) hi = m; else lo = m; }
+    var te = (lo + hi)/2, xe = S.v*te, re = Math.hypot(xe, S.d);
+    return { te:te, xe:xe, re:re, cos:-xe/re, f:S.f*VS/(VS + S.v*xe/re) };
+  }
+  function tStart(){ return -(XV + 40)/S.v; }
+  function reset(){ t = tStart(); finished = false; hold = 0; passA = passB = false; if(rate === 0) setRate(1); }
+  function syncFlags(){ passA = t >= 0; passB = t >= S.d/VS; finished = heard(t).xe >= XV; }
+
+  function step(dt){
+    if(hold > 0){ hold -= dt; return; }
+    if(finished || rate === 0) return;
+    var nt = t + dt*rate;
+    if(!passA && nt >= 0){ passA = true; t = 0;
+      if(pauseOn){ hold = 2.5; holdMsg = 'A'; return; } }
+    if(!passB && nt >= S.d/VS){ passB = true; t = S.d/VS;
+      if(pauseOn){ hold = 2.5; holdMsg = 'B'; return; } }
+    t = nt;
+    if(heard(t).xe >= XV) finished = true;
+  }
+
+  // ---------- 描画ヘルパ ----------
+  function line(c, x1,y1,x2,y2, color, w, dash){
+    c.save(); c.strokeStyle = color; c.lineWidth = w || 1.5; c.setLineDash(dash || []);
+    c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke(); c.restore();
+  }
+  function arrow(c, x1,y1,x2,y2, color, w){
+    var len = Math.hypot(x2-x1, y2-y1); if(len < 3) return;
+    var a = Math.atan2(y2-y1, x2-x1), h = Math.min(10, len*0.5);
+    line(c, x1,y1, x2 - 0.6*h*Math.cos(a), y2 - 0.6*h*Math.sin(a), color, w || 2.4);
+    c.save(); c.fillStyle = color; c.beginPath(); c.moveTo(x2,y2);
+    c.lineTo(x2 - h*Math.cos(a-0.42), y2 - h*Math.sin(a-0.42));
+    c.lineTo(x2 - h*Math.cos(a+0.42), y2 - h*Math.sin(a+0.42)); c.closePath(); c.fill(); c.restore();
+  }
+  function txt(c, s, x, y, color, size, al, jp, bg){
+    c.font = jp ? '500 ' + size + 'px "Noto Sans JP", sans-serif' : size + 'px "JetBrains Mono", monospace';
+    c.textAlign = al || 'left'; c.textBaseline = 'alphabetic';
+    if(bg){
+      var w = c.measureText(s).width, x0 = al === 'center' ? x - w/2 : (al === 'right' ? x - w : x);
+      c.save(); c.globalAlpha = 0.85; c.fillStyle = col.card; c.fillRect(x0 - 3, y - size, w + 6, size + 5); c.restore();
+    }
+    c.fillStyle = color; c.fillText(s, x, y);
+  }
+  function dot(c, x, y, r, fill, stroke){
+    c.save(); c.beginPath(); c.arc(x, y, r, 0, Math.PI*2); c.fillStyle = fill; c.fill();
+    c.lineWidth = 1.5; c.strokeStyle = stroke || col.ink; c.stroke(); c.restore();
+  }
+
+  // ---------- 上から見た図 ----------
+  function drawTop(){
+    var c = ctx; c.clearRect(0,0,W,H);
+    var h = H_;
+    // 方眼 50 m
+    c.save(); c.strokeStyle = col.grid; c.lineWidth = 1; c.beginPath();
+    for(var gx = -Math.floor(XV/50)*50; gx <= XV; gx += 50){ c.moveTo(X(gx), 0); c.lineTo(X(gx), H); }
+    for(var gy = -Math.floor((y0/sc)/50)*50; Y(gy) <= H; gy += 50){ c.moveTo(0, Y(gy)); c.lineTo(W, Y(gy)); }
+    c.stroke(); c.restore();
+    // 進路
+    line(c, 0, Y(0), W, Y(0), col.soft, 1.2, [7,6]);
+    txt(c, '音源の進路', 8, Y(0) - 6, col.soft, 11, 'left', true);
+
+    // 波面(一定時間ごとに出た音)
+    var dTe = 44/(sc*VS), kmax = Math.floor(t/dTe);
+    c.save(); c.strokeStyle = col.ink; c.globalAlpha = 0.28; c.lineWidth = 1.2; c.beginPath();
+    for(var k = kmax, n = 0; n < 400; k--, n++){
+      var te = k*dTe, R = VS*(t - te), xc = S.v*te;
+      if(R <= 0) continue;
+      var far = Math.max(Math.hypot(X(xc) - 0, Y(0) - 0), Math.hypot(X(xc) - W, Y(0) - H), Math.hypot(X(xc) - 0, Y(0) - H), Math.hypot(X(xc) - W, Y(0)));
+      if(R*sc > far) break;
+      c.moveTo(X(xc) + R*sc, Y(0)); c.arc(X(xc), Y(0), R*sc, 0, Math.PI*2);
+    }
+    c.stroke(); c.restore();
+
+    // いま O に届いた波面
+    var Ex = X(h.xe), Ey = Y(0), Ox = X(0), Oy = Y(S.d), Sx = X(S.v*t);
+    c.save(); c.strokeStyle = col.wave; c.lineWidth = 2.6; c.globalAlpha = 0.9; c.beginPath();
+    c.arc(Ex, Ey, h.re*sc, 0, Math.PI*2); c.stroke(); c.restore();
+
+    // 距離 d
+    line(c, Ox, Ey, Ox, Oy, col.soft, 1, [3,3]);
+    if(S.d*sc > 30) txt(c, 'd = ' + S.d + ' m', Ox + 6, (Ey + Oy)/2 + 4, col.soft, 11, 'left', false, true);
+
+    // 作図
+    if(showCon && Ex > -40 && Ex < W + 40){
+      var vlen = Math.min(70, 18 + S.v*0.45);
+      var ux = (Ox - Ex)/(h.re*sc), uy = (Oy - Ey)/(h.re*sc);
+      line(c, Ex, Ey, Ox, Oy, col.wave, 1.8);                          // 音の道すじ
+      var ang = Math.atan2(uy, ux);
+      c.save(); c.strokeStyle = col.ink; c.lineWidth = 1.3; c.beginPath(); c.arc(Ex, Ey, 20, 0, ang); c.stroke(); c.restore();
+      var la = ang/2, lr = ang > 2.4 ? 30 : 32;
+      txt(c, 'θ', Ex + lr*Math.cos(la), Ey + lr*Math.sin(la) + 5, col.ink, 14, 'center', true);
+      arrow(c, Ex, Ey, Ex + vlen, Ey, col.src, 2);                     // その時の速度 v
+      txt(c, 'v', Ex + vlen + 4, Ey - 5, col.src, 12, 'left');
+      var p = vlen*h.cos, Fx = Ex + p*ux, Fy = Ey + p*uy;
+      line(c, Ex + vlen, Ey, Fx, Fy, col.brand, 1.2, [3,3]);          // 垂線
+      arrow(c, Ex, Ey, Fx, Fy, col.brand, 3.2);                        // v cosθ
+      var nx = -uy, ny = ux, side = h.cos >= 0 ? 1 : -1;
+      if(Math.abs(p) > 14) txt(c, 'v cosθ', (Ex + Fx)/2 + nx*14*side + (side > 0 ? 6 : -6), (Ey + Fy)/2 + ny*14*side + 4, col.brand, 12, side > 0 ? 'left' : 'right', false, true);
+      // 音が届くまでに音源が進んだ距離
+      if(Sx - Ex > 40){
+        var by = Ey - 24;
+        line(c, Ex, by - 5, Ex, by + 5, col.soft, 1); line(c, Sx, by - 5, Sx, by + 5, col.soft, 1);
+        line(c, Ex, by, Sx, by, col.soft, 1);
+        if(Sx - Ex > 150) txt(c, '音が届くまでに進んだ距離', (Ex + Sx)/2, by - 5, col.soft, 11, 'center', true, true);
+      }
+    }
+    // 音を出した位置
+    if(Ex > -10 && Ex < W + 10){
+      c.save(); c.fillStyle = col.card; c.strokeStyle = col.wave; c.lineWidth = 2.4;
+      c.beginPath(); c.arc(Ex, Ey, 6, 0, Math.PI*2); c.fill(); c.stroke(); c.restore();
+    }
+    // 音源 S
+    if(Sx > -20 && Sx < W + 20){
+      dot(c, Sx, Ey, 8, col.src);
+      arrow(c, Sx + 9, Ey, Sx + 9 + Math.min(60, 14 + S.v*0.4), Ey, col.src, 2.4);
+      txt(c, '音源 S', Sx, Ey - 14, col.src, 12, 'center', true, true);
+    }
+    // 観測者 O
+    dot(c, Ox, Oy, 9, col.obs);
+    txt(c, '観測者 O', Ox + 14, Oy + 4, col.obs, 12, 'left', true, true);
+    txt(c, '↕', Ox - 14, Oy + 5, col.soft, 12, 'center');
+
+    // 目盛り 100 m
+    var bx = 10, bby = H - 10;
+    line(c, bx, bby, bx + 100*sc, bby, col.ink, 2);
+    line(c, bx, bby - 4, bx, bby + 4, col.ink, 1.3); line(c, bx + 100*sc, bby - 4, bx + 100*sc, bby + 4, col.ink, 1.3);
+    txt(c, '100 m', bx + 100*sc + 6, bby + 4, col.soft, 11, 'left');
+  }
+
+  // ---------- グラフ ----------
+  function niceStep(r){ var p = Math.pow(10, Math.floor(Math.log10(r))), m = r/p; return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10)*p; }
+  function drawGraph(){
+    var c = gctx; c.clearRect(0,0,GW,GH);
+    var F1 = f1(), F2 = f2(), span = F1 - F2;
+    var narrow = GW < 600, top = 24, bot = GH - 22;
+    var fmax = F1 + 0.16*span, fmin = F2 - 0.10*span;
+    function GY(f){ return top + (fmax - f)/(fmax - fmin)*(bot - top); }
+    var tA = tr(-XV), tB = tr(XV);
+    function HX(xe){ return axis === 'x' ? X(xe) : 8 + (tr(xe) - tA)/(tB - tA)*(GW - 16); }
+    function TX(T){ return 8 + (T - tA)/(tB - tA)*(GW - 16); }
+    // 目盛り
+    var st = niceStep(span/3);
+    c.save(); c.strokeStyle = col.grid; c.lineWidth = 1; c.beginPath();
+    for(var f = Math.ceil(fmin/st)*st; f <= fmax; f += st){ c.moveTo(0, GY(f)); c.lineTo(GW, GY(f)); }
+    c.stroke(); c.restore();
+    for(f = Math.ceil(fmin/st)*st; f <= fmax; f += st) txt(c, String(Math.round(f)), 4, GY(f) - 3, col.faint, 10, 'left');
+    // 横軸の目盛り
+    if(axis === 'x'){
+      var xs = niceStep(XV/3);
+      for(var gx = -Math.floor(XV/xs)*xs; gx <= XV; gx += xs){
+        line(c, X(gx), bot, X(gx), bot + 4, col.faint, 1);
+        txt(c, String(Math.round(gx)), X(gx), bot + 14, col.faint, 9, 'center');
+      }
+      line(c, X(0), top, X(0), bot, col.soft, 1, [2,3]);
+    } else {
+      var ts = niceStep((tB - tA)/8);
+      for(var T = Math.ceil(tA/ts)*ts; T <= tB; T += ts){
+        line(c, TX(T), bot, TX(T), bot + 4, col.faint, 1);
+        txt(c, (Math.abs(T) < 1e-9 ? 0 : +T.toFixed(1)) + '', TX(T), bot + 14, col.faint, 9, 'center');
+      }
+      line(c, TX(0), top, TX(0), bot, col.soft, 1, [2,3]);
+      line(c, TX(S.d/VS), top, TX(S.d/VS), bot, col.wave, 1, [2,3]);
+    }
+    line(c, 0, bot, GW, bot, col.soft, 1);
+    // 基準線
+    line(c, 0, GY(F1), GW, GY(F1), col.src, 1.2, [6,4]);
+    line(c, 0, GY(S.f), GW, GY(S.f), col.ink, 1, [2,3]);
+    line(c, 0, GY(F2), GW, GY(F2), col.obs, 1.2, [6,4]);
+    var gl = narrow ? ('縦軸: f′ [Hz] / 横軸: ' + (axis === 'x' ? '音を出した位置 x [m]' : '聞いた時刻 t [s]')) : '縦軸: 聞こえる振動数 f′ [Hz]';
+    if(glab.textContent !== gl) glab.textContent = gl;
+    txt(c, (narrow ? 'f₁ = ' : 'f₁ = fV/(V−v) = ') + F1.toFixed(0) + ' Hz', GW - 6, GY(F1) - 4, col.src, 11, 'right', false, true);
+    txt(c, 'f = ' + S.f + ' Hz', GW - 6, GY(S.f) - 4, col.ink, 11, 'right', false, true);
+    txt(c, (narrow ? 'f₂ = ' : 'f₂ = fV/(V+v) = ') + F2.toFixed(0) + ' Hz', GW - 6, GY(F2) + 13, col.obs, 11, 'right', false, true);
+    // d = 0 のとき
+    if(showStep){
+      var jx = axis === 'x' ? X(0) : TX(0);
+      c.save(); c.strokeStyle = col.faint; c.lineWidth = 1.8; c.setLineDash([6,4]); c.beginPath();
+      c.moveTo(0, GY(F1)); c.lineTo(jx, GY(F1)); c.lineTo(jx, GY(F2)); c.lineTo(GW, GY(F2)); c.stroke(); c.restore();
+    }
+    // 理論曲線(うすく)と、ここまでの記録(太く)
+    function curve(xa, xb, color, w, alpha){
+      if(xb <= xa) return;
+      c.save(); c.strokeStyle = color; c.lineWidth = w; c.globalAlpha = alpha; c.lineJoin = 'round'; c.beginPath();
+      var N = 500;
+      for(var i=0; i<=N; i++){
+        // 真横付近を細かく:sinh で分布
+        var s = -1 + 2*i/N, xe = S.d*Math.sinh(s*Math.asinh(XV/S.d));
+        if(xe < xa){ continue; } if(xe > xb){ xe = xb; }
+        var px = HX(xe), py = GY(fp(xe));
+        if(i === 0 || xe === xa) c.moveTo(px, py); else c.lineTo(px, py);
+        if(xe === xb) break;
+      }
+      c.stroke(); c.restore();
+    }
+    curve(-XV - 1, XV, col.wave, 1.4, 0.3);
+    var h = H_, xn = Math.min(h.xe, XV);
+    curve(-XV - 1, xn, col.wave, 3, 1);
+    if(h.xe >= -XV && h.xe <= XV){
+      var px = HX(h.xe), py = GY(h.f);
+      line(c, px, py, px, bot, col.wave, 1, [3,3]);
+      dot(c, px, py, 5, col.wave);
+    }
+    if(axis === 'x'){
+      var sx = X(S.v*t);
+      if(sx > 0 && sx < GW){
+        c.save(); c.fillStyle = col.src; c.beginPath(); c.moveTo(sx, bot - 1); c.lineTo(sx - 6, bot - 11); c.lineTo(sx + 6, bot - 11); c.closePath(); c.fill(); c.restore();
+        if(Math.abs(sx - (h.xe >= -XV ? X(h.xe) : -999)) > 50) txt(c, 'S のいまの位置', sx, bot - 14, col.src, 10, 'center', true, true);
+      }
+      if(!narrow) txt(c, '横軸: 音を出した位置 x [m](上の図と同じ)', GW - 6, top - 8, col.soft, 10, 'right', true);
+    } else {
+      line(c, TX(t), top, TX(t), bot, col.ink, 1.2);
+      if(!narrow) txt(c, '横軸: 聞いた時刻 t [s](0 = 音源が真横)', GW - 6, top - 8, col.soft, 10, 'right', true);
+      if(TX(S.d/VS) - TX(0) > 30) txt(c, 'd/V', TX(S.d/VS) + 3, bot - 4, col.wave, 10, 'left');
+    }
+  }
+
+  // ---------- 状況の説明 ----------
+  var stEl = $('status');
+  function status(){
+    var h = H_, s, cls = '';
+    if(hold > 0 && holdMsg === 'A'){
+      cls = 'key'; s = '<b>音源が O の真横を通過!</b><br>でも O に聞こえているのは、まだ<b>手前(近づいていた時)に出た高い音</b>(f′ = ' + h.f.toFixed(0) + ' Hz > f)。音が届くのに時間がかかるため。';
+    } else if(hold > 0 && holdMsg === 'B'){
+      cls = 'key'; s = '<b>f′ = f の瞬間</b><br>いま聞こえているのは、音源が<b>真横(θ = 90°)にいた時に出した音</b>。音源はもう ' + (S.v*S.d/VS).toFixed(1) + ' m 先へ進んでいる。';
+    } else if(finished){
+      s = 'f′ は f₂ = ' + f2().toFixed(0) + ' Hz に近づいていきます(x → +∞)。<br>「はじめから」でもう一度。';
+    } else if(h.cos > 0.002){
+      cls = 'hi'; s = '近づきながら出した音(cosθ > 0)<br>→ <b>f′ > f</b>(高い音)。左の遠くほど f₁ = ' + f1().toFixed(0) + ' Hz に近い。';
+    } else if(h.cos < -0.002){
+      cls = 'lo'; s = '遠ざかりながら出した音(cosθ < 0)<br>→ <b>f′ < f</b>(低い音)。右の遠くほど f₂ = ' + f2().toFixed(0) + ' Hz に近い。';
+    } else s = '真横で出した音(θ = 90°)→ f′ = f';
+    if(rate === 0 && hold <= 0 && !finished) s = '<b>停止中</b><br>' + s;
+    if(stEl.innerHTML !== s) stEl.innerHTML = s;
+    stEl.className = 'box status ' + cls;
+  }
+
+  // ---------- 数値 ----------
+  var roEl = $('readout'), roItems = [];
+  function readout(){
+    var h = H_, th = Math.acos(Math.max(-1, Math.min(1, h.cos)))*180/Math.PI;
+    var rows = [
+      ['聞こえる振動数 f′', h.f.toFixed(1) + ' Hz'],
+      ['θ', th.toFixed(1) + '°(cosθ = ' + h.cos.toFixed(3) + ')'],
+      ['v cosθ', (S.v*h.cos >= 0 ? '+' : '') + (S.v*h.cos).toFixed(1) + ' m/s'],
+      ['音源の位置', (S.v*t).toFixed(0) + ' m'],
+      ['音を出した位置', h.xe.toFixed(0) + ' m'],
+      ['届くまでの時間 r/V', (h.re/VS).toFixed(2) + ' s'],
+      ['v/V', (S.v/VS).toFixed(3)]
+    ];
+    if(roItems.length !== rows.length){
+      roEl.innerHTML = ''; roItems = [];
+      rows.forEach(function(){ var li = document.createElement('li'), b = document.createElement('b'), s = document.createElement('span');
+        li.appendChild(b); li.appendChild(s); roEl.appendChild(li); roItems.push([b, s]); });
+    }
+    rows.forEach(function(r, i){
+      if(roItems[i][0].textContent !== r[0]) roItems[i][0].textContent = r[0];
+      if(roItems[i][1].textContent !== r[1]) roItems[i][1].textContent = r[1];
+    });
+  }
+
+  // ---------- 音 ----------
+  var AC = null, osc = null, gain = null;
+  function setSound(on){
+    sound = on;
+    if(on && !AC){
+      var A = window.AudioContext || window.webkitAudioContext; if(!A){ sound = false; return; }
+      AC = new A(); osc = AC.createOscillator(); osc.type = 'sine'; gain = AC.createGain(); gain.gain.value = 0;
+      osc.connect(gain); gain.connect(AC.destination); osc.start();
+    }
+    if(on && AC && AC.state === 'suspended') AC.resume();
+  }
+  function updateSound(){
+    if(!AC) return;
+    var h = H_, g = (sound && rate > 0 && !finished) ? 0.16*Math.min(1, 40/h.re) : 0;
+    gain.gain.setTargetAtTime(g, AC.currentTime, 0.05);
+    osc.frequency.setTargetAtTime(h.f, AC.currentTime, 0.02);
+  }
+
+  // ---------- 操作 ----------
+  var ctrlDefs = [
+    { key:'v', label:'音源の速さ v', min:10, max:270, step:5, fmt:function(x){ return x + ' m/s(音速の ' + (x/VS).toFixed(2) + ' 倍)'; } },
+    { key:'d', label:'進路から O までの距離 d', min:5, max:200, step:5, fmt:function(x){ return x + ' m'; } },
+    { key:'f', label:'音源の振動数 f', min:200, max:1000, step:10, fmt:function(x){ return x + ' Hz'; } }
+  ];
+  var outs = {};
+  ctrlDefs.forEach(function(cd){
+    var wrap = document.createElement('div'); wrap.className = 'ctrl';
+    var lab = document.createElement('label'); lab.htmlFor = 'c-' + cd.key;
+    var nm = document.createElement('span'); nm.textContent = cd.label;
+    var out = document.createElement('output'); outs[cd.key] = out;
+    var inp = document.createElement('input'); inp.type = 'range'; inp.id = 'c-' + cd.key;
+    inp.min = cd.min; inp.max = cd.max; inp.step = cd.step; inp.value = S[cd.key];
+    inp.addEventListener('input', function(){ setVal(cd.key, parseFloat(inp.value), true); });
+    lab.appendChild(nm); lab.appendChild(out); wrap.appendChild(lab); wrap.appendChild(inp); $('controls').appendChild(wrap);
+  });
+  function showVals(){ ctrlDefs.forEach(function(cd){ outs[cd.key].textContent = cd.fmt(S[cd.key]); }); }
+  function setVal(key, val, fromSlider){
+    if(key === 'v'){ var xs = S.v*t; S.v = val; t = xs/S.v; }                  // 音源の位置はそのまま
+    else S[key] = val;
+    if(!fromSlider) $('c-' + key).value = val;
+    if(hold > 0) hold = 0;
+    if(key === 'd' && dScale === null) relayout();
+    syncFlags(); showVals();
+  }
+  function setRate(r){
+    rate = r;
+    document.querySelectorAll('[data-r]').forEach(function(b){ b.classList.toggle('on', parseFloat(b.dataset.r) === r); });
+  }
+  document.querySelectorAll('[data-r]').forEach(function(b){ b.addEventListener('click', function(){ setRate(parseFloat(b.dataset.r)); if(rate > 0 && hold > 0) hold = 0; }); });
+  document.querySelectorAll('[data-ax]').forEach(function(b){ b.addEventListener('click', function(){
+    axis = b.dataset.ax; document.querySelectorAll('[data-ax]').forEach(function(o){ o.classList.toggle('on', o === b); }); }); });
+  function tog(id, get, set){ var b = $(id); b.addEventListener('click', function(){ set(!get()); b.setAttribute('aria-pressed', get() ? 'true' : 'false'); }); }
+  tog('b-con',   function(){ return showCon; },  function(v){ showCon = v; });
+  tog('b-step',  function(){ return showStep; }, function(v){ showStep = v; });
+  tog('b-pause', function(){ return pauseOn; },  function(v){ pauseOn = v; if(!v) hold = 0; });
+  tog('b-snd',   function(){ return sound; },    function(v){ setSound(v); });
+  $('reset').addEventListener('click', reset);
+
+  function pos(e){ var r = cv.getBoundingClientRect(); return { x:e.clientX - r.left, y:e.clientY - r.top }; }
+  cv.addEventListener('pointerdown', function(e){
+    var p = pos(e);
+    if(Math.hypot(p.x - X(0), p.y - Y(S.d)) < 22){ drag = 'o'; dScale = S.d; }
+    else if(Math.abs(p.y - Y(0)) < 24 && Math.abs(p.x - X(S.v*t)) < 28) drag = 's';
+    else return;
+    try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+    hold = 0; e.preventDefault();
+  });
+  cv.addEventListener('pointermove', function(e){
+    if(!drag) return; var p = pos(e);
+    if(drag === 'o'){
+      var d = Math.round((p.y - y0)/sc/5)*5; d = Math.max(5, Math.min(200, Math.min(d, Math.floor((H - y0 - 14)/sc/5)*5)));
+      if(d !== S.d) setVal('d', d, false);
+    } else {
+      var xs = (p.x - cx)/sc; xs = Math.max(-XV - 40, Math.min(XV + 300, xs));
+      t = xs/S.v; syncFlags();
+    }
+  });
+  function up(){ if(drag === 'o'){ dScale = null; relayout(); } drag = null; }
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+
+  // ---------- 起動 ----------
+  readCol(); layout(); showVals(); reset();
+  if(window.matchMedia){ var mq = window.matchMedia('(prefers-color-scheme: dark)'); if(mq.addEventListener) mq.addEventListener('change', readCol); }
+  new MutationObserver(readCol).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+  function relayout(){
+    var xs = S.v*t, atStart = Math.abs(t - tStart()) < 1e-6; layout();
+    t = atStart ? tStart() : xs/S.v; syncFlags();
+  }
+  window.addEventListener('resize', relayout);
+  var last = null;
+  function loop(ts){
+    if(last === null) last = ts;
+    var dt = Math.min((ts - last)/1000, 0.05); last = ts;
+    if(!drag) step(dt);
+    H_ = heard(t);
+    drawTop(); drawGraph(); status(); readout(); updateSound();
+    requestAnimationFrame(loop);
+  }
+  document.addEventListener('visibilitychange', function(){ last = null; });
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
